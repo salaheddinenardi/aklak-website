@@ -3,141 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أكلاك aklake - الخطة الذهبية</title>
+    <title>أكلاك | aklake</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        body { font-family: 'Tajawal', sans-serif; margin: 0; padding: 0; background-color: #f8f9fa; color: #333; }
         
-        body {
-            font-family: 'Tajawal', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
-        }
-        header {
-            background-color: #ffffff;
-            padding: 20px 50px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            text-align: center;
-        }
-        header h1 {
-            margin: 0;
-            color: #2c3e50;
-            font-weight: 700;
-        }
-        .hero {
-            text-align: center;
-            padding: 80px 20px;
-            background: linear-gradient(135deg, #4a90e2 0%, #14539a 100%);
-            color: white;
-        }
-        .hero h2 {
-            font-size: 2.5em;
-            margin-bottom: 15px;
-        }
-        .hero p {
-            font-size: 1.2em;
-            max-width: 600px;
-            margin: 0 auto 40px auto;
-            line-height: 1.6;
-        }
-        .btn {
-            background-color: #ff9f43;
-            color: white;
-            padding: 15px 35px;
-            text-decoration: none;
-            font-size: 1.2em;
-            border-radius: 30px;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        .btn:hover {
-            background-color: #ff7b00;
-        }
-        .apps-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            padding: 60px 20px;
-            gap: 25px;
-        }
-        .app-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-            width: 300px;
-            text-align: center;
-            transition: transform 0.3s;
-        }
-        .app-card:hover {
-            transform: translateY(-5px);
-        }
-        .app-card h3 {
-            color: #14539a;
-            margin-bottom: 10px;
-        }
-        .app-card p {
-            color: #666;
-            line-height: 1.5;
-        }
-        footer {
-            background-color: #2c3e50;
-            color: white;
-            text-align: center;
-            padding: 40px 20px;
-            margin-top: 20px;
-        }
-        footer a {
-            color: #a0aec0;
-            text-decoration: none;
-            margin: 0 15px;
-            font-size: 0.9em;
-        }
-        footer a:hover {
-            color: white;
-        }
+        /* Navigation Bar */
+        nav { background: #ffffff; padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .nav-links a { text-decoration: none; color: #333; margin: 0 15px; font-weight: bold; }
+        .logo { font-size: 1.5em; font-weight: 700; color: #14539a; }
+
+        /* Search Section */
+        .search-section { text-align: center; padding: 100px 20px; }
+        .search-section h2 { margin-bottom: 25px; }
+        .search-box { width: 100%; max-width: 600px; padding: 20px; border: 1px solid #ddd; border-radius: 50px; font-size: 1em; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        .apps-container { display: flex; flex-wrap: wrap; justify-content: center; padding: 40px 20px; gap: 25px; }
+        .app-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); width: 300px; text-align: center; }
+        .app-card h3 { color: #14539a; }
+        
+        footer { background-color: #2c3e50; color: white; text-align: center; padding: 40px 20px; margin-top: 50px; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>أكلاك | Aklake</h1>
-</header>
+<nav>
+    <div class="logo">aklake</div>
+    <div class="nav-links">
+        <a href="#">المنتجات</a>
+        <a href="#">تسجيل الدخول / إنشاء حساب</a>
+    </div>
+</nav>
 
-<section class="hero">
-    <h2>الخطة الذهبية الشاملة</h2>
-    <p>اشتراك واحد يمنحك وصولاً غير محدود لجميع الميزات الاحترافية في حزمة تطبيقاتنا المتكاملة، بسعر 6.80 دولار فقط.</p>
-    <!-- سنستبدل علامة المربع لاحقاً برابط الدفع من Lemon Squeezy -->
-    <a href="#" class="btn">اشترك الآن لفتح المزايا</a>
+<section class="search-section">
+    <h2>كيف يمكنني المساعدة؟</h2>
+    <input type="text" class="search-box" placeholder="بماذا تفكر اليوم؟...">
 </section>
 
 <section class="apps-container">
     <div class="app-card">
         <h3>تطبيق BackAlert</h3>
-        <p>تطبيق ذكي يراقب استقامة الظهر وينبهك فوراً عند الجلوس بوضعية خاطئة لحماية عمودك الفقري.</p>
+        <p>تطبيق ذكي يراقب استقامة الظهر وينبهك فوراً عند الجلوس بوضعية خاطئة.</p>
     </div>
-    
     <div class="app-card">
         <h3>تلاوات وأصوات الطبيعة</h3>
-        <p>استمتع بالاستماع إلى القرآن الكريم مع دمج احترافي لأصوات الطبيعة والمطر الهادئة.</p>
+        <p>استمتع بالاستماع إلى القرآن الكريم مع دمج احترافي لأصوات الطبيعة.</p>
     </div>
-    
     <div class="app-card">
         <h3>تحليل القضايا الجنائية</h3>
-        <p>لعبة وتطبيق يعتمد على الذكاء الاصطناعي لتحليل القضايا الإجرامية المعقدة واكتشاف الأدلة.</p>
+        <p>تطبيق يعتمد على الذكاء الاصطناعي لتحليل القضايا الإجرامية واكتشاف الأدلة.</p>
     </div>
 </section>
 
 <footer>
-    <p>© 2026 موقع أكلاك Aklak. جميع الحقوق محفوظة.</p>
-    <div style="margin-top: 15px;">
-        <a href="#">شروط الاستخدام</a>
-        <a href="#">سياسة الخصوصية</a>
-        <a href="#">سياسة الاسترجاع</a>
-        <a href="#">تواصل معنا</a>
-    </div>
+    <p>© 2026 موقع aklake. جميع الحقوق محفوظة.</p>
 </footer>
 
 </body>
-</html>  
+</html>
