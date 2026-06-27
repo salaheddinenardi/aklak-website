@@ -5,23 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>أكلاك | aklake</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
         body { font-family: 'Tajawal', sans-serif; margin: 0; padding: 0; background-color: #f8f9fa; }
         
         nav { background: #fff; padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .logo { font-size: 1.5em; font-weight: 700; color: #14539a; }
-        .nav-links a { text-decoration: none; color: #333; margin: 0 15px; font-weight: bold; }
+        .nav-links { display: flex; align-items: center; gap: 15px; }
+        .nav-links a, .nav-links button { text-decoration: none; color: #333; margin: 0; font-weight: bold; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 1em; }
+
+        /* تصميم معلومات المستخدم والنقاط */
+        #user-info { display: none; align-items: center; gap: 15px; background: #eef2f7; padding: 8px 20px; border-radius: 20px; }
+        .credits { color: #28a745; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .logout-btn { color: #dc3545 !important; font-size: 0.9em; }
 
         .search-section { text-align: center; padding: 80px 20px; }
-        .input-wrapper { position: relative; max-width: 600px; margin: 20px auto; }
-        .search-box { width: 100%; padding: 20px; border: 1px solid #ddd; border-radius: 50px; font-size: 1em; }
+        .input-wrapper { position: relative; max-width: 600px; margin: 20px auto; display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 50px; padding: 5px 15px; }
+        .search-box { flex: 1; padding: 15px; border: none; outline: none; border-radius: 50px; font-size: 1em; background: transparent; }
         
-        #send-btn { position: absolute; left: 15px; top: 15px; background: #14539a; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: none; }
+        /* زر رفع الصورة المرجعية */
+        .upload-label { cursor: pointer; color: #6c757d; padding: 10px; transition: 0.3s; border-radius: 50%; }
+        .upload-label:hover { background: #f8f9fa; color: #14539a; }
+        #image-upload { display: none; }
+
+        #send-btn { background: #14539a; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; display: none; justify-content: center; align-items: center; transition: 0.3s; }
+        #send-btn:hover { background: #0d3b6e; }
         
         .quick-actions { margin-top: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
         .action-btn { padding: 10px 20px; border: 1px solid #14539a; background: white; color: #14539a; border-radius: 20px; cursor: pointer; transition: 0.3s; }
         .action-btn:hover { background: #14539a; color: white; }
+
+        /* نافذة تسجيل الدخول المنبثقة */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .modal h3 { margin-top: 0; color: #14539a; }
+        .modal input { width: 90%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .modal button.primary-btn { width: 90%; padding: 12px; background: #14539a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .modal button.close-btn { background: none; border: none; color: #999; cursor: pointer; margin-top: 15px; text-decoration: underline; }
+
+        /* منطقة عرض النتيجة التحميل */
+        #result-area { max-width: 600px; margin: 20px auto; text-align: center; display: none; }
+        #result-image { max-width: 100%; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 15px; }
+        .loader { display: none; color: #14539a; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -30,35 +58,216 @@
     <div class="logo">aklake</div>
     <div class="nav-links">
         <a href="#">المنتجات</a>
-        <a href="#"><i class="fas fa-user-circle"></i> تسجيل الدخول</a>
+        
+        <button id="login-nav-btn" onclick="openModal()"><i class="fas fa-user-circle"></i> تسجيل الدخول</button>
+        
+        <div id="user-info">
+            <span id="user-name"></span>
+            <div class="credits"><i class="fas fa-coins"></i> <span id="user-credits">0</span></div>
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
     </div>
 </nav>
 
 <section class="search-section">
     <h2>كيف يمكنني المساعدة؟</h2>
     <div class="input-wrapper">
+        <label for="image-upload" class="upload-label" title="إرفاق صورة مرجعية">
+            <i class="fas fa-image"></i>
+        </label>
+        <input type="file" id="image-upload" accept="image/*" onchange="previewFile()">
+        
         <input type="text" id="search-input" class="search-box" placeholder="بماذا تفكر اليوم؟..." oninput="checkInput()">
-        <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+        <button id="send-btn" onclick="processRequest()"><i class="fas fa-paper-plane"></i></button>
     </div>
+    <span id="file-name-display" style="font-size: 0.8em; color: #28a745; display: block; margin-top: 5px;"></span>
+
     <div class="quick-actions">
         <button class="action-btn" onclick="fillInput('أنشئ لي كتاباً مكوناً من 600 صفحة')">أنشئ لي كتاباً (600 صفحة)</button>
         <button class="action-btn" onclick="fillInput('أنشئ لي سيرة ذاتية وأبحث عن عمل')">سيرة ذاتية وبحث عن عمل</button>
-        <button class="action-btn" onclick="fillInput('أنشئ لي لوحة فنية لأعلقها على الحائط')">أنشئ لي لوحة فنية</button>
+        <button class="action-btn" onclick="fillInput('صمم لي شخصية أنمي بخطوط رفيعة')">أنشئ لي لوحة فنية</button>
+    </div>
+
+    <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة وخصم النقاط...</div>
+    <div id="result-area">
+        <img id="result-image" src="" alt="النتيجة">
     </div>
 </section>
 
+<div class="modal" id="auth-modal">
+    <div class="modal-content">
+        <h3 id="modal-title">تسجيل الدخول</h3>
+        <input type="email" id="email" placeholder="البريد الإلكتروني">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <input type="text" id="name" placeholder="الاسم (لإنشاء حساب جديد فقط)" style="display: none;">
+        
+        <button class="primary-btn" id="auth-submit-btn" onclick="handleAuth()">دخول</button>
+        
+        <p style="font-size: 0.9em; color: #555; margin-top: 15px;">
+            <a href="#" onclick="toggleAuthMode()" id="toggle-auth-text">ليس لديك حساب؟ إنشاء حساب جديد</a>
+        </p>
+        <button class="close-btn" onclick="closeModal()">إلغاء</button>
+    </div>
+</div>
+
 <script>
+    // 1. تهيئة Appwrite
+    const { Client, Account, Databases, ID } = Appwrite;
+    const client = new Client()
+        .setEndpoint('https://fra.cloud.appwrite.io/v1') 
+        .setProject('6a36cda70021ceb1f3d0'); 
+    
+    const account = new Account(client);
+    const databases = new Databases(client);
+
+    // متغيرات الحالة
+    let isLoginMode = true;
+    let currentUser = null;
+
+    // --- دوال الواجهة (UI) ---
     const input = document.getElementById('search-input');
-    const btn = document.getElementById('send-btn');
+    const sendBtn = document.getElementById('send-btn');
+    const imageUpload = document.getElementById('image-upload');
+    const fileNameDisplay = document.getElementById('file-name-display');
 
-    function fillInput(text) {
-        input.value = text;
-        checkInput();
+    function fillInput(text) { input.value = text; checkInput(); }
+    
+    function checkInput() { 
+        sendBtn.style.display = (input.value.length > 0 || imageUpload.files.length > 0) ? 'flex' : 'none'; 
     }
 
-    function checkInput() {
-        btn.style.display = input.value.length > 0 ? 'block' : 'none';
+    function previewFile() {
+        if(imageUpload.files.length > 0) {
+            fileNameDisplay.innerText = "تم إرفاق: " + imageUpload.files[0].name;
+            checkInput();
+        }
     }
+
+    // --- دوال المصادقة (Authentication) ---
+    function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
+    
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('modal-title').innerText = isLoginMode ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
+        document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'دخول' : 'إنشاء حساب';
+        document.getElementById('name').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('toggle-auth-text').innerText = isLoginMode ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب بالفعل؟ تسجيل الدخول';
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const name = document.getElementById('name').value;
+
+        try {
+            if (!isLoginMode) {
+                // إنشاء حساب جديد
+                await account.create(ID.unique(), email, password, name);
+                // تهيئة رصيد مجاني للمستخدم الجديد في قاعدة البيانات (تحتاج إلى إعداد Database في Appwrite)
+                // await createInitialCreditsRecord(newAccount.$id); 
+            }
+            // تسجيل الدخول
+            await account.createEmailPasswordSession(email, password);
+            closeModal();
+            checkSession();
+        } catch (error) {
+            alert("خطأ: " + error.message);
+        }
+    }
+
+    async function checkSession() {
+        try {
+            currentUser = await account.get();
+            document.getElementById('login-nav-btn').style.display = 'none';
+            document.getElementById('user-info').style.display = 'flex';
+            document.getElementById('user-name').innerText = currentUser.name || "مستخدم";
+            
+            // جلب النقاط الحقيقية من قاعدة البيانات
+            fetchUserCredits();
+        } catch (error) {
+            // غير مسجل دخول
+            document.getElementById('login-nav-btn').style.display = 'block';
+            document.getElementById('user-info').style.display = 'none';
+        }
+    }
+
+    async function logout() {
+        await account.deleteSession('current');
+        location.reload();
+    }
+
+    // --- دوال النقاط والاتصال بالخادم (Backend Integration) ---
+    
+    // **ملاحظة لك:** يجب وضع معرف قاعدة البيانات (Database ID) ومجموعة النقاط (Collection ID) هنا
+    const DB_ID = 'YOUR_DATABASE_ID'; 
+    const CREDITS_COLLECTION_ID = 'YOUR_COLLECTION_ID'; 
+
+    async function fetchUserCredits() {
+        try {
+            // يفترض أنك أنشأت Collection تحفظ فيه Document لكل مستخدم برقم الـ ID الخاص به
+            // const response = await databases.getDocument(DB_ID, CREDITS_COLLECTION_ID, currentUser.$id);
+            // document.getElementById('user-credits').innerText = response.balance;
+            
+            // محاكاة مؤقتة حتى تقوم بإعداد قاعدة البيانات:
+            document.getElementById('user-credits').innerText = "50"; 
+        } catch (error) {
+            console.log("لم يتم العثور على سجل نقاط، ربما هذا مستخدم جديد.");
+        }
+    }
+
+    async function processRequest() {
+        if (!currentUser) {
+            alert("يرجى تسجيل الدخول أولاً لتتمكن من استخدام الخدمة وخصم النقاط.");
+            openModal();
+            return;
+        }
+
+        const prompt = input.value;
+        const file = imageUpload.files[0];
+        
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('result-area').style.display = 'none';
+
+        try {
+            // **الاتصال الحقيقي بالدالة (Appwrite Function / Cloudflare Worker)**
+            // هنا تقوم بإرسال الطلب إلى الخادم الخاص بك الذي وضعنا فيه كود Cloudflare في المحادثات السابقة
+            /*
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            if(file) formData.append('image', file);
+            formData.append('userId', currentUser.$id); // ليتعرف السيرفر على المستخدم ويخصم نقطة
+
+            const response = await fetch('رابط_دالة_APPWRITE_أو_CLOUDFLARE_الخاصة_بك', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            // عرض النتيجة
+            document.getElementById('result-image').src = data.imageUrl; // أو data.image_b64
+            */
+
+            // محاكاة للعملية لاختبار الواجهة:
+            setTimeout(() => {
+                document.getElementById('result-image').src = "https://via.placeholder.com/600x400?text=Generated+Image+For+" + encodeURIComponent(prompt);
+                
+                // تحديث النقاط بعد نجاح العملية (خصم نقطة)
+                let currentCredits = parseInt(document.getElementById('user-credits').innerText);
+                document.getElementById('user-credits').innerText = currentCredits - 1;
+
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('result-area').style.display = 'block';
+            }, 2500);
+
+        } catch (error) {
+            alert("حدث خطأ أثناء المعالجة.");
+            document.getElementById('loader').style.display = 'none';
+        }
+    }
+
+    // التحقق من الجلسة عند تحميل الصفحة
+    window.onload = checkSession;
 </script>
 
 </body>
