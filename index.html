@@ -26,11 +26,6 @@
         .input-wrapper { position: relative; max-width: 600px; margin: 20px auto; display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 50px; padding: 5px 15px; }
         .search-box { flex: 1; padding: 15px; border: none; outline: none; border-radius: 50px; font-size: 1em; background: transparent; }
         
-        /* زر رفع الصورة المرجعية */
-        .upload-label { cursor: pointer; color: #6c757d; padding: 10px; transition: 0.3s; border-radius: 50%; }
-        .upload-label:hover { background: #f8f9fa; color: #14539a; }
-        #image-upload { display: none; }
-
         #send-btn { background: #14539a; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; cursor: pointer; display: none; justify-content: center; align-items: center; transition: 0.3s; }
         #send-btn:hover { background: #0d3b6e; }
         
@@ -58,9 +53,7 @@
     <div class="logo">aklake</div>
     <div class="nav-links">
         <a href="#">المنتجات</a>
-        
         <button id="login-nav-btn" onclick="openModal()"><i class="fas fa-user-circle"></i> تسجيل الدخول</button>
-        
         <div id="user-info">
             <span id="user-name"></span>
             <div class="credits"><i class="fas fa-coins"></i> <span id="user-credits">0</span></div>
@@ -70,25 +63,19 @@
 </nav>
 
 <section class="search-section">
-    <h2>كيف يمكنني المساعدة؟</h2>
+    <h2>ماذا تريد أن ترسم اليوم؟</h2>
     <div class="input-wrapper">
-        <label for="image-upload" class="upload-label" title="إرفاق صورة مرجعية">
-            <i class="fas fa-image"></i>
-        </label>
-        <input type="file" id="image-upload" accept="image/*" onchange="previewFile()">
-        
-        <input type="text" id="search-input" class="search-box" placeholder="بماذا تفكر اليوم؟..." oninput="checkInput()">
+        <input type="text" id="search-input" class="search-box" placeholder="صف الصورة التي تتخيلها (يفضل بالإنجليزية)..." oninput="checkInput()">
         <button id="send-btn" onclick="processRequest()"><i class="fas fa-paper-plane"></i></button>
     </div>
-    <span id="file-name-display" style="font-size: 0.8em; color: #28a745; display: block; margin-top: 5px;"></span>
 
     <div class="quick-actions">
-        <button class="action-btn" onclick="fillInput('أنشئ لي كتاباً مكوناً من 600 صفحة')">أنشئ لي كتاباً (600 صفحة)</button>
-        <button class="action-btn" onclick="fillInput('أنشئ لي سيرة ذاتية وأبحث عن عمل')">سيرة ذاتية وبحث عن عمل</button>
-        <button class="action-btn" onclick="fillInput('صمم لي شخصية أنمي بخطوط رفيعة')">أنشئ لي لوحة فنية</button>
+        <button class="action-btn" onclick="fillInput('A minimalist slice of life anime character, thin lineart')">شخصية أنمي، خطوط رفيعة</button>
+        <button class="action-btn" onclick="fillInput('A beautiful Moroccan traditional living room, highly detailed, photorealistic')">صالون مغربي تقليدي</button>
+        <button class="action-btn" onclick="fillInput('Futuristic city skyline at sunset, cyberpunk style')">مدينة مستقبلية (سايبربانك)</button>
     </div>
 
-    <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة وخصم النقاط...</div>
+    <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري توليد الصورة وخصم 5 نقاط...</div>
     <div id="result-area">
         <img id="result-image" src="" alt="النتيجة">
     </div>
@@ -111,37 +98,30 @@
 </div>
 
 <script>
-    // 1. تهيئة Appwrite
-    const { Client, Account, Databases, ID } = Appwrite;
+    // 1. تهيئة Appwrite (المفاتيح هنا آمنة تماماً)
+    const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
     const client = new Client()
         .setEndpoint('https://fra.cloud.appwrite.io/v1') 
         .setProject('6a36cda70021ceb1f3d0'); 
     
     const account = new Account(client);
     const databases = new Databases(client);
+    const appwriteFunctions = new Functions(client); // لربط الواجهة بالوظيفة
 
-    // متغيرات الحالة
+    // متغيرات أساسية يجب تعبئتها
+    const DB_ID = '6a3706880011ad5651b5'; // أيدي قاعدة البيانات الخاص بك
+    const COLLECTION_ID = 'cvs_chat_cv_mab'; // أيدي الجدول الخاص بك
+    const FUNCTION_ID = 'ضع_أيدي_الوظيفة_هنا'; // ⚠️ ضع معرف الدالة (Function ID) من لوحة Appwrite هنا
+
     let isLoginMode = true;
     let currentUser = null;
 
     // --- دوال الواجهة (UI) ---
     const input = document.getElementById('search-input');
     const sendBtn = document.getElementById('send-btn');
-    const imageUpload = document.getElementById('image-upload');
-    const fileNameDisplay = document.getElementById('file-name-display');
 
     function fillInput(text) { input.value = text; checkInput(); }
-    
-    function checkInput() { 
-        sendBtn.style.display = (input.value.length > 0 || imageUpload.files.length > 0) ? 'flex' : 'none'; 
-    }
-
-    function previewFile() {
-        if(imageUpload.files.length > 0) {
-            fileNameDisplay.innerText = "تم إرفاق: " + imageUpload.files[0].name;
-            checkInput();
-        }
-    }
+    function checkInput() { sendBtn.style.display = input.value.trim().length > 0 ? 'flex' : 'none'; }
 
     // --- دوال المصادقة (Authentication) ---
     function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
@@ -162,17 +142,22 @@
 
         try {
             if (!isLoginMode) {
-                // إنشاء حساب جديد
-                await account.create(ID.unique(), email, password, name);
-                // تهيئة رصيد مجاني للمستخدم الجديد في قاعدة البيانات (تحتاج إلى إعداد Database في Appwrite)
-                // await createInitialCreditsRecord(newAccount.$id); 
+                // إنشاء حساب
+                const newAccount = await account.create(ID.unique(), email, password, name);
+                
+                // إنشاء سجل نقاط للمستخدم الجديد (يمنحه 70 نقطة كما طلبت)
+                await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), {
+                    userId: newAccount.$id,
+                    tokens: 70
+                });
             }
+            
             // تسجيل الدخول
             await account.createEmailPasswordSession(email, password);
             closeModal();
             checkSession();
         } catch (error) {
-            alert("خطأ: " + error.message);
+            alert("خطأ في المصادقة: " + error.message);
         }
     }
 
@@ -183,12 +168,11 @@
             document.getElementById('user-info').style.display = 'flex';
             document.getElementById('user-name').innerText = currentUser.name || "مستخدم";
             
-            // جلب النقاط الحقيقية من قاعدة البيانات
             fetchUserCredits();
         } catch (error) {
-            // غير مسجل دخول
             document.getElementById('login-nav-btn').style.display = 'block';
             document.getElementById('user-info').style.display = 'none';
+            currentUser = null;
         }
     }
 
@@ -197,76 +181,71 @@
         location.reload();
     }
 
-    // --- دوال النقاط والاتصال بالخادم (Backend Integration) ---
-    
-    // **ملاحظة لك:** يجب وضع معرف قاعدة البيانات (Database ID) ومجموعة النقاط (Collection ID) هنا
-    const DB_ID = 'YOUR_DATABASE_ID'; 
-    const CREDITS_COLLECTION_ID = 'YOUR_COLLECTION_ID'; 
-
+    // --- جلب النقاط من قاعدة البيانات الحقيقية ---
     async function fetchUserCredits() {
         try {
-            // يفترض أنك أنشأت Collection تحفظ فيه Document لكل مستخدم برقم الـ ID الخاص به
-            // const response = await databases.getDocument(DB_ID, CREDITS_COLLECTION_ID, currentUser.$id);
-            // document.getElementById('user-credits').innerText = response.balance;
-            
-            // محاكاة مؤقتة حتى تقوم بإعداد قاعدة البيانات:
-            document.getElementById('user-credits').innerText = "50"; 
+            const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [
+                Query.equal('userId', currentUser.$id)
+            ]);
+
+            if (response.documents.length > 0) {
+                document.getElementById('user-credits').innerText = response.documents[0].tokens;
+            } else {
+                document.getElementById('user-credits').innerText = "0";
+            }
         } catch (error) {
-            console.log("لم يتم العثور على سجل نقاط، ربما هذا مستخدم جديد.");
+            console.error("خطأ في جلب النقاط:", error);
         }
     }
 
+    // --- إرسال الطلب للوظيفة (توليد الصورة وخصم النقاط) ---
     async function processRequest() {
         if (!currentUser) {
-            alert("يرجى تسجيل الدخول أولاً لتتمكن من استخدام الخدمة وخصم النقاط.");
+            alert("يرجى تسجيل الدخول أولاً لتتمكن من استخدام الخدمة.");
             openModal();
             return;
         }
 
         const prompt = input.value;
-        const file = imageUpload.files[0];
-        
         document.getElementById('loader').style.display = 'block';
         document.getElementById('result-area').style.display = 'none';
 
         try {
-            // **الاتصال الحقيقي بالدالة (Appwrite Function / Cloudflare Worker)**
-            // هنا تقوم بإرسال الطلب إلى الخادم الخاص بك الذي وضعنا فيه كود Cloudflare في المحادثات السابقة
-            /*
-            const formData = new FormData();
-            formData.append('prompt', prompt);
-            if(file) formData.append('image', file);
-            formData.append('userId', currentUser.$id); // ليتعرف السيرفر على المستخدم ويخصم نقطة
-
-            const response = await fetch('رابط_دالة_APPWRITE_أو_CLOUDFLARE_الخاصة_بك', {
-                method: 'POST',
-                body: formData
+            // تحضير البيانات للإرسال إلى الدالة
+            const payload = JSON.stringify({
+                userId: currentUser.$id,
+                prompt: prompt
             });
-            const data = await response.json();
-            
-            // عرض النتيجة
-            document.getElementById('result-image').src = data.imageUrl; // أو data.image_b64
-            */
 
-            // محاكاة للعملية لاختبار الواجهة:
-            setTimeout(() => {
-                document.getElementById('result-image').src = "https://via.placeholder.com/600x400?text=Generated+Image+For+" + encodeURIComponent(prompt);
-                
-                // تحديث النقاط بعد نجاح العملية (خصم نقطة)
-                let currentCredits = parseInt(document.getElementById('user-credits').innerText);
-                document.getElementById('user-credits').innerText = currentCredits - 1;
+            // استدعاء دالة Appwrite
+            const execution = await appwriteFunctions.createExecution(
+                FUNCTION_ID, 
+                payload, 
+                false, // false = ننتظر النتيجة (Synchronous)
+                '/', 
+                'POST', 
+                { 'Content-Type': 'application/json' }
+            );
 
-                document.getElementById('loader').style.display = 'none';
+            // تحليل رد الخادم
+            const responseData = JSON.parse(execution.responseBody);
+
+            if (responseData.success) {
+                // عرض الصورة وتحديث الرصيد مباشرة من استجابة الخادم
+                document.getElementById('result-image').src = responseData.image;
+                document.getElementById('user-credits').innerText = responseData.remainingTokens;
                 document.getElementById('result-area').style.display = 'block';
-            }, 2500);
-
+            } else {
+                alert("فشل التوليد: " + responseData.error);
+            }
         } catch (error) {
-            alert("حدث خطأ أثناء المعالجة.");
+            console.error(error);
+            alert("حدث خطأ أثناء الاتصال بالخادم.");
+        } finally {
             document.getElementById('loader').style.display = 'none';
         }
     }
 
-    // التحقق من الجلسة عند تحميل الصفحة
     window.onload = checkSession;
 </script>
 
