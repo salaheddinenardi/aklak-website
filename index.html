@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أكلاك | aklake</title>
+    <title>أكلاك | ساحة تجارب الربط</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
@@ -17,7 +17,6 @@
         .nav-links { display: flex; align-items: center; gap: 15px; }
         .nav-links a, .nav-links button { text-decoration: none; color: #333; margin: 0; font-weight: bold; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 1em; }
 
-        /* تصميم معلومات المستخدم والنقاط */
         #user-info { display: none; align-items: center; gap: 15px; background: #eef2f7; padding: 8px 20px; border-radius: 20px; }
         .credits { color: #28a745; font-weight: bold; display: flex; align-items: center; gap: 5px; }
         .logout-btn { color: #dc3545 !important; font-size: 0.9em; }
@@ -33,7 +32,9 @@
         .action-btn { padding: 10px 20px; border: 1px solid #14539a; background: white; color: #14539a; border-radius: 20px; cursor: pointer; transition: 0.3s; }
         .action-btn:hover { background: #14539a; color: white; }
 
-        /* نافذة تسجيل الدخول المنبثقة */
+        /* نافذة الإشعارات المخصصة للتجارب */
+        .test-alert { display: none; max-width: 600px; margin: 20px auto; padding: 15px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 8px; text-align: right; }
+
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 30px; border-radius: 15px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
         .modal h3 { margin-top: 0; color: #14539a; }
@@ -41,7 +42,6 @@
         .modal button.primary-btn { width: 90%; padding: 12px; background: #14539a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .modal button.close-btn { background: none; border: none; color: #999; cursor: pointer; margin-top: 15px; text-decoration: underline; }
 
-        /* منطقة عرض النتيجة التحميل */
         #result-area { max-width: 600px; margin: 20px auto; text-align: center; display: none; }
         #result-image { max-width: 100%; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-top: 15px; }
         .loader { display: none; color: #14539a; font-weight: bold; margin-top: 20px; }
@@ -63,20 +63,23 @@
 </nav>
 
 <section class="search-section">
-    <h2>ماذا تريد أن ترسم اليوم؟</h2>
+    <h2>مرحباً بك في ساحة تجارب الاتصال البرمجي 🧪</h2>
+    
+    <div id="test-alert-box" class="test-alert"></div>
+
     <div class="input-wrapper">
-        <input type="text" id="search-input" class="search-box" placeholder="صف الصورة التي تتخيلها (يفضل بالإنجليزية)..." oninput="checkInput()">
+        <input type="text" id="search-input" class="search-box" placeholder="اكتب أي نص هنا لاختبار استجابة الوظيفة والخصم..." oninput="checkInput()">
         <button id="send-btn" onclick="processRequest()"><i class="fas fa-paper-plane"></i></button>
     </div>
 
     <div class="quick-actions">
-        <button class="action-btn" onclick="fillInput('A minimalist slice of life anime character, thin lineart')">شخصية أنمي، خطوط رفيعة</button>
-        <button class="action-btn" onclick="fillInput('A beautiful Moroccan traditional living room, highly detailed, photorealistic')">صالون مغربي تقليدي</button>
-        <button class="action-btn" onclick="fillInput('Futuristic city skyline at sunset, cyberpunk style')">مدينة مستقبلية (سايبربانك)</button>
+        <button class="action-btn" onclick="fillInput('تجربة فحص اتصال السيرفر 1')">نص تجريبي 1</button>
+        <button class="action-btn" onclick="fillInput('تجربة الخصم والرد السريع 2')">نص تجريبي 2</button>
     </div>
 
-    <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري توليد الصورة وخصم 5 نقاط...</div>
+    <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالوظيفة البرمجية وخصم النقاط للتجربة...</div>
     <div id="result-area">
+        <h3>الصورة المرجعة من السيرفر:</h3>
         <img id="result-image" src="" alt="النتيجة">
     </div>
 </section>
@@ -98,7 +101,6 @@
 </div>
 
 <script>
-    // 1. تهيئة Appwrite (المفاتيح هنا آمنة تماماً)
     const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
     const client = new Client()
         .setEndpoint('https://fra.cloud.appwrite.io/v1') 
@@ -106,24 +108,21 @@
     
     const account = new Account(client);
     const databases = new Databases(client);
-    const appwriteFunctions = new Functions(client); // لربط الواجهة بالوظيفة
+    const appwriteFunctions = new Functions(client);
 
-    // متغيرات أساسية يجب تعبئتها
-    const DB_ID = '6a3706880011ad5651b5'; // أيدي قاعدة البيانات الخاص بك
-    const COLLECTION_ID = 'cvs_chat_cv_mab'; // أيدي الجدول الخاص بك
-    const FUNCTION_ID = 'ضع_أيدي_الوظيفة_هنا'; // ⚠️ ضع معرف الدالة (Function ID) من لوحة Appwrite هنا
+    const DB_ID = '6a3706880011ad5651b5'; 
+    const COLLECTION_ID = 'cvs_chat_cv_mab'; 
+    const FUNCTION_ID = 'ضع_أيدي_الوظيفة_هنا'; // ⚠️ استبدلها بـ ID الدالة الحقيقي من لوحة التحكم
 
     let isLoginMode = true;
     let currentUser = null;
 
-    // --- دوال الواجهة (UI) ---
     const input = document.getElementById('search-input');
     const sendBtn = document.getElementById('send-btn');
 
     function fillInput(text) { input.value = text; checkInput(); }
     function checkInput() { sendBtn.style.display = input.value.trim().length > 0 ? 'flex' : 'none'; }
 
-    // --- دوال المصادقة (Authentication) ---
     function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
     function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
     
@@ -142,20 +141,25 @@
 
         try {
             if (!isLoginMode) {
-                // إنشاء حساب
+                // 1. إنشاء الحساب الأساسي
                 const newAccount = await account.create(ID.unique(), email, password, name);
                 
-                // إنشاء سجل نقاط للمستخدم الجديد (يمنحه 70 نقطة كما طلبت)
+                // 2. تسجيل الدخول الفوري لفتح الجلسة واكتساب صلاحية الكتابة
+                await account.createEmailPasswordSession(email, password);
+                
+                // 3. إضافة سجل النقاط بأمان بعد فتح الجلسة
                 await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), {
                     userId: newAccount.$id,
                     tokens: 70
                 });
+                
+                closeModal();
+                checkSession();
+            } else {
+                await account.createEmailPasswordSession(email, password);
+                closeModal();
+                checkSession();
             }
-            
-            // تسجيل الدخول
-            await account.createEmailPasswordSession(email, password);
-            closeModal();
-            checkSession();
         } catch (error) {
             alert("خطأ في المصادقة: " + error.message);
         }
@@ -181,7 +185,6 @@
         location.reload();
     }
 
-    // --- جلب النقاط من قاعدة البيانات الحقيقية ---
     async function fetchUserCredits() {
         try {
             const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [
@@ -198,10 +201,10 @@
         }
     }
 
-    // --- إرسال الطلب للوظيفة (توليد الصورة وخصم النقاط) ---
+    // --- إرسال الطلب البرمجي المحدث لـ ساحة التجارب ---
     async function processRequest() {
         if (!currentUser) {
-            alert("يرجى تسجيل الدخول أولاً لتتمكن من استخدام الخدمة.");
+            alert("يرجى تسجيل الدخول أولاً لتتمكن من استخدام ساحة الاختبار.");
             openModal();
             return;
         }
@@ -209,38 +212,43 @@
         const prompt = input.value;
         document.getElementById('loader').style.display = 'block';
         document.getElementById('result-area').style.display = 'none';
+        document.getElementById('test-alert-box').style.display = 'none';
 
         try {
-            // تحضير البيانات للإرسال إلى الدالة
             const payload = JSON.stringify({
                 userId: currentUser.$id,
                 prompt: prompt
             });
 
-            // استدعاء دالة Appwrite
+            // استدعاء الدالة البرمجية في Appwrite وانتظار استجابتها
             const execution = await appwriteFunctions.createExecution(
                 FUNCTION_ID, 
                 payload, 
-                false, // false = ننتظر النتيجة (Synchronous)
+                false, 
                 '/', 
                 'POST', 
                 { 'Content-Type': 'application/json' }
             );
 
-            // تحليل رد الخادم
+            // قراءة النتيجة المرتجعة
             const responseData = JSON.parse(execution.responseBody);
 
             if (responseData.success) {
-                // عرض الصورة وتحديث الرصيد مباشرة من استجابة الخادم
+                // عرض الرسالة التأكيدية القادمة مباشرة من الخادم (الباك إند)
+                const alertBox = document.getElementById('test-alert-box');
+                alertBox.innerText = responseData.message;
+                alertBox.style.display = 'block';
+
+                // تحديث الصورة وعرض الرصيد المتبقي بدقة
                 document.getElementById('result-image').src = responseData.image;
                 document.getElementById('user-credits').innerText = responseData.remainingTokens;
                 document.getElementById('result-area').style.display = 'block';
             } else {
-                alert("فشل التوليد: " + responseData.error);
+                alert("فشل الاتصال: " + responseData.error);
             }
         } catch (error) {
             console.error(error);
-            alert("حدث خطأ أثناء الاتصال بالخادم.");
+            alert("حدث خطأ أثناء الاتصال بالخادم. تأكد من وضع FUNCTION_ID الصحيح، ومن تفعيل صلاحية Execute Access لـ Users في لوحة تحكم الوظيفة.");
         } finally {
             document.getElementById('loader').style.display = 'none';
         }
