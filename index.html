@@ -141,7 +141,7 @@
 
     const DB_ID = '6a3706880011ad5651b5'; 
     const COLLECTION_ID = 'cvs_chat_cv_mab'; 
-    const FUNCTION_ID = '6a3c7a760032067bd275'; // ⚠️ تأكد من أن هذا هو الـ ID الصحيح للباك إند!
+    const FUNCTION_ID = '6a3c7a760032067bd275';
 
     let isLoginMode = true;
     let currentUser = null;
@@ -250,7 +250,7 @@
         alertBox.style.display = 'block';
     }
 
-    // --- إرسال الطلب الديناميكي للباك إند المحدث ---
+    // --- إرسال الطلب الديناميكي للباك إند ---
     async function processRequest() {
         if (!currentUser) {
             alert("يرجى تسجيل الدخول أولاً.");
@@ -260,18 +260,18 @@
 
         const prompt = input.value;
         const mode = document.getElementById('mode-select').value;
-        // إذا كان الوضع نصي، نجبر المزود على Cloudflare للوصول لـ Llama
         const provider = mode === 'text' ? 'cloudflare' : document.getElementById('provider-select').value;
         const modelTier = document.getElementById('tier-select').value;
 
+        // تهيئة الواجهة قبل إرسال الطلب (مسح النتائج السابقة)
         document.getElementById('loader').style.display = 'block';
         document.getElementById('result-area').style.display = 'none';
         document.getElementById('test-alert-box').style.display = 'none';
         document.getElementById('result-text').style.display = 'none';
         document.getElementById('result-image').style.display = 'none';
+        document.getElementById('result-image').src = ''; // مسح الصورة القديمة حتى لا تظهر أثناء التحميل
 
         try {
-            // تجهيز البيانات المتوافقة مع الكود الوظيفي الجديد
             const payload = JSON.stringify({
                 userId: currentUser.$id,
                 prompt: prompt,
@@ -288,6 +288,11 @@
                 'POST', 
                 { 'Content-Type': 'application/json' }
             );
+
+            // التحقق من حالة فشل تنفيذ الدالة (أخطاء السيرفر 500)
+            if (execution.status === 'failed') {
+                throw new Error("حدث خطأ داخلي في السيرفر أو لم يتم إرجاع نتيجة صالحة.");
+            }
 
             const responseData = JSON.parse(execution.responseBody);
 
@@ -306,7 +311,6 @@
                 
                 document.getElementById('result-area').style.display = 'block';
             } else {
-                // عرض الخطأ التفصيلي القادم من الباك إند
                 showAlert(`❌ فشل: ${responseData.error}`, true);
             }
         } catch (error) {
@@ -317,7 +321,6 @@
         }
     }
 
-    // تهيئة الواجهة عند التحميل
     window.onload = () => {
         checkSession();
         updateSettingsUI();
