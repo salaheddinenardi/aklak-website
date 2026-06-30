@@ -24,9 +24,15 @@
         .search-section { text-align: center; padding: 50px 20px; }
         
         /* إعدادات النماذج */
-        .model-settings { background: #fff; padding: 15px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto 20px auto; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; border: 1px solid #e0e0e0; }
+        .model-settings { background: #fff; padding: 15px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto 20px auto; display: flex; flex-direction: column; gap: 15px; border: 1px solid #e0e0e0; }
+        .settings-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
         .model-settings select { padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-family: inherit; font-size: 0.95em; outline: none; cursor: pointer; background-color: #f8f9fa; }
         .model-settings select:focus { border-color: #14539a; }
+
+        /* حقل رفع الصورة الجديد */
+        #file-upload-container { display: none; text-align: right; background: #f1f5f9; padding: 15px; border-radius: 10px; border: 1px dashed #cbd5e1; }
+        #file-upload-container label { font-weight: bold; color: #334155; display: block; margin-bottom: 8px; font-size: 0.9em; }
+        #image-file { width: 100%; padding: 8px; background: white; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; }
 
         .input-wrapper { position: relative; max-width: 600px; margin: 0 auto; display: flex; align-items: center; background: white; border: 1px solid #ddd; border-radius: 50px; padding: 5px 15px; }
         .search-box { flex: 1; padding: 15px; border: none; outline: none; border-radius: 50px; font-size: 1em; background: transparent; }
@@ -75,27 +81,35 @@
     <h2>ساحة تجارب الذكاء الاصطناعي 🧪</h2>
     
     <div class="model-settings">
-        <select id="mode-select" onchange="updateSettingsUI()">
-            <option value="text">💬 محادثة نصية (LLaMA)</option>
-            <option value="generate">🎨 توليد صور</option>
-        </select>
-        
-        <select id="provider-select" style="display: none;" onchange="updateSettingsUI()">
-            <option value="cloudflare">Cloudflare (Flux - 5 نقاط)</option>
-            <option value="openai">OpenAI (DALL-E - احترافي)</option>
-        </select>
+        <div class="settings-row">
+            <select id="mode-select" onchange="updateSettingsUI()">
+                <option value="text">💬 محادثة نصية (LLaMA)</option>
+                <option value="generate">🎨 توليد صور</option>
+                <option value="edit">🖌️ تعديل على صورة</option>
+            </select>
+            
+            <select id="provider-select" style="display: none;" onchange="updateSettingsUI()">
+                <option value="cloudflare">Cloudflare (Flux - 5 نقاط)</option>
+                <option value="openai">OpenAI (احترافي)</option>
+            </select>
 
-        <select id="tier-select" style="display: none;">
-            <option value="light">عادي (10 نقاط)</option>
-            <option value="mid">متوسط (15 نقطة)</option>
-            <option value="pro">Pro عالي الدقة (20 نقطة)</option>
-        </select>
+            <select id="tier-select" style="display: none;">
+                <option value="light">عادي (10 نقاط)</option>
+                <option value="mid">متوسط (15 نقطة)</option>
+                <option value="pro">Pro عالي الدقة (20 نقطة)</option>
+            </select>
+        </div>
+        
+        <div id="file-upload-container">
+            <label>ارفع الصورة التي تريد تعديلها:</label>
+            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
+        </div>
     </div>
 
     <div id="test-alert-box" class="test-alert alert-success"></div>
 
     <div class="input-wrapper">
-        <input type="text" id="search-input" class="search-box" placeholder="اكتب سؤالك أو وصف الصورة هنا..." oninput="checkInput()">
+        <input type="text" id="search-input" class="search-box" placeholder="اكتب سؤالك أو التعديل المطلوب هنا..." oninput="checkInput()">
         <button id="send-btn" onclick="processRequest()"><i class="fas fa-paper-plane"></i></button>
     </div>
 
@@ -149,25 +163,38 @@
     const input = document.getElementById('search-input');
     const sendBtn = document.getElementById('send-btn');
 
-    // تحديث الواجهة بناءً على اختيار النماذج
+    // 1. تحديث الواجهة بناءً على اختيار النماذج وإظهار حقل الصورة عند اختيار "تعديل"
     function updateSettingsUI() {
         const mode = document.getElementById('mode-select').value;
-        const provider = document.getElementById('provider-select').value;
-        
         const providerSelect = document.getElementById('provider-select');
         const tierSelect = document.getElementById('tier-select');
+        const fileContainer = document.getElementById('file-upload-container');
 
         if (mode === 'text') {
             providerSelect.style.display = 'none';
             tierSelect.style.display = 'none';
-        } else {
+            fileContainer.style.display = 'none';
+        } else if (mode === 'generate') {
             providerSelect.style.display = 'inline-block';
-            if (provider === 'openai') {
-                tierSelect.style.display = 'inline-block';
-            } else {
-                tierSelect.style.display = 'none';
-            }
+            tierSelect.style.display = providerSelect.value === 'openai' ? 'inline-block' : 'none';
+            fileContainer.style.display = 'none';
+        } else if (mode === 'edit') {
+            // إجبار المزود على OpenAI لأن Cloudflare لا يدعم التعديل بنفس الطريقة في الباك إند حاليا
+            providerSelect.value = 'openai'; 
+            providerSelect.style.display = 'inline-block';
+            tierSelect.style.display = 'inline-block';
+            fileContainer.style.display = 'block'; // إظهار حقل الرفع
         }
+    }
+
+    // 2. دالة تحويل الصورة إلى Base64
+    function convertToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
     }
 
     function fillInput(text) { input.value = text; checkInput(); }
@@ -250,7 +277,7 @@
         alertBox.style.display = 'block';
     }
 
-    // --- إرسال الطلب الديناميكي للباك إند ---
+    // --- إرسال الطلب الديناميكي للباك إند بعد التحديث ---
     async function processRequest() {
         if (!currentUser) {
             alert("يرجى تسجيل الدخول أولاً.");
@@ -262,22 +289,41 @@
         const mode = document.getElementById('mode-select').value;
         const provider = mode === 'text' ? 'cloudflare' : document.getElementById('provider-select').value;
         const modelTier = document.getElementById('tier-select').value;
+        
+        let imageBase64 = null;
 
-        // تهيئة الواجهة قبل إرسال الطلب (مسح النتائج السابقة)
+        // 3. التحقق من رفع الصورة وتحويلها إذا كان الوضع "تعديل"
+        if (mode === 'edit') {
+            const fileInput = document.getElementById('image-file');
+            if (fileInput.files.length === 0) {
+                showAlert("❌ يرجى اختيار صورة أولاً لتعديلها.", true);
+                return;
+            }
+            try {
+                // تحويل الصورة إلى Base64 قبل إرسالها
+                imageBase64 = await convertToBase64(fileInput.files[0]);
+            } catch (err) {
+                showAlert("❌ حدث خطأ أثناء معالجة الصورة.", true);
+                return;
+            }
+        }
+
         document.getElementById('loader').style.display = 'block';
         document.getElementById('result-area').style.display = 'none';
         document.getElementById('test-alert-box').style.display = 'none';
         document.getElementById('result-text').style.display = 'none';
         document.getElementById('result-image').style.display = 'none';
-        document.getElementById('result-image').src = ''; // مسح الصورة القديمة حتى لا تظهر أثناء التحميل
+        document.getElementById('result-image').src = ''; 
 
         try {
+            // 4. إضافة imageBase64 إلى الحزمة المُرسلة (Payload)
             const payload = JSON.stringify({
                 userId: currentUser.$id,
                 prompt: prompt,
                 mode: mode,
                 provider: provider,
-                modelTier: modelTier
+                modelTier: modelTier,
+                imageBase64: imageBase64 
             });
 
             const execution = await appwriteFunctions.createExecution(
@@ -289,7 +335,6 @@
                 { 'Content-Type': 'application/json' }
             );
 
-            // التحقق من حالة فشل تنفيذ الدالة (أخطاء السيرفر 500)
             if (execution.status === 'failed') {
                 throw new Error("حدث خطأ داخلي في السيرفر أو لم يتم إرجاع نتيجة صالحة.");
             }
@@ -300,7 +345,6 @@
                 showAlert(responseData.message, false);
                 document.getElementById('user-credits').innerText = responseData.remainingTokens;
                 
-                // عرض النتيجة بناءً على نوعها (نص أو صورة)
                 if (responseData.resultType === 'text') {
                     document.getElementById('result-text').innerText = responseData.data;
                     document.getElementById('result-text').style.display = 'block';
