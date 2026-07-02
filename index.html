@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>أكلاك | ساحة تجارب الذكاء الاصطناعي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
     
     <style>
@@ -95,13 +94,31 @@
             margin-bottom: 30px;
         }
         
-        /* إعدادات النماذج الهيكلية */
+        /* Tool Container Styles */
+        .tool-container {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 40px;
+            border: 1px solid #e5e7eb;
+            position: relative;
+        }
+
+        .tool-header {
+            color: #14539a;
+            font-size: 1.2em;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px dashed #e5e7eb;
+            padding-bottom: 10px;
+        }
+
         .model-settings { 
-            background: #ffffff; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 1px 4px rgba(0,0,0,0.03); 
-            margin-bottom: 25px; 
+            background: #f9fafb; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
             display: flex; 
             flex-direction: column; 
             gap: 15px; 
@@ -124,220 +141,62 @@
             font-size: 0.95em; 
             outline: none; 
             cursor: pointer; 
-            background-color: #f9fafb; 
+            background-color: #ffffff; 
             color: #374151;
-            transition: border-color 0.2s, background-color 0.2s;
+            transition: border-color 0.2s;
         }
         
-        .model-settings select:focus { 
-            border-color: #14539a; 
-            background-color: #fff;
-        }
+        .model-settings select:focus { border-color: #14539a; }
 
-        /* حقل رفع الصورة */
-        #file-upload-container { 
+        .file-upload-container { 
             display: none; 
             text-align: right; 
-            background: #f8fafc; 
+            background: #ffffff; 
             padding: 15px; 
             border-radius: 8px; 
             border: 1px dashed #cbd5e1; 
         }
         
-        #file-upload-container label { 
-            font-weight: bold; 
-            color: #475569; 
-            display: block; 
-            margin-bottom: 8px; 
-            font-size: 0.9em; 
-        }
-        
-        #image-file { 
-            width: 100%; 
-            padding: 8px; 
-            background: white; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            box-sizing: border-box;
-        }
+        .file-upload-container label { font-weight: bold; color: #475569; display: block; margin-bottom: 8px; font-size: 0.9em; }
+        .image-file { width: 100%; padding: 8px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; box-sizing: border-box; }
 
         .input-wrapper { 
-            position: relative; 
-            display: flex; 
-            align-items: center; 
-            background: white; 
-            border: 1px solid #d1d5db; 
-            border-radius: 8px; 
-            padding: 4px 8px; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            position: relative; display: flex; align-items: center; background: white; border: 1px solid #d1d5db; border-radius: 8px; padding: 4px 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
         }
+        .input-wrapper:focus-within { border-color: #14539a; box-shadow: 0 0 0 1px #14539a; }
         
-        .input-wrapper:focus-within {
-            border-color: #14539a;
-            box-shadow: 0 0 0 1px #14539a;
-        }
+        .search-box { flex: 1; padding: 14px 10px; border: none; outline: none; font-size: 1em; background: transparent; font-family: inherit; }
         
-        .search-box { 
-            flex: 1; 
-            padding: 14px 10px; 
-            border: none; 
-            outline: none; 
-            font-size: 1em; 
-            background: transparent; 
-            font-family: inherit;
+        .send-btn { 
+            background: #14539a; color: white; border: none; border-radius: 6px; width: 42px; height: 42px; cursor: pointer; display: none; justify-content: center; align-items: center; transition: background 0.2s; 
         }
+        .send-btn:hover { background: #0d3b6e; }
         
-        #send-btn { 
-            background: #14539a; 
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
-            width: 42px; 
-            height: 42px; 
-            cursor: pointer; 
-            display: none; 
-            justify-content: center; 
-            align-items: center; 
-            transition: background 0.2s; 
-        }
-        
-        #send-btn:hover { 
-            background: #0d3b6e; 
-        }
-        
-        .quick-actions { 
-            margin-top: 20px; 
-            display: flex; 
-            justify-content: center; 
-            gap: 10px; 
-            flex-wrap: wrap; 
-        }
-        
-        .action-btn { 
-            padding: 9px 16px; 
-            border: 1px solid #d1d5db; 
-            background: white; 
-            color: #4b5563; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 0.9em;
-            transition: all 0.2s; 
-        }
-        
-        .action-btn:hover { 
-            border-color: #14539a; 
-            color: #14539a; 
-        }
+        .quick-actions { margin-top: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+        .action-btn { padding: 9px 16px; border: 1px solid #d1d5db; background: white; color: #4b5563; border-radius: 6px; cursor: pointer; font-size: 0.9em; transition: all 0.2s; }
+        .action-btn:hover { border-color: #14539a; color: #14539a; }
 
-        .test-alert { 
-            display: none; 
-            margin: 15px auto; 
-            padding: 12px 15px; 
-            border-radius: 6px; 
-            text-align: right; 
-            font-size: 0.95em;
-        }
-        
+        .test-alert { display: none; margin: 15px auto; padding: 12px 15px; border-radius: 6px; text-align: right; font-size: 0.95em; }
         .alert-success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
         .alert-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
 
-        .modal { 
-            display: none; 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.4); 
-            justify-content: center; align-items: center; 
-            z-index: 1000; 
-        }
-        
-        .modal-content { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 10px; 
-            width: 100%; 
-            max-width: 340px; 
-            text-align: center; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
-        }
-        
-        .modal h3 { margin-top: 0; color: #1f2937; margin-bottom: 20px; }
-        .modal input { 
-            width: 100%; 
-            padding: 11px; 
-            margin: 8px 0; 
-            border: 1px solid #cbd5e1; 
-            border-radius: 6px; 
-            box-sizing: border-box; 
-            font-family: inherit;
-        }
-        
-        .modal button.primary-btn { 
-            width: 100%; 
-            padding: 11px; 
-            background: #14539a; 
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            margin-top: 10px; 
-            font-family: inherit;
-        }
-        
-        .modal button.close-btn { 
-            background: none; 
-            border: none; 
-            color: #6b7280; 
-            cursor: pointer; 
-            margin-top: 15px; 
-            text-decoration: underline; 
-            font-size: 0.9em;
-        }
+        .loader { display: none; color: #14539a; font-weight: bold; margin-top: 20px; text-align: center; font-size: 0.95em; }
 
-        #result-area { 
-            margin-top: 25px; 
-            text-align: right; 
-            display: none; 
-            background: #ffffff; 
-            padding: 25px; 
-            border-radius: 12px; 
-            box-shadow: 0 1px 4px rgba(0,0,0,0.03); 
-            border: 1px solid #e5e7eb; 
+        .result-area { 
+            margin-top: 25px; text-align: right; display: none; background: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; 
         }
-        
-        #result-area h3 { 
-            margin-top: 0; 
-            color: #1f2937; 
-            font-size: 1.15em;
-            border-bottom: 1px solid #f3f4f6; 
-            padding-bottom: 12px; 
-            margin-bottom: 15px;
-        }
-        
-        #result-text { 
-            white-space: pre-wrap; 
-            line-height: 1.6; 
-            color: #374151; 
-            font-size: 1em; 
-            display: none; 
-        }
-        
-        #result-image { 
-            max-width: 100%; 
-            border-radius: 8px; 
-            margin-top: 10px; 
-            display: none; 
-            border: 1px solid #e5e7eb;
-        }
-        
-        .loader { 
-            display: none; 
-            color: #14539a; 
-            font-weight: bold; 
-            margin-top: 20px; 
-            text-align: center;
-            font-size: 0.95em;
-        }
+        .result-area h3 { margin-top: 0; color: #1f2937; font-size: 1.15em; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; }
+        .result-text { white-space: pre-wrap; line-height: 1.6; color: #374151; font-size: 1em; display: none; }
+        .result-image { max-width: 100%; border-radius: 8px; margin-top: 10px; display: none; border: 1px solid #e5e7eb; }
+        .source-badge { display: inline-block; margin-top: 15px; padding: 5px 12px; background: #e0e7ff; color: #4338ca; border-radius: 20px; font-size: 0.8em; font-weight: bold; border: 1px solid #c7d2fe; display: none; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .modal h3 { margin-top: 0; color: #1f2937; margin-bottom: 20px; }
+        .modal input { width: 100%; padding: 11px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+        .modal button.primary-btn { width: 100%; padding: 11px; background: #14539a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; font-family: inherit; }
+        .modal button.close-btn { background: none; border: none; color: #6b7280; cursor: pointer; margin-top: 15px; text-decoration: underline; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -358,46 +217,7 @@
 <section class="search-section">
     <h2>ساحة تجارب الذكاء الاصطناعي 🧪</h2>
     
-    <div class="model-settings">
-        <div class="settings-row">
-            <select id="mode-select" onchange="updateSettingsUI()">
-                <option value="text">💬 محادثة نصية</option>
-                <option value="generate">🎨 توليد صور</option>
-                <option value="edit">🖌️ تعديل على صورة</option>
-            </select>
-            
-            <select id="provider-select" onchange="updateSettingsUI()">
-                </select>
-
-            <select id="tier-select">
-                </select>
-        </div>
-        
-        <div id="file-upload-container">
-            <label>ارفع الصورة التي تريد تعديلها:</label>
-            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
-        </div>
-    </div>
-
-    <div id="test-alert-box" class="test-alert alert-success"></div>
-
-    <div class="input-wrapper">
-        <input type="text" id="search-input" class="search-box" placeholder="اكتب سؤالك أو التعديل المطلوب هنا..." oninput="checkInput()">
-        <button id="send-btn" onclick="processRequest()"><i class="fas fa-paper-plane"></i></button>
-    </div>
-
-    <div class="quick-actions">
-        <button class="action-btn" onclick="fillInput('أعطني خطة تسويقية لمتجر إلكتروني يبيع منتجات محلية في المغرب.')">تجربة محادثة</button>
-        <button class="action-btn" onclick="fillInput('صورة لقطة تركب دراجة نارية في الفضاء بأسلوب الأنمي')">تجربة توليد صورة</button>
-    </div>
-
-    <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري معالجة الطلب والاتصال بالذكاء الاصطناعي...</div>
-    
-    <div id="result-area">
-        <h3>النتيجة المباشرة</h3>
-        <p id="result-text"></p>
-        <img id="result-image" src="" alt="النتيجة المستلمة">
-    </div>
+    <div id="dynamic-tools-container"></div>
 </section>
 
 <div class="modal" id="auth-modal">
@@ -406,9 +226,7 @@
         <input type="email" id="email" placeholder="البريد الإلكتروني">
         <input type="password" id="password" placeholder="كلمة المرور">
         <input type="text" id="name" placeholder="الاسم (لإنشاء حساب جديد فقط)" style="display: none;">
-        
         <button class="primary-btn" id="auth-submit-btn" onclick="handleAuth()">دخول</button>
-        
         <p style="font-size: 0.9em; color: #555; margin-top: 15px;">
             <a href="#" onclick="toggleAuthMode()" id="toggle-auth-text">ليس لديك حساب؟ إنشاء حساب جديد</a>
         </p>
@@ -428,87 +246,252 @@
 
     const DB_ID = '6a3706880011ad5651b5'; 
     const COLLECTION_ID = 'cvs_chat_cv_mab'; 
-    const FUNCTION_ID = '6a3c7a760032067bd275';
+    
+    // معرفات الدوال السحابية
+    const FUNCTION_ID_1 = '6a3c7a760032067bd275';
+    // ⚠️ ضع معرف الدالة (Function ID) الخاصة بالكود الوظيفي الثاني هنا:
+    const FUNCTION_ID_2 = 'ضع_معرف_الدالة_الثانية_هنا'; 
 
     let isLoginMode = true;
     let currentUser = null;
 
-    const input = document.getElementById('search-input');
-    const sendBtn = document.getElementById('send-btn');
+    // ==========================================
+    // مصنع الواجهات (UI Factory) لمبدأ DRY
+    // ==========================================
+    function createAIToolUI(containerId, titleText, targetFunctionId) {
+        const container = document.getElementById(containerId);
+        
+        // القالب الهيكلي للأداة
+        const htmlTemplate = `
+            <div class="tool-container">
+                <h3 class="tool-header">${titleText}</h3>
+                <div class="model-settings">
+                    <div class="settings-row">
+                        <select class="mode-select">
+                            <option value="text">💬 محادثة نصية</option>
+                            <option value="generate">🎨 توليد صور</option>
+                            <option value="edit">🖌️ تعديل على صورة</option>
+                        </select>
+                        <select class="provider-select"></select>
+                        <select class="tier-select"></select>
+                    </div>
+                    <div class="file-upload-container">
+                        <label>ارفع الصورة التي تريد تعديلها:</label>
+                        <input type="file" class="image-file" accept="image/png, image/jpeg, image/webp">
+                    </div>
+                </div>
 
-    // 1. تحديث قوائم الاختيارات والأسعار بشكل متزامن واحترافي تماماً
-    function updateSettingsUI() {
-        const mode = document.getElementById('mode-select').value;
-        const providerSelect = document.getElementById('provider-select');
-        const tierSelect = document.getElementById('tier-select');
-        const fileContainer = document.getElementById('file-upload-container');
+                <div class="test-alert"></div>
 
-        const currentProvider = providerSelect.value;
+                <div class="input-wrapper">
+                    <input type="text" class="search-box" placeholder="اكتب سؤالك أو التعديل المطلوب هنا...">
+                    <button class="send-btn"><i class="fas fa-paper-plane"></i></button>
+                </div>
 
-        if (mode === 'text') {
-            fileContainer.style.display = 'none';
-            
-            // تحديث قائمة المزودين للنصوص إن لم تكن محدثة
-            if (!providerSelect.innerHTML.includes('openai') || providerSelect.innerHTML.includes('Flux')) {
-                providerSelect.innerHTML = `
-                    <option value="openai">OpenAI (متقدم)</option>
-                    <option value="cloudflare">Cloudflare (اقتصادي)</option>
-                `;
-                providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'openai';
-            }
+                <div class="quick-actions">
+                    <button class="action-btn btn-chat-demo">تجربة محادثة</button>
+                    <button class="action-btn btn-img-demo">تجربة توليد صورة</button>
+                </div>
 
-            // تحديث تفريعات النماذج وحساب النقاط بناءً على المزود المختار
-            if (providerSelect.value === 'openai') {
-                tierSelect.style.display = 'inline-block';
-                tierSelect.innerHTML = `
-                    <option value="gpt-4o">GPT-4o (8 نقاط)</option>
-                    <option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option>
-                    <option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>
-                `;
-            } else if (providerSelect.value === 'cloudflare') {
-                tierSelect.style.display = 'inline-block';
-                tierSelect.innerHTML = `
-                    <option value="llama">LLaMA 3.3 (5 نقاط)</option>
-                `;
-            }
+                <div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالدالة...</div>
+                
+                <div class="result-area">
+                    <h3>النتيجة المباشرة</h3>
+                    <p class="result-text"></p>
+                    <img class="result-image" src="" alt="النتيجة المستلمة">
+                    <br>
+                    <div class="source-badge"></div>
+                </div>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', htmlTemplate);
+        
+        // التقاط العناصر الخاصة بهذا القسم فقط (بدون التداخل مع القسم الآخر)
+        const currentTool = container.lastElementChild;
+        const els = {
+            modeSelect: currentTool.querySelector('.mode-select'),
+            providerSelect: currentTool.querySelector('.provider-select'),
+            tierSelect: currentTool.querySelector('.tier-select'),
+            fileContainer: currentTool.querySelector('.file-upload-container'),
+            fileInput: currentTool.querySelector('.image-file'),
+            input: currentTool.querySelector('.search-box'),
+            sendBtn: currentTool.querySelector('.send-btn'),
+            alertBox: currentTool.querySelector('.test-alert'),
+            loader: currentTool.querySelector('.loader'),
+            resultArea: currentTool.querySelector('.result-area'),
+            resultText: currentTool.querySelector('.result-text'),
+            resultImage: currentTool.querySelector('.result-image'),
+            sourceBadge: currentTool.querySelector('.source-badge'),
+            btnChatDemo: currentTool.querySelector('.btn-chat-demo'),
+            btnImgDemo: currentTool.querySelector('.btn-img-demo')
+        };
 
-        } else if (mode === 'generate') {
-            fileContainer.style.display = 'none';
-            
-            if (!providerSelect.innerHTML.includes('Flux')) {
-                providerSelect.innerHTML = `
-                    <option value="cloudflare">Cloudflare (Flux - 5 نقاط)</option>
-                    <option value="openai">OpenAI (DALL-E)</option>
-                `;
-                providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'cloudflare';
-            }
+        // تحديث القوائم المنسدلة
+        const updateSettingsUI = () => {
+            const mode = els.modeSelect.value;
+            const currentProvider = els.providerSelect.value;
 
-            if (providerSelect.value === 'openai') {
-                tierSelect.style.display = 'inline-block';
-                tierSelect.innerHTML = `
+            if (mode === 'text') {
+                els.fileContainer.style.display = 'none';
+                if (!els.providerSelect.innerHTML.includes('openai') || els.providerSelect.innerHTML.includes('Flux')) {
+                    els.providerSelect.innerHTML = `
+                        <option value="openai">OpenAI (متقدم)</option>
+                        <option value="cloudflare">Cloudflare (اقتصادي)</option>
+                    `;
+                    els.providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'openai';
+                }
+
+                if (els.providerSelect.value === 'openai') {
+                    els.tierSelect.style.display = 'inline-block';
+                    els.tierSelect.innerHTML = `
+                        <option value="gpt-4o">GPT-4o (8 نقاط)</option>
+                        <option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option>
+                        <option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>
+                    `;
+                } else {
+                    els.tierSelect.style.display = 'inline-block';
+                    els.tierSelect.innerHTML = `<option value="llama">LLaMA 3.3 (5 نقاط)</option>`;
+                }
+            } else if (mode === 'generate') {
+                els.fileContainer.style.display = 'none';
+                if (!els.providerSelect.innerHTML.includes('Flux')) {
+                    els.providerSelect.innerHTML = `
+                        <option value="cloudflare">Cloudflare (Flux - 5 نقاط)</option>
+                        <option value="openai">OpenAI (DALL-E)</option>
+                    `;
+                    els.providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'cloudflare';
+                }
+
+                if (els.providerSelect.value === 'openai') {
+                    els.tierSelect.style.display = 'inline-block';
+                    els.tierSelect.innerHTML = `
+                        <option value="light">عادي (10 نقاط)</option>
+                        <option value="mid">متوسط (15 نقطة)</option>
+                        <option value="pro">Pro عالي الدقة (20 نقطة)</option>
+                    `;
+                } else {
+                    els.tierSelect.style.display = 'none';
+                }
+            } else if (mode === 'edit') {
+                els.providerSelect.innerHTML = `<option value="openai">OpenAI (تعديل صور)</option>`;
+                els.providerSelect.value = 'openai';
+                
+                els.tierSelect.style.display = 'inline-block';
+                els.tierSelect.innerHTML = `
                     <option value="light">عادي (10 نقاط)</option>
                     <option value="mid">متوسط (15 نقطة)</option>
                     <option value="pro">Pro عالي الدقة (20 نقطة)</option>
                 `;
-            } else {
-                tierSelect.style.display = 'none';
+                els.fileContainer.style.display = 'block';
+            }
+        };
+
+        const checkInput = () => els.sendBtn.style.display = els.input.value.trim().length > 0 ? 'flex' : 'none';
+        const fillInput = (text) => { els.input.value = text; checkInput(); };
+        const showAlert = (message, isError = false) => {
+            els.alertBox.innerText = message;
+            els.alertBox.className = isError ? 'test-alert alert-error' : 'test-alert alert-success';
+            els.alertBox.style.display = 'block';
+        };
+
+        // ربط الأحداث (Event Listeners)
+        els.modeSelect.addEventListener('change', updateSettingsUI);
+        els.providerSelect.addEventListener('change', updateSettingsUI);
+        els.input.addEventListener('input', checkInput);
+        els.btnChatDemo.addEventListener('click', () => fillInput('أعطني خطة تسويقية لمتجر إلكتروني يبيع منتجات محلية في المغرب.'));
+        els.btnImgDemo.addEventListener('click', () => fillInput('صورة لقطة تركب دراجة نارية في الفضاء بأسلوب الأنمي'));
+        
+        // وظيفة الإرسال الرئيسية (مخصصة لهذا القسم وتتصل بـ targetFunctionId)
+        els.sendBtn.addEventListener('click', async () => {
+            if (!currentUser) {
+                alert("يرجى تسجيل الدخول أولاً.");
+                openModal();
+                return;
             }
 
-        } else if (mode === 'edit') {
-            // التعديل محصور بـ OpenAI في الباك إند
-            providerSelect.innerHTML = `<option value="openai">OpenAI (تعديل صور)</option>`;
-            providerSelect.value = 'openai';
-            
-            tierSelect.style.display = 'inline-block';
-            tierSelect.innerHTML = `
-                <option value="light">عادي (10 نقاط)</option>
-                <option value="mid">متوسط (15 نقطة)</option>
-                <option value="pro">Pro عالي الدقة (20 نقطة)</option>
-            `;
-            fileContainer.style.display = 'block';
-        }
+            const prompt = els.input.value;
+            const mode = els.modeSelect.value;
+            const provider = els.providerSelect.value;
+            const modelTier = els.tierSelect.value;
+            let imageBase64 = null;
+
+            if (mode === 'edit') {
+                if (els.fileInput.files.length === 0) {
+                    showAlert("❌ يرجى اختيار صورة أولاً لتعديلها.", true);
+                    return;
+                }
+                try {
+                    imageBase64 = await convertToBase64(els.fileInput.files[0]);
+                } catch (err) {
+                    showAlert("❌ حدث خطأ أثناء معالجة الصورة.", true);
+                    return;
+                }
+            }
+
+            els.loader.style.display = 'block';
+            els.resultArea.style.display = 'none';
+            els.alertBox.style.display = 'none';
+            els.resultText.style.display = 'none';
+            els.resultImage.style.display = 'none';
+            els.resultImage.src = ''; 
+            els.sourceBadge.style.display = 'none';
+
+            try {
+                const payload = JSON.stringify({
+                    userId: currentUser.$id,
+                    prompt: prompt,
+                    mode: mode,
+                    provider: provider,
+                    modelTier: modelTier,
+                    imageBase64: imageBase64 
+                });
+
+                // إرسال الطلب إلى Function ID الخاص بهذه الأداة فقط!
+                const execution = await appwriteFunctions.createExecution(
+                    targetFunctionId, 
+                    payload, false, '/', 'POST', { 'Content-Type': 'application/json' }
+                );
+
+                if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر أو انتهت مهلة المحاولة.");
+
+                const responseData = JSON.parse(execution.responseBody);
+
+                if (responseData.success) {
+                    showAlert(responseData.message, false);
+                    document.getElementById('user-credits').innerText = responseData.remainingTokens;
+                    
+                    if (responseData.resultType === 'text') {
+                        els.resultText.innerText = responseData.data;
+                        els.resultText.style.display = 'block';
+                    } else if (responseData.resultType === 'image') {
+                        els.resultImage.src = responseData.data;
+                        els.resultImage.style.display = 'block';
+                    }
+
+                    // التوجيه الديناميكي وعرض المصدر: إظهار مصدر الدالة إذا تم إرجاعه من الباك إند
+                    if (responseData.sourceFunction) {
+                        els.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
+                        els.sourceBadge.style.display = 'inline-block';
+                    }
+
+                    els.resultArea.style.display = 'block';
+                } else {
+                    showAlert(`❌ فشل: ${responseData.error}`, true);
+                }
+            } catch (error) {
+                console.error(error);
+                showAlert("❌ حدث خطأ أثناء الاتصال بالدالة الخلفية.", true);
+            } finally {
+                els.loader.style.display = 'none';
+            }
+        });
+
+        // تهيئة الواجهة الافتراضية للقسم
+        updateSettingsUI();
     }
 
+    // دوال مساعدة عامة
     function convertToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -518,9 +501,9 @@
         });
     }
 
-    function fillInput(text) { input.value = text; checkInput(); }
-    function checkInput() { sendBtn.style.display = input.value.trim().length > 0 ? 'flex' : 'none'; }
-
+    // ==========================================
+    // دوال المصادقة (Auth) وإدارة الحسابات
+    // ==========================================
     function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
     function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
     
@@ -542,8 +525,7 @@
                 const newAccount = await account.create(ID.unique(), email, password, name);
                 await account.createEmailPasswordSession(email, password);
                 await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), {
-                    userId: newAccount.$id,
-                    tokens: 70
+                    userId: newAccount.$id, tokens: 70
                 });
                 closeModal();
                 checkSession();
@@ -591,103 +573,19 @@
         }
     }
 
-    function showAlert(message, isError = false) {
-        const alertBox = document.getElementById('test-alert-box');
-        alertBox.innerText = message;
-        alertBox.className = isError ? 'test-alert alert-error' : 'test-alert alert-success';
-        alertBox.style.display = 'block';
-    }
-
-    // 2. إرسال الطلب بشكل ديناميكي وصحيح 100% متوافق مع تعديلات السيرفر
-    async function processRequest() {
-        if (!currentUser) {
-            alert("يرجى تسجيل الدخول أولاً.");
-            openModal();
-            return;
-        }
-
-        const prompt = input.value;
-        const mode = document.getElementById('mode-select').value;
-        const provider = document.getElementById('provider-select').value; // جلب المزود المختار ديناميكياً بدلاً من التثبيت القديم
-        const modelTier = document.getElementById('tier-select').value;
-        
-        let imageBase64 = null;
-
-        if (mode === 'edit') {
-            const fileInput = document.getElementById('image-file');
-            if (fileInput.files.length === 0) {
-                showAlert("❌ يرجى اختيار صورة أولاً لتعديلها.", true);
-                return;
-            }
-            try {
-                imageBase64 = await convertToBase64(fileInput.files[0]);
-            } catch (err) {
-                showAlert("❌ حدث خطأ أثناء معالجة الصورة.", true);
-                return;
-            }
-        }
-
-        document.getElementById('loader').style.display = 'block';
-        document.getElementById('result-area').style.display = 'none';
-        document.getElementById('test-alert-box').style.display = 'none';
-        document.getElementById('result-text').style.display = 'none';
-        document.getElementById('result-image').style.display = 'none';
-        document.getElementById('result-image').src = ''; 
-
-        try {
-            const payload = JSON.stringify({
-                userId: currentUser.$id,
-                prompt: prompt,
-                mode: mode,
-                provider: provider,
-                modelTier: modelTier,
-                imageBase64: imageBase64 
-            });
-
-            const execution = await appwriteFunctions.createExecution(
-                FUNCTION_ID, 
-                payload, 
-                false, 
-                '/', 
-                'POST', 
-                { 'Content-Type': 'application/json' }
-            );
-
-            if (execution.status === 'failed') {
-                throw new Error("حدث خطأ داخلي في السيرفر أو انتهت مهلة المحاولة.");
-            }
-
-            const responseData = JSON.parse(execution.responseBody);
-
-            if (responseData.success) {
-                showAlert(responseData.message, false);
-                document.getElementById('user-credits').innerText = responseData.remainingTokens;
-                
-                if (responseData.resultType === 'text') {
-                    document.getElementById('result-text').innerText = responseData.data;
-                    document.getElementById('result-text').style.display = 'block';
-                } else if (responseData.resultType === 'image') {
-                    document.getElementById('result-image').src = responseData.data;
-                    document.getElementById('result-image').style.display = 'block';
-                }
-                
-                document.getElementById('result-area').style.display = 'block';
-            } else {
-                showAlert(`❌ فشل: ${responseData.error}`, true);
-            }
-        } catch (error) {
-            console.error(error);
-            showAlert("❌ حدث خطأ في الشبكة أو  فشل أثناء الاتصال بالدالة الخلفية  والخاصة بـ Appwrite.", true);
-        } finally {
-            document.getElementById('loader').style.display = 'none';
-        }
-    }
-
+    // ==========================================
+    // تهيئة التطبيق عند التحميل
+    // ==========================================
     window.onload = () => {
         checkSession();
-        updateSettingsUI();
+        
+        // استدعاء المصنع لبناء القسم الأول (الكود الوظيفي الأول)
+        createAIToolUI('dynamic-tools-container', '⚙️ أدوات الكود الوظيفي الأول (الأساسي)', FUNCTION_ID_1);
+        
+        // استدعاء المصنع لبناء القسم الثاني (الكود الوظيفي الثاني)
+        createAIToolUI('dynamic-tools-container', '🚀 أدوات الكود الوظيفي رقم 2 (المُحدَّث)', FUNCTION_ID_2);
     };
 </script>
 
 </body>
-</html> 
+</html>
