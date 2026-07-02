@@ -3,311 +3,647 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة أدوات الذكاء الاصطناعي الشاملة</title>
-    <!-- استدعاء المكتبات الخارجية والأيقونات المتوافقة مع مشروعك -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>أكلاك | ساحة تجارب الذكاء الاصطناعي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+    
     <style>
-        /* التنسيقات العامة للموقع لتبدو الواجهة أنيقة وعصرية */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f1f5f9;
-            color: #1e293b;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #fff;
-            padding: 15px 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            margin-bottom: 30px;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .credits-badge {
-            background: #eff6ff;
-            color: #2563eb;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            border: 1px solid #bfdbfe;
-        }
-        .btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        .btn-auth {
-            background: #2563eb;
-            color: white;
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f4f6f9; 
+            color: #333;
         }
         
-        /* تنسيق الأقسام (القديم والجديد بنفس الستايل تماماً) */
-        .search-section {
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-            padding: 30px;
-            margin-bottom: 30px;
+        nav { 
+            background: #ffffff; 
+            padding: 15px 50px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); 
+            border-bottom: 1px solid #e5e7eb;
         }
+        
+        .logo { 
+            font-size: 1.4em; 
+            font-weight: 700; 
+            color: #14539a; 
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-links { 
+            display: flex; 
+            align-items: center; 
+            gap: 20px; 
+        }
+        
+        .nav-links a, .nav-links button { 
+            text-decoration: none; 
+            color: #4b5563; 
+            font-weight: 700; 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            font-family: inherit; 
+            font-size: 0.95em; 
+            transition: color 0.2s;
+        }
+        
+        .nav-links a:hover, .nav-links button:hover {
+            color: #14539a;
+        }
+
+        #user-info { 
+            display: none; 
+            align-items: center; 
+            gap: 15px; 
+            background: #f0f4f8; 
+            padding: 6px 16px; 
+            border-radius: 30px; 
+            border: 1px solid #dbe3eb;
+        }
+        
+        .credits { 
+            color: #16a34a; 
+            font-weight: bold; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+        }
+        
+        .logout-btn { 
+            color: #dc3545 !important; 
+            font-size: 0.95em; 
+            padding: 0 5px;
+        }
+
+        .search-section { 
+            max-width: 750px; 
+            margin: 0 auto; 
+            padding: 40px 20px; 
+        }
+        
         .search-section h2 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .model-settings {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        select {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-            background: #fff;
-            font-size: 0.95rem;
-            outline: none;
-        }
-        .input-wrapper {
-            display: flex;
-            border: 2px solid #2563eb;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #fff;
-        }
-        .search-box {
-            flex: 1;
-            border: none;
-            padding: 15px;
-            font-size: 1rem;
-            outline: none;
-        }
-        .send-btn {
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 0 25px;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            transition: background 0.2s;
-        }
-        .send-btn:hover { background: #1d4ed8; }
-        
-        .loader {
-            display: none;
             text-align: center;
-            margin-top: 15px;
-            font-weight: 500;
-            color: #2563eb;
+            font-size: 1.8em;
+            color: #1f2937;
+            margin-bottom: 30px;
         }
-        .result-area {
-            margin-top: 25px;
-            display: none;
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
+        
+        /* إعدادات النماذج الهيكلية */
+        .model-settings { 
+            background: #ffffff; 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03); 
+            margin-bottom: 25px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            border: 1px solid #e5e7eb; 
         }
-        .result-area h3 { margin-top: 0; }
-        .file-container { margin-bottom: 15px; display: none; }
+        
+        .settings-row { 
+            display: flex; 
+            gap: 12px; 
+            flex-wrap: wrap; 
+        }
+        
+        .model-settings select { 
+            flex: 1;
+            min-width: 180px;
+            padding: 11px 14px; 
+            border-radius: 8px; 
+            border: 1px solid #d1d5db; 
+            font-family: inherit; 
+            font-size: 0.95em; 
+            outline: none; 
+            cursor: pointer; 
+            background-color: #f9fafb; 
+            color: #374151;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        
+        .model-settings select:focus { 
+            border-color: #14539a; 
+            background-color: #fff;
+        }
+
+        /* حقل رفع الصورة */
+        #file-upload-container { 
+            display: none; 
+            text-align: right; 
+            background: #f8fafc; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border: 1px dashed #cbd5e1; 
+        }
+        
+        #file-upload-container label { 
+            font-weight: bold; 
+            color: #475569; 
+            display: block; 
+            margin-bottom: 8px; 
+            font-size: 0.9em; 
+        }
+        
+        #image-file { 
+            width: 100%; 
+            padding: 8px; 
+            background: white; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            box-sizing: border-box;
+        }
+
+        .input-wrapper { 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+            background: white; 
+            border: 1px solid #d1d5db; 
+            border-radius: 8px; 
+            padding: 4px 8px; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        
+        .input-wrapper:focus-within {
+            border-color: #14539a;
+            box-shadow: 0 0 0 1px #14539a;
+        }
+        
+        .search-box { 
+            flex: 1; 
+            padding: 14px 10px; 
+            border: none; 
+            outline: none; 
+            font-size: 1em; 
+            background: transparent; 
+            font-family: inherit;
+        }
+        
+        #send-btn { 
+            background: #14539a; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            width: 42px; 
+            height: 42px; 
+            cursor: pointer; 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            transition: background 0.2s; 
+        }
+        
+        #send-btn:hover { 
+            background: #0d3b6e; 
+        }
+        
+        .quick-actions { 
+            margin-top: 20px; 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            flex-wrap: wrap; 
+        }
+        
+        .action-btn { 
+            padding: 9px 16px; 
+            border: 1px solid #d1d5db; 
+            background: white; 
+            color: #4b5563; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 0.9em;
+            transition: all 0.2s; 
+        }
+        
+        .action-btn:hover { 
+            border-color: #14539a; 
+            color: #14539a; 
+        }
+
+        .test-alert { 
+            display: none; 
+            margin: 15px auto; 
+            padding: 12px 15px; 
+            border-radius: 6px; 
+            text-align: right; 
+            font-size: 0.95em;
+        }
+        
+        .alert-success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .alert-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        .modal { 
+            display: none; 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.4); 
+            justify-content: center; align-items: center; 
+            z-index: 1000; 
+        }
+        
+        .modal-content { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 10px; 
+            width: 100%; 
+            max-width: 340px; 
+            text-align: center; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+        }
+        
+        .modal h3 { margin-top: 0; color: #1f2937; margin-bottom: 20px; }
+        .modal input { 
+            width: 100%; 
+            padding: 11px; 
+            margin: 8px 0; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-family: inherit;
+        }
+        
+        .modal button.primary-btn { 
+            width: 100%; 
+            padding: 11px; 
+            background: #14539a; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            margin-top: 10px; 
+            font-family: inherit;
+        }
+        
+        .modal button.close-btn { 
+            background: none; 
+            border: none; 
+            color: #6b7280; 
+            cursor: pointer; 
+            margin-top: 15px; 
+            text-decoration: underline; 
+            font-size: 0.9em;
+        }
+
+        #result-area { 
+            margin-top: 25px; 
+            text-align: right; 
+            display: none; 
+            background: #ffffff; 
+            padding: 25px; 
+            border-radius: 12px; 
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03); 
+            border: 1px solid #e5e7eb; 
+        }
+        
+        #result-area h3 { 
+            margin-top: 0; 
+            color: #1f2937; 
+            font-size: 1.15em;
+            border-bottom: 1px solid #f3f4f6; 
+            padding-bottom: 12px; 
+            margin-bottom: 15px;
+        }
+        
+        #result-text { 
+            white-space: pre-wrap; 
+            line-height: 1.6; 
+            color: #374151; 
+            font-size: 1em; 
+            display: none; 
+        }
+        
+        #result-image { 
+            max-width: 100%; 
+            border-radius: 8px; 
+            margin-top: 10px; 
+            display: none; 
+            border: 1px solid #e5e7eb;
+        }
+        
+        .loader { 
+            display: none; 
+            color: #14539a; 
+            font-weight: bold; 
+            margin-top: 20px; 
+            text-align: center;
+            font-size: 0.95em;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-
-    <!-- شريط الرأس المشترك للتحكم في الحساب والرصيد -->
-    <header>
-        <div class="logo"><strong>منصتي الذكية</strong> ✨</div>
-        <div class="user-info">
-            <span class="credits-badge">الرصيد: <span id="user-credits">0</span> نقطة</span>
-            <button id="auth-btn" class="btn btn-auth" onclick="handleAuthAction()">تسجيل الدخول</button>
+<nav>
+    <div class="logo">aklake</div>
+    <div class="nav-links">
+        <a href="#">المنتجات</a>
+        <button id="login-nav-btn" onclick="openModal()"><i class="fas fa-user-circle"></i> تسجيل الدخول</button>
+        <div id="user-info">
+            <span id="user-name"></span>
+            <div class="credits"><i class="fas fa-coins"></i> <span id="user-credits">0</span></div>
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
         </div>
-    </header>
+    </div>
+</nav>
 
-    <!-- ======================================================== -->
-    <!-- القسم الأول: أدواتك القديمة (لم يتم لمسها أو تغيير أي ID فيها) -->
-    <!-- ======================================================== -->
-    <section class="search-section">
-        <h2>الساحة العامة للأدوات والجيل الأول 💬🎨</h2>
-        
-        <div class="model-settings">
-            <div class="settings-row">
-                <select id="mode-select" onchange="updateSettingsUI()">
-                    <option value="text">💬 محادثة نصية</option>
-                    <option value="generate">🎨 توليد صور</option>
-                    <option value="edit">🖌️ تعديل على صورة</option>
+<section class="search-section">
+    <h2>ساحة تجارب الذكاء الاصطناعي 🧪</h2>
+    
+    <div class="model-settings">
+        <div class="settings-row">
+            <select id="mode-select" onchange="updateSettingsUI()">
+                <option value="text">💬 محادثة نصية</option>
+                <option value="generate">🎨 توليد صور</option>
+                <option value="edit">🖌️ تعديل على صورة</option>
+            </select>
+            
+            <select id="provider-select" onchange="updateSettingsUI()">
                 </select>
 
-                <select id="provider-select">
-                    <option value="cloudflare">Cloudflare Workers</option>
-                    <option value="openai">OpenAI API</option>
+            <select id="tier-select">
                 </select>
-
-                <select id="tier-select">
-                    <option value="mini">اقتصادي (Mini)</option>
-                    <option value="pro">احترافي (Pro)</option>
-                </select>
-            </div>
         </div>
-
-        <!-- حاوية رفع الملفات الخاصة بالقسم القديم -->
-        <div id="file-container" class="file-container">
-            <input type="file" id="image-file" accept="image/*">
-        </div>
-
-        <div class="input-wrapper">
-            <input type="text" id="search-input" class="search-box" placeholder="اسأل أي شيء أو صف الصورة المطلوبة..." oninput="checkInput()">
-            <button id="send-btn" class="send-btn" onclick="processRequest()"><i class="fas fa-paper-plane"></i></button>
-        </div>
-
-        <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري معالجة طلبك القديم...</div>
         
-        <div id="result-area" class="result-area">
-            <h3 style="color: #2563eb;">النتيجة:</h3>
-            <p id="result-text" style="white-space: pre-wrap; line-height: 1.6;"></p>
+        <div id="file-upload-container">
+            <label>ارفع الصورة التي تريد تعديلها:</label>
+            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
         </div>
-    </section>
+    </div>
 
+    <div id="test-alert-box" class="test-alert alert-success"></div>
 
-    <!-- ======================================================== -->
-    <!-- القسم الجديد تماماً: أداة تأليف الكتب ومساحة الاختبار الجديدة -->
-    <!-- ======================================================== -->
-    <hr style="margin: 40px 0; border: none; border-top: 2px dashed #cbd5e1;">
+    <div class="input-wrapper">
+        <input type="text" id="search-input" class="search-box" placeholder="اكتب سؤالك أو التعديل المطلوب هنا..." oninput="checkInput()">
+        <button id="send-btn" onclick="processRequest()"><i class="fas fa-paper-plane"></i></button>
+    </div>
 
-    <section class="search-section" style="border-right: 5px solid #16a34a;">
-        <h2 style="color: #16a34a;">أداة تأليف الكتب الذكية (مساحة الاختبار) 📚</h2>
+    <div class="quick-actions">
+        <button class="action-btn" onclick="fillInput('أعطني خطة تسويقية لمتجر إلكتروني يبيع منتجات محلية في المغرب.')">تجربة محادثة</button>
+        <button class="action-btn" onclick="fillInput('صورة لقطة تركب دراجة نارية في الفضاء بأسلوب الأنمي')">تجربة توليد صورة</button>
+    </div>
+
+    <div class="loader" id="loader"><i class="fas fa-spinner fa-spin"></i> جاري معالجة الطلب والاتصال بالذكاء الاصطناعي...</div>
+    
+    <div id="result-area">
+        <h3>النتيجة المباشرة</h3>
+        <p id="result-text"></p>
+        <img id="result-image" src="" alt="النتيجة المستلمة">
+    </div>
+</section>
+
+<div class="modal" id="auth-modal">
+    <div class="modal-content">
+        <h3 id="modal-title">تسجيل الدخول</h3>
+        <input type="email" id="email" placeholder="البريد الإلكتروني">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <input type="text" id="name" placeholder="الاسم (لإنشاء حساب جديد فقط)" style="display: none;">
         
-        <div class="model-settings">
-            <div class="settings-row">
-                <!-- خيارات تحكم منفصلة ومعزولة تماماً بمعرفات جديدة -->
-                <select id="new-mode-select">
-                    <option value="book">📚 تأليف كتاب متكامل (40 نقطة)</option>
-                    <option value="text">💬 تجربة نموذج نصي عبر السيرفر الجديد (10 نقاط)</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="input-wrapper" style="border-color: #16a34a;">
-            <input type="text" id="new-search-input" class="search-box" placeholder="اكتب عنوان أو فكرة الكتاب بالتفصيل لاختبار الأداة..." oninput="checkNewInput()">
-            <button id="new-send-btn" class="send-btn" onclick="processNewRequest()" style="background: #16a34a;"><i class="fas fa-rocket"></i></button>
-        </div>
-
-        <div class="loader" id="new-loader" style="color: #16a34a;"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالدالة الجديدة وتأليف المحتوى...</div>
+        <button class="primary-btn" id="auth-submit-btn" onclick="handleAuth()">دخول</button>
         
-        <div id="new-result-area" class="result-area" style="border-color: #bbf7d0;">
-            <h3 style="color: #16a34a;">نتيجة الأداة الجديدة:</h3>
-            <p id="new-result-text" style="white-space: pre-wrap; line-height: 1.6; background: #f0fdf4; padding: 15px; border-radius: 6px;"></p>
-        </div>
-    </section>
-
+        <p style="font-size: 0.9em; color: #555; margin-top: 15px;">
+            <a href="#" onclick="toggleAuthMode()" id="toggle-auth-text">ليس لديك حساب؟ إنشاء حساب جديد</a>
+        </p>
+        <button class="close-btn" onclick="closeModal()">إلغاء</button>
+    </div>
 </div>
 
-<!-- استدعاء ملفات الـ SDK الخاصة بـ Appwrite -->
-<script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
-
 <script>
-    // ==========================================
-    // ⚙️ الإعدادات العامة والربط بـ Appwrite
-    // ==========================================
-    const appwrite = new Appwrite.Client();
-    appwrite
+    const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
+    const client = new Client()
         .setEndpoint('https://fra.cloud.appwrite.io/v1') 
-        .setProject('6a3706880011ad5651b5'); // تم ضبط البروجكت بناءً على بياناتك
+        .setProject('6a36cda70021ceb1f3d0'); 
+    
+    const account = new Account(client);
+    const databases = new Databases(client);
+    const appwriteFunctions = new Functions(client);
 
-    const appwriteFunctions = new Appwrite.Functions(appwrite);
-    const appwriteAccount = new Appwrite.Account(appwrite);
+    const DB_ID = '6a3706880011ad5651b5'; 
+    const COLLECTION_ID = 'cvs_chat_cv_mab'; 
+    const FUNCTION_ID = '6a3c7a760032067bd275';
 
-    // الـ IDs الخاصة بالدوال (أدخل الـ IDs الخاصة بك هنا)
-    const FUNCTION_ID = 'ضع_أيدي_الدالة_القديمة_هنا'; 
-    const NEW_FUNCTION_ID = 'ضع_أيدي_الدالة_الجديدة_هنا'; 
-
+    let isLoginMode = true;
     let currentUser = null;
 
-    // تشغيل فحص الجلسة عند فتح الصفحة تلقائياً
-    window.onload = function() {
-        checkUserSession();
-    };
-
-    async function checkUserSession() {
-        try {
-            currentUser = await appwriteAccount.get();
-            document.getElementById('auth-btn').innerText = "تسجيل الخروج";
-            // هنا تضع كودك القديم لجلب الرصيد وتحديث الـ #user-credits
-            document.getElementById('user-credits').innerText = "150"; // قيمة تجريبية
-        } catch (err) {
-            currentUser = null;
-            document.getElementById('auth-btn').innerText = "تسجيل الدخول";
-            document.getElementById('user-credits').innerText = "0";
-        }
-    }
-
-    function handleAuthAction() {
-        if(currentUser) {
-            // كود تسجيل الخروج الخاص بك
-            alert("تم تسجيل الخروج");
-        } else {
-            // كود فتح مودال تسجيل الدخول الخاص بك
-            alert("افتح نافذة تسجيل الدخول");
-        }
-    }
-
-    function showAlert(msg, isError = false) {
-        alert((isError ? "❌ " : "💡 ") + msg);
-    }
-
-    // ==========================================
-    // 🛡️ وظائف القسم الأول (القديم - كما هو تماماً)
-    // ==========================================
-    const searchInput = document.getElementById('search-input');
+    const input = document.getElementById('search-input');
     const sendBtn = document.getElementById('send-btn');
 
-    function checkInput() {
-        sendBtn.style.display = searchInput.value.trim().length > 0 ? 'flex' : 'none';
-    }
-
+    // 1. تحديث قوائم الاختيارات والأسعار بشكل متزامن واحترافي تماماً
     function updateSettingsUI() {
         const mode = document.getElementById('mode-select').value;
-        const fileContainer = document.getElementById('file-container');
-        if (mode === 'edit') {
-            fileContainer.style.display = 'block';
-        } else {
+        const providerSelect = document.getElementById('provider-select');
+        const tierSelect = document.getElementById('tier-select');
+        const fileContainer = document.getElementById('file-upload-container');
+
+        const currentProvider = providerSelect.value;
+
+        if (mode === 'text') {
             fileContainer.style.display = 'none';
+            
+            // تحديث قائمة المزودين للنصوص إن لم تكن محدثة
+            if (!providerSelect.innerHTML.includes('openai') || providerSelect.innerHTML.includes('Flux')) {
+                providerSelect.innerHTML = `
+                    <option value="openai">OpenAI (متقدم)</option>
+                    <option value="cloudflare">Cloudflare (اقتصادي)</option>
+                `;
+                providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'openai';
+            }
+
+            // تحديث تفريعات النماذج وحساب النقاط بناءً على المزود المختار
+            if (providerSelect.value === 'openai') {
+                tierSelect.style.display = 'inline-block';
+                tierSelect.innerHTML = `
+                    <option value="gpt-4o">GPT-4o (8 نقاط)</option>
+                    <option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option>
+                    <option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>
+                `;
+            } else if (providerSelect.value === 'cloudflare') {
+                tierSelect.style.display = 'inline-block';
+                tierSelect.innerHTML = `
+                    <option value="llama">LLaMA 3.3 (5 نقاط)</option>
+                `;
+            }
+
+        } else if (mode === 'generate') {
+            fileContainer.style.display = 'none';
+            
+            if (!providerSelect.innerHTML.includes('Flux')) {
+                providerSelect.innerHTML = `
+                    <option value="cloudflare">Cloudflare (Flux - 5 نقاط)</option>
+                    <option value="openai">OpenAI (DALL-E)</option>
+                `;
+                providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'cloudflare';
+            }
+
+            if (providerSelect.value === 'openai') {
+                tierSelect.style.display = 'inline-block';
+                tierSelect.innerHTML = `
+                    <option value="light">عادي (10 نقاط)</option>
+                    <option value="mid">متوسط (15 نقطة)</option>
+                    <option value="pro">Pro عالي الدقة (20 نقطة)</option>
+                `;
+            } else {
+                tierSelect.style.display = 'none';
+            }
+
+        } else if (mode === 'edit') {
+            // التعديل محصور بـ OpenAI في الباك إند
+            providerSelect.innerHTML = `<option value="openai">OpenAI (تعديل صور)</option>`;
+            providerSelect.value = 'openai';
+            
+            tierSelect.style.display = 'inline-block';
+            tierSelect.innerHTML = `
+                <option value="light">عادي (10 نقاط)</option>
+                <option value="mid">متوسط (15 نقطة)</option>
+                <option value="pro">Pro عالي الدقة (20 نقطة)</option>
+            `;
+            fileContainer.style.display = 'block';
         }
     }
 
+    function convertToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    function fillInput(text) { input.value = text; checkInput(); }
+    function checkInput() { sendBtn.style.display = input.value.trim().length > 0 ? 'flex' : 'none'; }
+
+    function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
+    
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('modal-title').innerText = isLoginMode ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
+        document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'دخول' : 'إنشاء حساب';
+        document.getElementById('name').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('toggle-auth-text').innerText = isLoginMode ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب بالفعل؟ تسجيل الدخول';
+    }
+
+    async function handleAuth() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const name = document.getElementById('name').value;
+
+        try {
+            if (!isLoginMode) {
+                const newAccount = await account.create(ID.unique(), email, password, name);
+                await account.createEmailPasswordSession(email, password);
+                await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), {
+                    userId: newAccount.$id,
+                    tokens: 70
+                });
+                closeModal();
+                checkSession();
+            } else {
+                await account.createEmailPasswordSession(email, password);
+                closeModal();
+                checkSession();
+            }
+        } catch (error) {
+            alert("خطأ في المصادقة: " + error.message);
+        }
+    }
+
+    async function checkSession() {
+        try {
+            currentUser = await account.get();
+            document.getElementById('login-nav-btn').style.display = 'none';
+            document.getElementById('user-info').style.display = 'flex';
+            document.getElementById('user-name').innerText = currentUser.name || "مستخدم";
+            fetchUserCredits();
+        } catch (error) {
+            document.getElementById('login-nav-btn').style.display = 'block';
+            document.getElementById('user-info').style.display = 'none';
+            currentUser = null;
+        }
+    }
+
+    async function logout() {
+        await account.deleteSession('current');
+        location.reload();
+    }
+
+    async function fetchUserCredits() {
+        try {
+            const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [
+                Query.equal('userId', currentUser.$id)
+            ]);
+            if (response.documents.length > 0) {
+                document.getElementById('user-credits').innerText = response.documents[0].tokens;
+            } else {
+                document.getElementById('user-credits').innerText = "0";
+            }
+        } catch (error) {
+            console.error("خطأ في جلب النقاط:", error);
+        }
+    }
+
+    function showAlert(message, isError = false) {
+        const alertBox = document.getElementById('test-alert-box');
+        alertBox.innerText = message;
+        alertBox.className = isError ? 'test-alert alert-error' : 'test-alert alert-success';
+        alertBox.style.display = 'block';
+    }
+
+    // 2. إرسال الطلب بشكل ديناميكي وصحيح 100% متوافق مع تعديلات السيرفر
     async function processRequest() {
-        // كودك القديم الأصلي بدون أي تعديل لتجنب الخراب
-        const prompt = searchInput.value;
+        if (!currentUser) {
+            alert("يرجى تسجيل الدخول أولاً.");
+            openModal();
+            return;
+        }
+
+        const prompt = input.value;
         const mode = document.getElementById('mode-select').value;
-        const provider = document.getElementById('provider-select').value;
-        const tier = document.getElementById('tier-select').value;
+        const provider = document.getElementById('provider-select').value; // جلب المزود المختار ديناميكياً بدلاً من التثبيت القديم
+        const modelTier = document.getElementById('tier-select').value;
+        
+        let imageBase64 = null;
+
+        if (mode === 'edit') {
+            const fileInput = document.getElementById('image-file');
+            if (fileInput.files.length === 0) {
+                showAlert("❌ يرجى اختيار صورة أولاً لتعديلها.", true);
+                return;
+            }
+            try {
+                imageBase64 = await convertToBase64(fileInput.files[0]);
+            } catch (err) {
+                showAlert("❌ حدث خطأ أثناء معالجة الصورة.", true);
+                return;
+            }
+        }
 
         document.getElementById('loader').style.display = 'block';
         document.getElementById('result-area').style.display = 'none';
+        document.getElementById('test-alert-box').style.display = 'none';
+        document.getElementById('result-text').style.display = 'none';
+        document.getElementById('result-image').style.display = 'none';
+        document.getElementById('result-image').src = ''; 
 
         try {
-            const payload = JSON.stringify({ userId: currentUser?.$id || 'guest', prompt, mode, provider, tier });
-            
+            const payload = JSON.stringify({
+                userId: currentUser.$id,
+                prompt: prompt,
+                mode: mode,
+                provider: provider,
+                modelTier: modelTier,
+                imageBase64: imageBase64 
+            });
+
             const execution = await appwriteFunctions.createExecution(
                 FUNCTION_ID, 
                 payload, 
@@ -317,89 +653,41 @@
                 { 'Content-Type': 'application/json' }
             );
 
+            if (execution.status === 'failed') {
+                throw new Error("حدث خطأ داخلي في السيرفر أو انتهت مهلة المحاولة.");
+            }
+
             const responseData = JSON.parse(execution.responseBody);
+
             if (responseData.success) {
-                document.getElementById('result-text').innerText = responseData.data;
+                showAlert(responseData.message, false);
+                document.getElementById('user-credits').innerText = responseData.remainingTokens;
+                
+                if (responseData.resultType === 'text') {
+                    document.getElementById('result-text').innerText = responseData.data;
+                    document.getElementById('result-text').style.display = 'block';
+                } else if (responseData.resultType === 'image') {
+                    document.getElementById('result-image').src = responseData.data;
+                    document.getElementById('result-image').style.display = 'block';
+                }
+                
                 document.getElementById('result-area').style.display = 'block';
             } else {
-                showAlert(responseData.error, true);
+                showAlert(`❌ فشل: ${responseData.error}`, true);
             }
         } catch (error) {
-            showAlert("حدث خطأ في معالجة طلبك القديم", true);
+            console.error(error);
+            showAlert("❌ حدث خطأ في الشبكة أو أثناء الاتصال بالدالة الخلفية الخاصة بـ Appwrite.", true);
         } finally {
             document.getElementById('loader').style.display = 'none';
         }
     }
 
-
-    // ==========================================
-    // 🚀 وظائف القسم الجديد (أداة الكتب والاختبار المستقلة)
-    // ==========================================
-    const newSearchInput = document.getElementById('new-search-input');
-    const newSendBtn = document.getElementById('new-send-btn');
-
-    // فحص إدخال النص للزر الجديد بشكل مستقل
-    function checkNewInput() {
-        newSendBtn.style.display = newSearchInput.value.trim().length > 0 ? 'flex' : 'none';
-    }
-
-    // معالجة وإرسال الطلب للدالة الجديدة المخصصة للكتب
-    async function processNewRequest() {
-        if (!currentUser) {
-            showAlert("يرجى تسجيل الدخول أولاً للوصول إلى الأدوات الجديدة.", true);
-            return;
-        }
-
-        const prompt = newSearchInput.value;
-        const mode = document.getElementById('new-mode-select').value;
-        
-        // إظهار اللودر الخاص بالقسم الجديد وإخفاء النتائج السابقة له
-        document.getElementById('new-loader').style.display = 'block';
-        document.getElementById('new-result-area').style.display = 'none';
-
-        try {
-            // تجهيز البيانات المرسلة للسيرفر الجديد
-            const payload = JSON.stringify({
-                userId: currentUser.$id,
-                prompt: prompt,
-                mode: mode // ستكون إما 'book' لتأليف كتاب أو 'text' للاختبار
-            });
-
-            // تنفيذ استدعاء الدالة الجديدة NEW_FUNCTION_ID بشكل منعزل ومضمون
-            const execution = await appwriteFunctions.createExecution(
-                NEW_FUNCTION_ID, 
-                payload, 
-                false, 
-                '/', 
-                'POST', 
-                { 'Content-Type': 'application/json' }
-            );
-
-            if (execution.status === 'failed') throw new Error("فشلت دالة السيرفر الجديد في الاستجابة.");
-
-            const responseData = JSON.parse(execution.responseBody);
-
-            if (responseData.success) {
-                showAlert("✅ تم تنفيذ العملية بنجاح من الأداة الجديدة!");
-                
-                // تحديث عداد النقاط العلوي بالرصيد الجديد المخصوم منه (سواء 40 أو 10 نقاط)
-                document.getElementById('user-credits').innerText = responseData.remainingTokens;
-                
-                // عرض النتيجة في القسم الجديد الخاص بها
-                document.getElementById('new-result-text').innerText = responseData.data;
-                document.getElementById('new-result-area').style.display = 'block';
-            } else {
-                showAlert(`❌ فشل من الدالة الجديدة: ${responseData.error}`, true);
-            }
-        } catch (error) {
-            console.error(error);
-            showAlert("❌ حدث خطأ غير متوقع أثناء الاتصال بالدالة الجديدة.", true);
-        } finally {
-            // إخفاء اللودر الجديد دائماً عند الانتهاء
-            document.getElementById('new-loader').style.display = 'none';
-        }
-    }
+    window.onload = () => {
+        checkSession();
+        updateSettingsUI();
+    };
 </script>
 
 </body>
-</html> 
+</html>
