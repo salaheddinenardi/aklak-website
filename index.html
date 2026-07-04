@@ -346,36 +346,120 @@
     }
 
     // ==========================================
-    // 2. أداة إنشاء الكتب الجديدة (المرحلة الأولى)
+    // 2. أداة إنشاء الكتب الاحترافية 
     // ==========================================
     function createBookToolUI(containerId, titleText, targetFunctionId) {
         const container = document.getElementById(containerId);
+        
+        // أضفنا CSS سريع داخل القالب لتنظيم المدخلات الكثيرة بشكل احترافي
         const htmlTemplate = `
             <div class="tool-container">
                 <h3 class="tool-header">${titleText}</h3>
                 
-                <div class="model-settings book-inputs">
-                    <input type="text" id="book-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
-                    <select id="book-genre">
-                        <option value="رواية">📖 نوع الكتاب: رواية</option>
-                        <option value="قصة قصيرة">📚 نوع الكتاب: قصة</option>
-                        <option value="كتاب تعليمي">🎓 نوع الكتاب: تعليمي</option>
-                    </select>
-                    
-                    <input type="text" id="book-topic" class="full-width" placeholder="موضوع الكتاب (عن ماذا يتحدث؟ اكتب فكرتك هنا...)">
-                    
-                    <select id="book-style">
-                        <option value="فصول">📑 تقسيم الكتاب: فصول</option>
-                        <option value="فقرات">📝 تقسيم الكتاب: فقرات</option>
-                    </select>
-                    
-                    <input type="text" value="عدد الصفحات الأقصى: 50 صفحة (ثابت للتجربة)" disabled>
-                    
-                    <select id="book-provider" class="full-width">
-                        <option value="openai|gpt-4o">🧠 نموذج OpenAI - GPT-4o (موصى به للإبداع)</option>
-                    </select>
-                    
-                    <input type="text" id="book-prompt" class="full-width" placeholder="ملاحظات إضافية للكاتب الذكي (اختياري، مثلاً: اجعل النهاية سعيدة)">
+                <style>
+                    .book-section-title { font-size: 1.05em; color: #14539a; margin: 15px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+                    .book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+                    .book-grid input, .book-grid select { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 0.9em; width: 100%; box-sizing: border-box;}
+                    .full-width { grid-column: 1 / -1; }
+                </style>
+
+                <div class="book-inputs">
+                    <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
+                    <div class="book-grid">
+                        <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
+                        <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
+                        
+                        <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.style.display='block'; c.focus(); } else { c.style.display='none'; }">
+                            <optgroup label="الأدب الخيالي (Fiction)">
+                                <option value="رواية طويلة">رواية</option>
+                                <option value="قصص قصيرة">قصص قصيرة</option>
+                                <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
+                                <option value="رواية بوليسية وغموض">رواية بوليسية / غموض</option>
+                            </optgroup>
+                            <optgroup label="الأدب الواقعي والتعليمي (Non-Fiction)">
+                                <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
+                                <option value="تطوير الذات">تطوير الذات</option>
+                                <option value="سيرة ذاتية">سيرة ذاتية</option>
+                                <option value="مقالات ودراسات">مقالات / دراسات</option>
+                                <option value="دليل إرشادي (How-to)">دليل إرشادي (How-to)</option>
+                            </optgroup>
+                            <optgroup label="فئات متخصصة">
+                                <option value="كتاب أطفال">كتاب أطفال</option>
+                                <option value="كتاب طبخ ووصفات">كتاب طبخ</option>
+                                <option value="كتاب تحديات">كتاب تحديات (مثل تحدي 30 يوم)</option>
+                                <option value="أشعار وخواطر">أشعار وخواطر</option>
+                            </optgroup>
+                            <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
+                        </select>
+                        <input type="text" id="b-custom-genre" placeholder="اكتب نوع الكتاب هنا..." style="display: none;">
+                    </div>
+
+                    <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
+                    <div class="book-grid">
+                        <select id="b-structure">
+                            <optgroup label="هيكلة سردية">
+                                <option value="فصول (Chapters)">فصول (Chapters)</option>
+                                <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
+                                <option value="مشاهد (Scenes)">مشاهد متسلسلة (Scenes)</option>
+                            </optgroup>
+                            <optgroup label="هيكلة تعليمية/وظيفية">
+                                <option value="دروس (Lessons)">دروس (Lessons)</option>
+                                <option value="وحدات (Modules)">وحدات (Modules)</option>
+                                <option value="مواضيع (Topics)">مواضيع (Topics)</option>
+                                <option value="أسئلة وأجوبة (Q&A)">أسئلة وأجوبة (Q&A)</option>
+                                <option value="قواعد ومبادئ">قواعد ومبادئ (Rules)</option>
+                            </optgroup>
+                            <optgroup label="هيكلة زمنية">
+                                <option value="أيام (Days)">أيام (Days)</option>
+                                <option value="أسابيع (Weeks)">أسابيع (Weeks)</option>
+                                <option value="مراحل (Phases)">مراحل (Phases)</option>
+                            </optgroup>
+                        </select>
+                        <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
+                    </div>
+
+                    <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
+                    <div class="book-grid">
+                        <select id="b-audience">
+                            <option value="الجمهور العام">الجمهور العام</option>
+                            <option value="أطفال">أطفال</option>
+                            <option value="مراهقين">مراهقين</option>
+                            <option value="مبتدئين">مبتدئين</option>
+                            <option value="محترفين وخبراء">محترفين وخبراء</option>
+                        </select>
+                        <select id="b-tone">
+                            <option value="حيادي وواضح">حيادي وواضح</option>
+                            <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
+                            <option value="فكاهي ومرح">فكاهي ومرح</option>
+                            <option value="درامي ومشوق">درامي ومشوق</option>
+                            <option value="مبسط وسهل الفهم">مبسط وسهل الفهم</option>
+                        </select>
+                        <select id="b-pov">
+                            <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
+                            <option value="المتكلم (أنا)">المتكلم (أنا)</option>
+                            <option value="المخاطب (أنت)">المخاطب (أنت)</option>
+                        </select>
+                        <select id="b-language">
+                            <option value="العربية">اللغة العربية</option>
+                            <option value="الإنجليزية">اللغة الإنجليزية</option>
+                            <option value="الفرنسية">اللغة الفرنسية</option>
+                        </select>
+                    </div>
+
+                    <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
+                    <div class="book-grid">
+                        <select id="b-images">
+                            <option value="بدون صور">بدون صور داخلية</option>
+                            <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
+                            <option value="صور ملونة واقعية">صور ملونة واقعية</option>
+                            <option value="رسم كرتوني">رسم كرتوني (للأطفال)</option>
+                            <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
+                            <option value="رسم يدوي (Sketch)">رسم يدوي (Sketch)</option>
+                        </select>
+                        <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اتركه فارغاً لعدم التوليد)">
+                    </div>
+
+                    <input type="text" id="b-prompt" class="full-width" style="padding:10px; width:100%; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;" placeholder="ملاحظات إضافية للمؤلف الذكي (اختياري)">
                 </div>
 
                 <div class="test-alert" id="book-alert"></div>
@@ -383,11 +467,11 @@
                 <div class="loader" id="book-loader"><i class="fas fa-spinner fa-spin"></i> جاري التفكير ووضع الخطة الإبداعية...</div>
                 
                 <div class="result-area" id="book-result-area">
-                    <h3>الخطة المقترحة (يمكنك المراجعة والتعديل اليدوي)</h3>
-                    <textarea class="editable-outline" id="book-outline-text" placeholder="ستظهر الخطة هنا لتتمكن من مراجعتها..."></textarea>
+                    <h3>الخطة المقترحة (للمراجعة والتعديل)</h3>
+                    <textarea class="editable-outline" id="book-outline-text"></textarea>
                     <br>
                     <div class="source-badge" id="book-badge"></div>
-                    <button class="generate-book-btn" style="background:#16a34a; margin-top:10px; display:none" id="continue-writing-btn">🚀 اعتماد الخطة والبدء بكتابة الـ 50 صفحة</button>
+                    <button class="generate-book-btn" style="background:#16a34a; margin-top:10px; display:none" id="continue-writing-btn">🚀 اعتماد الخطة والبدء بالكتابة</button>
                 </div>
             </div>
         `;
@@ -411,24 +495,41 @@
         btn.addEventListener('click', async () => {
             if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return; }
             
-            const title = currentTool.querySelector('#book-title').value;
-            const topic = currentTool.querySelector('#book-topic').value;
-            const genre = currentTool.querySelector('#book-genre').value;
-            const style = currentTool.querySelector('#book-style').value;
-            const prompt = currentTool.querySelector('#book-prompt').value;
+            // تجميع البيانات
+            const title = currentTool.querySelector('#b-title').value;
+            const topic = currentTool.querySelector('#b-topic').value;
+            
+            // معالجة نوع الكتاب (الافتراضي أو اليدوي)
+            const genreSelect = currentTool.querySelector('#b-genre').value;
+            const genre = genreSelect === 'other' ? currentTool.querySelector('#b-custom-genre').value : genreSelect;
+            
+            const structure = currentTool.querySelector('#b-structure').value;
+            
+            // معالجة وحماية عدد الصفحات
+            let pages = parseInt(currentTool.querySelector('#b-pages').value);
+            if (isNaN(pages) || pages < 50) pages = 50;
+            if (pages > 400) pages = 400;
+
+            const audience = currentTool.querySelector('#b-audience').value;
+            const tone = currentTool.querySelector('#b-tone').value;
+            const pov = currentTool.querySelector('#b-pov').value;
+            const language = currentTool.querySelector('#b-language').value;
+            const imagesType = currentTool.querySelector('#b-images').value;
+            const coverPrompt = currentTool.querySelector('#b-cover').value;
+            const prompt = currentTool.querySelector('#b-prompt').value;
             
             if(!title || !topic) { showAlert("❌ يرجى إدخال عنوان وموضوع الكتاب على الأقل.", true); return; }
+            if(genreSelect === 'other' && !genre) { showAlert("❌ يرجى كتابة نوع الكتاب المخصص.", true); return; }
 
             loader.style.display = 'block';
             resultArea.style.display = 'none';
             alertBox.style.display = 'none';
             outlineText.style.display = 'none';
 
-            try {
-                // إرسال الطلب مع تحديد الأكشن (book_outline)
+               try {
                 const payload = JSON.stringify({
                     userId: currentUser.$id,
-                    action: 'book_outline', // توجيه للموزع
+                    action: 'book_outline',
                     provider: 'openai',
                     modelTier: 'gpt-4o',
                     prompt: prompt,
@@ -436,8 +537,14 @@
                         title: title,
                         topic: topic,
                         genre: genre,
-                        style: style,
-                        maxPages: 50
+                        structure: structure,
+                        maxPages: pages,
+                        audience: audience,
+                        tone: tone,
+                        pov: pov,
+                        language: language,
+                        imagesType: imagesType,
+                        coverPrompt: coverPrompt
                     }
                 });
 
@@ -452,9 +559,9 @@
                     showAlert(responseData.message, false);
                     document.getElementById('user-credits').innerText = responseData.remainingTokens;
                     
-                    outlineText.value = responseData.data; // وضع النص في المربع القابل للتعديل
+                    outlineText.value = responseData.data;
                     outlineText.style.display = 'block';
-                    continueBtn.style.display = 'block'; // إظهار زر الإكمال للمرحلة القادمة
+                    continueBtn.style.display = 'block'; 
                     
                     if (responseData.sourceFunction) {
                         badge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
