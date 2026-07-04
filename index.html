@@ -90,7 +90,7 @@
         <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
         <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
         <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
-        
+           
         <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.classList.remove('hidden'); c.focus(); } else { c.classList.add('hidden'); }">
             <optgroup label="الأدب الخيالي">
                 <option value="رواية">رواية</option>
@@ -105,7 +105,7 @@
             <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
         </select>
         <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
-        
+             
         <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
         <select id="b-structure">
             <option value="فصول (Chapters)">فصول (Chapters)</option>
@@ -114,7 +114,7 @@
             <option value="أيام (Days)">أيام (Days)</option>
         </select>
         <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
-        
+            
         <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
         <select id="b-audience">
             <option value="الجمهور العام">الجمهور العام</option>

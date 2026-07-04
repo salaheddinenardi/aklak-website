@@ -119,7 +119,7 @@ ui.sendBtn.addEventListener('click', async () => {
 
         let pages = parseInt(document.getElementById('b-pages').value);
         if (isNaN(pages) || pages < 50) pages = 50;
-
+   
         payloadObj.action = 'book_outline';
         payloadObj.bookDetails = {
             title: document.getElementById('b-title').value,
