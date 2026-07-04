@@ -3,652 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أكلاك | ساحة تجارب الذكاء الاصطناعي</title>
+    <title>أكلاك | الواجهة الموحدة الذكية</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
-    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-        body { 
-            font-family: 'Tajawal', sans-serif; 
-            margin: 0; padding: 0; 
-            background-color: #f4f6f9; 
-            color: #333;
-        }
+        body { font-family: 'Tajawal', sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; }
+        .nav { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5em; font-weight: bold; color: #14539a; }
+        .container { background: white; padding: 30px; max-width: 900px; margin: auto; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; }
+        .controls-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        label { font-size: 0.9em; font-weight: bold; color: #4b5563; display: block; margin-bottom: 5px; }
+        select, input, button { padding: 12px; font-size: 0.95em; width: 100%; box-sizing: border-box; border-radius: 8px; border: 1px solid #d1d5db; font-family: inherit; }
+        select:focus, input:focus { outline: none; border-color: #14539a; box-shadow: 0 0 0 1px #14539a; }
+        button { cursor: pointer; background: #14539a; color: white; border: none; font-weight: bold; transition: background 0.2s; }
+        button:hover { background: #0d3b6e; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .hidden { display: none !important; }
         
-        nav { 
-            background: #ffffff; padding: 15px 50px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); border-bottom: 1px solid #e5e7eb;
-        }
+        /* إعدادات الكتاب */
+        .book-section-title { font-size: 1.05em; color: #14539a; margin: 15px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; grid-column: 1 / -1; }
+        .book-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .book-fields .full-width { grid-column: 1 / -1; }
         
-        .logo { font-size: 1.4em; font-weight: 700; color: #14539a; letter-spacing: 0.5px; }
-        .nav-links { display: flex; align-items: center; gap: 20px; }
-        .nav-links a, .nav-links button { 
-            text-decoration: none; color: #4b5563; font-weight: 700; background: none; 
-            border: none; cursor: pointer; font-family: inherit; font-size: 0.95em; transition: color 0.2s;
-        }
-        .nav-links a:hover, .nav-links button:hover { color: #14539a; }
-
-        #user-info { 
-            display: none; align-items: center; gap: 15px; background: #f0f4f8; 
-            padding: 6px 16px; border-radius: 30px; border: 1px solid #dbe3eb;
-        }
-        .credits { color: #16a34a; font-weight: bold; display: flex; align-items: center; gap: 6px; }
-        .logout-btn { color: #dc3545 !important; font-size: 0.95em; padding: 0 5px; }
-
-        .search-section { max-width: 750px; margin: 0 auto; padding: 40px 20px; }
-        .search-section h2 { text-align: center; font-size: 1.8em; color: #1f2937; margin-bottom: 30px; }
+        /* النتائج */
+        .result-box { margin-top: 20px; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; min-height: 100px; }
+        #result-text, #book-outline-text { white-space: pre-wrap; line-height: 1.6; color: #374151; width: 100%; }
+        #book-outline-text { min-height: 300px; resize: vertical; border: 1px solid #cbd5e1; padding: 15px; background: white; border-radius: 8px; }
+        .result-image { max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; border: 1px solid #e5e7eb; }
+        .source-badge { display: inline-block; margin-top: 15px; padding: 5px 12px; background: #e0e7ff; color: #4338ca; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
         
-        .tool-container {
-            background: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            padding: 25px; margin-bottom: 40px; border: 1px solid #e5e7eb; position: relative;
-        }
-
-        .tool-header { color: #14539a; font-size: 1.2em; margin-top: 0; margin-bottom: 20px; border-bottom: 2px dashed #e5e7eb; padding-bottom: 10px; }
-
-        .model-settings { 
-            background: #f9fafb; padding: 15px; border-radius: 8px; margin-bottom: 20px; 
-            display: flex; flex-direction: column; gap: 15px; border: 1px solid #e5e7eb;
-        }
-        .settings-row { display: flex; gap: 12px; flex-wrap: wrap; }
-        .model-settings select, .book-inputs input, .book-inputs select { 
-            flex: 1; min-width: 180px; padding: 11px 14px; border-radius: 8px; 
-            border: 1px solid #d1d5db; font-family: inherit; font-size: 0.95em; outline: none; 
-            background-color: #ffffff; color: #374151; transition: border-color 0.2s;
-        }
-        .model-settings select:focus, .book-inputs input:focus, .book-inputs select:focus { border-color: #14539a; }
-
-        .file-upload-container { display: none; text-align: right; background: #ffffff; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; }
-        .file-upload-container label { font-weight: bold; color: #475569; display: block; margin-bottom: 8px; font-size: 0.9em; }
-        .image-file { width: 100%; padding: 8px; background: white; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; box-sizing: border-box; }
-
-        .input-wrapper { 
-            position: relative; display: flex; align-items: center; background: white; 
-            border: 1px solid #d1d5db; border-radius: 8px; padding: 4px 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-        }
-        .input-wrapper:focus-within { border-color: #14539a; box-shadow: 0 0 0 1px #14539a; }
-        .search-box { flex: 1; padding: 14px 10px; border: none; outline: none; font-size: 1em; background: transparent; font-family: inherit; }
-        
-        .send-btn, .generate-book-btn { 
-            background: #14539a; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s; 
-        }
-        .send-btn { width: 42px; height: 42px; display: none; justify-content: center; align-items: center; }
-        .generate-book-btn { padding: 12px 20px; font-size: 1em; font-weight: bold; width: 100%; margin-top: 15px; font-family: inherit;}
-        .send-btn:hover, .generate-book-btn:hover { background: #0d3b6e; }
-        
-        .quick-actions { margin-top: 20px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-        .action-btn { padding: 9px 16px; border: 1px solid #d1d5db; background: white; color: #4b5563; border-radius: 6px; cursor: pointer; font-size: 0.9em; transition: all 0.2s; }
-        .action-btn:hover { border-color: #14539a; color: #14539a; }
-
-        .test-alert { display: none; margin: 15px auto; padding: 12px 15px; border-radius: 6px; text-align: right; font-size: 0.95em; }
-        .alert-success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-        .alert-error { background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
-
-        .loader { display: none; color: #14539a; font-weight: bold; margin-top: 20px; text-align: center; font-size: 0.95em; }
-
-        .result-area { margin-top: 25px; text-align: right; display: none; background: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .result-area h3 { margin-top: 0; color: #1f2937; font-size: 1.15em; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; }
-        .result-text { white-space: pre-wrap; line-height: 1.6; color: #374151; font-size: 1em; display: none; }
-        .result-image { max-width: 100%; border-radius: 8px; margin-top: 10px; display: none; border: 1px solid #e5e7eb; }
-        .source-badge { display: inline-block; margin-top: 15px; padding: 5px 12px; background: #e0e7ff; color: #4338ca; border-radius: 20px; font-size: 0.8em; font-weight: bold; border: 1px solid #c7d2fe; display: none; }
-
-        /* Book specific styles */
-        .book-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .book-inputs .full-width { grid-column: 1 / -1; }
-        .editable-outline { width: 100%; height: 300px; padding: 15px; font-family: inherit; font-size: 1em; line-height: 1.6; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; resize: vertical; display: none; background: #fff;}
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 100%; max-width: 340px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .modal h3 { margin-top: 0; color: #1f2937; margin-bottom: 20px; }
-        .modal input { width: 100%; padding: 11px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
-        .modal button.primary-btn { width: 100%; padding: 11px; background: #14539a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; font-family: inherit; }
-        .modal button.close-btn { background: none; border: none; color: #6b7280; cursor: pointer; margin-top: 15px; text-decoration: underline; font-size: 0.9em; }
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; width: 100%; max-width: 320px; text-align: center; border-radius: 12px; }
+        .modal-content input { margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-<nav>
+<div class="nav">
     <div class="logo">aklake</div>
-    <div class="nav-links">
-        <a href="#">المنتجات</a>
-        <button id="login-nav-btn" onclick="openModal()"><i class="fas fa-user-circle"></i> تسجيل الدخول</button>
-        <div id="user-info">
-            <span id="user-name"></span>
-            <div class="credits"><i class="fas fa-coins"></i> <span id="user-credits">0</span></div>
-            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+    <div>
+        <span id="user-info" class="hidden" style="font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 8px 15px; border-radius: 20px; border: 1px solid #bbf7d0; margin-left: 10px;">
+            الرصيد: <span id="user-credits">0</span>
+        </span>
+        <button id="login-btn" onclick="openModal()" style="width: auto; padding: 8px 20px; border-radius: 20px;">تسجيل الدخول</button>
+        <button id="logout-btn" class="hidden" onclick="logout()" style="width: auto; padding: 8px 20px; border-radius: 20px; background: #dc2626;">خروج</button>
+    </div>
+</div>
+
+<div class="container">
+    <h2 style="text-align: center; color: #1f2937; margin-top: 0;">ساحة الذكاء الاصطناعي ⚡</h2>
+    
+    <div class="controls-grid">
+        <div>
+            <label>المصدر (الكود الوظيفي):</label>
+            <select id="source-select">
+                <option value="6a3c7a760032067bd275">الكود الأول (الأساسي)</option>
+                <option value="6a445f680013960a14c6">الكود الثاني (المشتق/الموزع)</option>
+            </select>
+        </div>
+        <div>
+            <label>نوع الخدمة:</label>
+            <select id="action-select">
+                <option value="text">💬 محادثة نصية</option>
+                <option value="generate">🎨 توليد صور</option>
+                <option value="edit">🖌️ تعديل صورة</option>
+                <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
+            </select>
+        </div>
+        <div>
+            <label>المزود:</label>
+            <select id="provider-select"></select>
+        </div>
+        <div>
+            <label>النموذج (الموديل):</label>
+            <select id="model-select"></select>
         </div>
     </div>
-</nav>
 
-<section class="search-section">
-    <h2>ساحة تجارب الذكاء الاصطناعي 🧪</h2>
-    <div id="dynamic-tools-container"></div>
-</section>
+    <div id="image-upload-section" class="hidden" style="margin-bottom: 20px; text-align: right; background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+        <label>ارفع الصورة للتعديل:</label>
+        <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp" style="background: white;">
+    </div>
+
+    <div id="book-settings" class="book-fields hidden">
+        <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
+        <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
+        <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
+        
+        <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.classList.remove('hidden'); c.focus(); } else { c.classList.add('hidden'); }">
+            <optgroup label="الأدب الخيالي">
+                <option value="رواية">رواية</option>
+                <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
+                <option value="رواية بوليسية">رواية بوليسية / غموض</option>
+            </optgroup>
+            <optgroup label="الأدب الواقعي والتعليمي">
+                <option value="تطوير الذات">تطوير الذات</option>
+                <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
+                <option value="دليل إرشادي">دليل إرشادي (How-to)</option>
+            </optgroup>
+            <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
+        </select>
+        <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
+        
+        <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
+        <select id="b-structure">
+            <option value="فصول (Chapters)">فصول (Chapters)</option>
+            <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
+            <option value="دروس (Lessons)">دروس (Lessons)</option>
+            <option value="أيام (Days)">أيام (Days)</option>
+        </select>
+        <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
+        
+        <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
+        <select id="b-audience">
+            <option value="الجمهور العام">الجمهور العام</option>
+            <option value="أطفال">أطفال</option>
+            <option value="مبتدئين">مبتدئين</option>
+            <option value="محترفين وخبراء">محترفين وخبراء</option>
+        </select>
+        <select id="b-tone">
+            <option value="حيادي وواضح">حيادي وواضح</option>
+            <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
+            <option value="فكاهي ومرح">فكاهي ومرح</option>
+        </select>
+        <select id="b-pov">
+            <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
+            <option value="المتكلم (أنا)">المتكلم (أنا)</option>
+        </select>
+        <select id="b-language">
+            <option value="العربية">اللغة العربية</option>
+            <option value="الإنجليزية">اللغة الإنجليزية</option>
+        </select>
+
+        <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
+        <select id="b-images">
+            <option value="بدون صور">بدون صور داخلية</option>
+            <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
+            <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
+        </select>
+        <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اختياري)">
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <input type="text" id="main-prompt" placeholder="اكتب سؤالك، التعديل، أو ملاحظات إضافية للكتاب هنا...">
+        <button id="send-btn" style="width: 180px;"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
+    </div>
+
+    <div id="loader" class="hidden" style="margin-top: 20px; color: #14539a; text-align: center; font-weight: bold;"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
+    <div class="result-box hidden" id="result-area">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">النتيجة</h3>
+        <div id="result-text" class="hidden"></div>
+        <textarea id="book-outline-text" class="hidden" readonly></textarea>
+        <img id="result-image" class="result-image hidden" src="" alt="النتيجة">
+        <br>
+        <div id="source-badge" class="source-badge hidden"></div>
+    </div>
+</div>
 
 <div class="modal" id="auth-modal">
     <div class="modal-content">
         <h3 id="modal-title">تسجيل الدخول</h3>
         <input type="email" id="email" placeholder="البريد الإلكتروني">
         <input type="password" id="password" placeholder="كلمة المرور">
-        <input type="text" id="name" placeholder="الاسم (لإنشاء حساب جديد فقط)" style="display: none;">
-        <button class="primary-btn" id="auth-submit-btn" onclick="handleAuth()">دخول</button>
-        <p style="font-size: 0.9em; color: #555; margin-top: 15px;">
-            <a href="#" onclick="toggleAuthMode()" id="toggle-auth-text">ليس لديك حساب؟ إنشاء حساب جديد</a>
-        </p>
-        <button class="close-btn" onclick="closeModal()">إلغاء</button>
+        <input type="text" id="name" placeholder="الاسم" class="hidden">
+        <button id="auth-submit-btn" onclick="handleAuth()">دخول</button>
+        <p style="margin-top: 15px; font-size: 0.9em;"><a href="#" onclick="toggleAuthMode()" id="toggle-auth-text" style="color: #4b5563;">إنشاء حساب جديد</a></p>
+        <button onclick="closeModal()" style="background: transparent; color: #6b7280; text-decoration: underline; margin-top: 5px;">إلغاء</button>
     </div>
 </div>
 
-<script>
-    const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
-    const client = new Client()
-        .setEndpoint('https://fra.cloud.appwrite.io/v1') 
-        .setProject('6a36cda70021ceb1f3d0'); 
-    
-    const account = new Account(client);
-    const databases = new Databases(client);
-    const appwriteFunctions = new Functions(client);
-
-    const DB_ID = '6a3706880011ad5651b5'; 
-    const COLLECTION_ID = 'cvs_chat_cv_mab'; 
-    
-    const FUNCTION_ID_1 = '6a3c7a760032067bd275';
-    const FUNCTION_ID_2 = '6a445f680013960a14c6'; 
-
-    let isLoginMode = true;
-    let currentUser = null;
-
-    // ==========================================
-    // 1. أداة المحادثة والصور القديمة
-    // ==========================================
-    function createAIToolUI(containerId, titleText, targetFunctionId) {
-        const container = document.getElementById(containerId);
-        const htmlTemplate = `
-            <div class="tool-container">
-                <h3 class="tool-header">${titleText}</h3>
-                <div class="model-settings">
-                    <div class="settings-row">
-                        <select class="mode-select">
-                            <option value="text">💬 محادثة نصية</option>
-                            <option value="generate">🎨 توليد صور</option>
-                            <option value="edit">🖌️ تعديل على صورة</option>
-                        </select>
-                        <select class="provider-select"></select>
-                        <select class="tier-select"></select>
-                    </div>
-                    <div class="file-upload-container">
-                        <label>ارفع الصورة التي تريد تعديلها:</label>
-                        <input type="file" class="image-file" accept="image/png, image/jpeg, image/webp">
-                    </div>
-                </div>
-                <div class="test-alert"></div>
-                <div class="input-wrapper">
-                    <input type="text" class="search-box" placeholder="اكتب سؤالك أو التعديل المطلوب هنا...">
-                    <button class="send-btn"><i class="fas fa-paper-plane"></i></button>
-                </div>
-                <div class="quick-actions">
-                    <button class="action-btn btn-chat-demo">تجربة محادثة</button>
-                    <button class="action-btn btn-img-demo">تجربة توليد صورة</button>
-                </div>
-                <div class="loader"><i class="fas fa-spinner fa-spin"></i> جاري الاتصال بالدالة...</div>
-                <div class="result-area">
-                    <h3>النتيجة المباشرة</h3>
-                    <p class="result-text"></p>
-                    <img class="result-image" src="" alt="النتيجة المستلمة">
-                    <br>
-                    <div class="source-badge"></div>
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', htmlTemplate);
-        
-        const currentTool = container.lastElementChild;
-        const els = {
-            modeSelect: currentTool.querySelector('.mode-select'),
-            providerSelect: currentTool.querySelector('.provider-select'),
-            tierSelect: currentTool.querySelector('.tier-select'),
-            fileContainer: currentTool.querySelector('.file-upload-container'),
-            fileInput: currentTool.querySelector('.image-file'),
-            input: currentTool.querySelector('.search-box'),
-            sendBtn: currentTool.querySelector('.send-btn'),
-            alertBox: currentTool.querySelector('.test-alert'),
-            loader: currentTool.querySelector('.loader'),
-            resultArea: currentTool.querySelector('.result-area'),
-            resultText: currentTool.querySelector('.result-text'),
-            resultImage: currentTool.querySelector('.result-image'),
-            sourceBadge: currentTool.querySelector('.source-badge'),
-            btnChatDemo: currentTool.querySelector('.btn-chat-demo'),
-            btnImgDemo: currentTool.querySelector('.btn-img-demo')
-        };
-
-        const updateSettingsUI = () => {
-            const mode = els.modeSelect.value;
-            const currentProvider = els.providerSelect.value;
-
-            if (mode === 'text') {
-                els.fileContainer.style.display = 'none';
-                if (!els.providerSelect.innerHTML.includes('openai') || els.providerSelect.innerHTML.includes('Flux')) {
-                    els.providerSelect.innerHTML = `<option value="openai">OpenAI (متقدم)</option><option value="cloudflare">Cloudflare (اقتصادي)</option>`;
-                    els.providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'openai';
-                }
-                if (els.providerSelect.value === 'openai') {
-                    els.tierSelect.style.display = 'inline-block';
-                    els.tierSelect.innerHTML = `<option value="gpt-4o">GPT-4o (8 نقاط)</option><option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option><option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>`;
-                } else {
-                    els.tierSelect.style.display = 'inline-block';
-                    els.tierSelect.innerHTML = `<option value="llama">LLaMA 3.3 (5 نقاط)</option>`;
-                }
-            } else if (mode === 'generate') {
-                els.fileContainer.style.display = 'none';
-                if (!els.providerSelect.innerHTML.includes('Flux')) {
-                    els.providerSelect.innerHTML = `<option value="cloudflare">Cloudflare (Flux - 5 نقاط)</option><option value="openai">OpenAI (DALL-E)</option>`;
-                    els.providerSelect.value = ['openai', 'cloudflare'].includes(currentProvider) ? currentProvider : 'cloudflare';
-                }
-                if (els.providerSelect.value === 'openai') {
-                    els.tierSelect.style.display = 'inline-block';
-                    els.tierSelect.innerHTML = `<option value="light">عادي (10 نقاط)</option><option value="mid">متوسط (15 نقطة)</option><option value="pro">Pro عالي الدقة (20 نقطة)</option>`;
-                } else {
-                    els.tierSelect.style.display = 'none';
-                }
-            } else if (mode === 'edit') {
-                els.providerSelect.innerHTML = `<option value="openai">OpenAI (تعديل صور)</option>`;
-                els.providerSelect.value = 'openai';
-                els.tierSelect.style.display = 'inline-block';
-                els.tierSelect.innerHTML = `<option value="light">عادي (10 نقاط)</option><option value="mid">متوسط (15 نقطة)</option><option value="pro">Pro عالي الدقة (20 نقطة)</option>`;
-                els.fileContainer.style.display = 'block';
-            }
-        };
-
-        const checkInput = () => els.sendBtn.style.display = els.input.value.trim().length > 0 ? 'flex' : 'none';
-        const fillInput = (text) => { els.input.value = text; checkInput(); };
-        const showAlert = (message, isError = false) => {
-            els.alertBox.innerText = message;
-            els.alertBox.className = isError ? 'test-alert alert-error' : 'test-alert alert-success';
-            els.alertBox.style.display = 'block';
-        };
-
-        els.modeSelect.addEventListener('change', updateSettingsUI);
-        els.providerSelect.addEventListener('change', updateSettingsUI);
-        els.input.addEventListener('input', checkInput);
-        els.btnChatDemo.addEventListener('click', () => fillInput('أعطني خطة تسويقية لمتجر إلكتروني يبيع منتجات محلية في المغرب.'));
-        els.btnImgDemo.addEventListener('click', () => fillInput('صورة لقطة تركب دراجة نارية في الفضاء بأسلوب الأنمي'));
-
-        els.sendBtn.addEventListener('click', async () => {
-            if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return; }
-            
-            const prompt = els.input.value;
-            const mode = els.modeSelect.value;
-            const provider = els.providerSelect.value;
-            const modelTier = els.tierSelect.value;
-            let imageBase64 = null;
-
-            if (mode === 'edit') {
-                if (els.fileInput.files.length === 0) { showAlert("❌ يرجى اختيار صورة أولاً لتعديلها.", true); return; }
-                try { imageBase64 = await convertToBase64(els.fileInput.files[0]); } 
-                catch (err) { showAlert("❌ حدث خطأ أثناء معالجة الصورة.", true); return; }
-            }
-
-            els.loader.style.display = 'block';
-            els.resultArea.style.display = 'none';
-            els.alertBox.style.display = 'none';
-            els.resultText.style.display = 'none';
-            els.resultImage.style.display = 'none';
-            els.resultImage.src = ''; 
-            els.sourceBadge.style.display = 'none';
-
-            try {
-                // إرسال الطلب مع تحديد الأكشن (Legacy Chat) للباك إند الجديد
-                const payload = JSON.stringify({
-                    userId: currentUser.$id,
-                    action: 'legacy_chat', // هذا هو التعديل المهم للموزع!
-                    prompt: prompt,
-                    mode: mode,
-                    provider: provider,
-                    modelTier: modelTier,
-                    imageBase64: imageBase64 
-                });
-
-                const execution = await appwriteFunctions.createExecution(
-                    targetFunctionId, payload, false, '/', 'POST', { 'Content-Type': 'application/json' }
-                );
-                
-                if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر أو انتهت مهلة المحاولة.");
-
-                const responseData = JSON.parse(execution.responseBody);
-                if (responseData.success) {
-                    showAlert(responseData.message, false);
-                    document.getElementById('user-credits').innerText = responseData.remainingTokens;
-                    
-                    if (responseData.resultType === 'text') {
-                        els.resultText.innerText = responseData.data;
-                        els.resultText.style.display = 'block';
-                    } else if (responseData.resultType === 'image') {
-                        els.resultImage.src = responseData.data;
-                        els.resultImage.style.display = 'block';
-                    }
-                    if (responseData.sourceFunction) {
-                        els.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
-                        els.sourceBadge.style.display = 'inline-block';
-                    }
-                    els.resultArea.style.display = 'block';
-                } else {
-                    showAlert(`❌ فشل: ${responseData.error}`, true);
-                }
-            } catch (error) {
-                console.error(error);
-                showAlert("❌ حدث خطأ أثناء الاتصال بالدالة الخلفية.", true);
-            } finally {
-                els.loader.style.display = 'none';
-            }
-        });
-        updateSettingsUI();
-    }
-
-    // ==========================================
-    // 2. أداة إنشاء الكتب الاحترافية 
-    // ==========================================
-    function createBookToolUI(containerId, titleText, targetFunctionId) {
-        const container = document.getElementById(containerId);
-        
-        // أضفنا CSS سريع داخل القالب لتنظيم المدخلات الكثيرة بشكل احترافي
-        const htmlTemplate = `
-            <div class="tool-container">
-                <h3 class="tool-header">${titleText}</h3>
-                
-                <style>
-                    .book-section-title { font-size: 1.05em; color: #14539a; margin: 15px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
-                    .book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-                    .book-grid input, .book-grid select { padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-family: inherit; font-size: 0.9em; width: 100%; box-sizing: border-box;}
-                    .full-width { grid-column: 1 / -1; }
-                </style>
-
-                <div class="book-inputs">
-                    <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
-                    <div class="book-grid">
-                        <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
-                        <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
-                        
-                        <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.style.display='block'; c.focus(); } else { c.style.display='none'; }">
-                            <optgroup label="الأدب الخيالي (Fiction)">
-                                <option value="رواية طويلة">رواية</option>
-                                <option value="قصص قصيرة">قصص قصيرة</option>
-                                <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
-                                <option value="رواية بوليسية وغموض">رواية بوليسية / غموض</option>
-                            </optgroup>
-                            <optgroup label="الأدب الواقعي والتعليمي (Non-Fiction)">
-                                <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
-                                <option value="تطوير الذات">تطوير الذات</option>
-                                <option value="سيرة ذاتية">سيرة ذاتية</option>
-                                <option value="مقالات ودراسات">مقالات / دراسات</option>
-                                <option value="دليل إرشادي (How-to)">دليل إرشادي (How-to)</option>
-                            </optgroup>
-                            <optgroup label="فئات متخصصة">
-                                <option value="كتاب أطفال">كتاب أطفال</option>
-                                <option value="كتاب طبخ ووصفات">كتاب طبخ</option>
-                                <option value="كتاب تحديات">كتاب تحديات (مثل تحدي 30 يوم)</option>
-                                <option value="أشعار وخواطر">أشعار وخواطر</option>
-                            </optgroup>
-                            <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
-                        </select>
-                        <input type="text" id="b-custom-genre" placeholder="اكتب نوع الكتاب هنا..." style="display: none;">
-                    </div>
-
-                    <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
-                    <div class="book-grid">
-                        <select id="b-structure">
-                            <optgroup label="هيكلة سردية">
-                                <option value="فصول (Chapters)">فصول (Chapters)</option>
-                                <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
-                                <option value="مشاهد (Scenes)">مشاهد متسلسلة (Scenes)</option>
-                            </optgroup>
-                            <optgroup label="هيكلة تعليمية/وظيفية">
-                                <option value="دروس (Lessons)">دروس (Lessons)</option>
-                                <option value="وحدات (Modules)">وحدات (Modules)</option>
-                                <option value="مواضيع (Topics)">مواضيع (Topics)</option>
-                                <option value="أسئلة وأجوبة (Q&A)">أسئلة وأجوبة (Q&A)</option>
-                                <option value="قواعد ومبادئ">قواعد ومبادئ (Rules)</option>
-                            </optgroup>
-                            <optgroup label="هيكلة زمنية">
-                                <option value="أيام (Days)">أيام (Days)</option>
-                                <option value="أسابيع (Weeks)">أسابيع (Weeks)</option>
-                                <option value="مراحل (Phases)">مراحل (Phases)</option>
-                            </optgroup>
-                        </select>
-                        <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
-                    </div>
-
-                    <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
-                    <div class="book-grid">
-                        <select id="b-audience">
-                            <option value="الجمهور العام">الجمهور العام</option>
-                            <option value="أطفال">أطفال</option>
-                            <option value="مراهقين">مراهقين</option>
-                            <option value="مبتدئين">مبتدئين</option>
-                            <option value="محترفين وخبراء">محترفين وخبراء</option>
-                        </select>
-                        <select id="b-tone">
-                            <option value="حيادي وواضح">حيادي وواضح</option>
-                            <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
-                            <option value="فكاهي ومرح">فكاهي ومرح</option>
-                            <option value="درامي ومشوق">درامي ومشوق</option>
-                            <option value="مبسط وسهل الفهم">مبسط وسهل الفهم</option>
-                        </select>
-                        <select id="b-pov">
-                            <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
-                            <option value="المتكلم (أنا)">المتكلم (أنا)</option>
-                            <option value="المخاطب (أنت)">المخاطب (أنت)</option>
-                        </select>
-                        <select id="b-language">
-                            <option value="العربية">اللغة العربية</option>
-                            <option value="الإنجليزية">اللغة الإنجليزية</option>
-                            <option value="الفرنسية">اللغة الفرنسية</option>
-                        </select>
-                    </div>
-
-                    <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
-                    <div class="book-grid">
-                        <select id="b-images">
-                            <option value="بدون صور">بدون صور داخلية</option>
-                            <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
-                            <option value="صور ملونة واقعية">صور ملونة واقعية</option>
-                            <option value="رسم كرتوني">رسم كرتوني (للأطفال)</option>
-                            <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
-                            <option value="رسم يدوي (Sketch)">رسم يدوي (Sketch)</option>
-                        </select>
-                        <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اتركه فارغاً لعدم التوليد)">
-                    </div>
-
-                    <input type="text" id="b-prompt" class="full-width" style="padding:10px; width:100%; border:1px solid #d1d5db; border-radius:6px; box-sizing:border-box;" placeholder="ملاحظات إضافية للمؤلف الذكي (اختياري)">
-                </div>
-
-                <div class="test-alert" id="book-alert"></div>
-                <button class="generate-book-btn" id="generate-outline-btn"><i class="fas fa-magic"></i> توليد خطة الكتاب (يكلف 5 نقاط)</button>
-                <div class="loader" id="book-loader"><i class="fas fa-spinner fa-spin"></i> جاري التفكير ووضع الخطة الإبداعية...</div>
-                
-                <div class="result-area" id="book-result-area">
-                    <h3>الخطة المقترحة (للمراجعة والتعديل)</h3>
-                    <textarea class="editable-outline" id="book-outline-text"></textarea>
-                    <br>
-                    <div class="source-badge" id="book-badge"></div>
-                    <button class="generate-book-btn" style="background:#16a34a; margin-top:10px; display:none" id="continue-writing-btn">🚀 اعتماد الخطة والبدء بالكتابة</button>
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', htmlTemplate);
-        
-        const currentTool = container.lastElementChild;
-        const btn = currentTool.querySelector('#generate-outline-btn');
-        const alertBox = currentTool.querySelector('#book-alert');
-        const loader = currentTool.querySelector('#book-loader');
-        const resultArea = currentTool.querySelector('#book-result-area');
-        const outlineText = currentTool.querySelector('#book-outline-text');
-        const badge = currentTool.querySelector('#book-badge');
-        const continueBtn = currentTool.querySelector('#continue-writing-btn');
-
-        const showAlert = (message, isError = false) => {
-            alertBox.innerText = message;
-            alertBox.className = isError ? 'test-alert alert-error' : 'test-alert alert-success';
-            alertBox.style.display = 'block';
-        };
-
-        btn.addEventListener('click', async () => {
-            if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return; }
-            
-            // تجميع البيانات
-            const title = currentTool.querySelector('#b-title').value;
-            const topic = currentTool.querySelector('#b-topic').value;
-            
-            // معالجة نوع الكتاب (الافتراضي أو اليدوي)
-            const genreSelect = currentTool.querySelector('#b-genre').value;
-            const genre = genreSelect === 'other' ? currentTool.querySelector('#b-custom-genre').value : genreSelect;
-            
-            const structure = currentTool.querySelector('#b-structure').value;
-            
-            // معالجة وحماية عدد الصفحات
-            let pages = parseInt(currentTool.querySelector('#b-pages').value);
-            if (isNaN(pages) || pages < 50) pages = 50;
-            if (pages > 400) pages = 400;
-
-            const audience = currentTool.querySelector('#b-audience').value;
-            const tone = currentTool.querySelector('#b-tone').value;
-            const pov = currentTool.querySelector('#b-pov').value;
-            const language = currentTool.querySelector('#b-language').value;
-            const imagesType = currentTool.querySelector('#b-images').value;
-            const coverPrompt = currentTool.querySelector('#b-cover').value;
-            const prompt = currentTool.querySelector('#b-prompt').value;
-            
-            if(!title || !topic) { showAlert("❌ يرجى إدخال عنوان وموضوع الكتاب على الأقل.", true); return; }
-            if(genreSelect === 'other' && !genre) { showAlert("❌ يرجى كتابة نوع الكتاب المخصص.", true); return; }
-
-            loader.style.display = 'block';
-            resultArea.style.display = 'none';
-            alertBox.style.display = 'none';
-            outlineText.style.display = 'none';
-
-               try {
-                const payload = JSON.stringify({
-                    userId: currentUser.$id,
-                    action: 'book_outline',
-                    provider: 'openai',
-                    modelTier: 'gpt-4o',
-                    prompt: prompt,
-                    bookDetails: {
-                        title: title,
-                        topic: topic,
-                        genre: genre,
-                        structure: structure,
-                        maxPages: pages,
-                        audience: audience,
-                        tone: tone,
-                        pov: pov,
-                        language: language,
-                        imagesType: imagesType,
-                        coverPrompt: coverPrompt
-                    }
-                });
-
-                const execution = await appwriteFunctions.createExecution(
-                    targetFunctionId, payload, false, '/', 'POST', { 'Content-Type': 'application/json' }
-                );
-                
-                if (execution.status === 'failed') throw new Error("حدث خطأ في السيرفر.");
-
-                const responseData = JSON.parse(execution.responseBody);
-                if (responseData.success) {
-                    showAlert(responseData.message, false);
-                    document.getElementById('user-credits').innerText = responseData.remainingTokens;
-                    
-                    outlineText.value = responseData.data;
-                    outlineText.style.display = 'block';
-                    continueBtn.style.display = 'block'; 
-                    
-                    if (responseData.sourceFunction) {
-                        badge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
-                        badge.style.display = 'inline-block';
-                    }
-                    resultArea.style.display = 'block';
-                } else {
-                    showAlert(`❌ فشل: ${responseData.error}`, true);
-                }
-            } catch (error) {
-                showAlert("❌ حدث خطأ أثناء التواصل مع الباك إند.", true);
-            } finally {
-                loader.style.display = 'none';
-            }
-        });
-    }
-
-    function convertToBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
-    }
-
-    // Auth Functions
-    function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
-    function toggleAuthMode() {
-        isLoginMode = !isLoginMode;
-        document.getElementById('modal-title').innerText = isLoginMode ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
-        document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'دخول' : 'إنشاء حساب';
-        document.getElementById('name').style.display = isLoginMode ? 'none' : 'block';
-        document.getElementById('toggle-auth-text').innerText = isLoginMode ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب بالفعل؟ تسجيل الدخول';
-    }
-
-    async function handleAuth() {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const name = document.getElementById('name').value;
-        try {
-            if (!isLoginMode) {
-                const newAccount = await account.create(ID.unique(), email, password, name);
-                await account.createEmailPasswordSession(email, password);
-                await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), { userId: newAccount.$id, tokens: 70 });
-                closeModal(); checkSession();
-            } else {
-                await account.createEmailPasswordSession(email, password);
-                closeModal(); checkSession();
-            }
-        } catch (error) { alert("خطأ: " + error.message); }
-    }
-
-    async function checkSession() {
-        try {
-            currentUser = await account.get();
-            document.getElementById('login-nav-btn').style.display = 'none';
-            document.getElementById('user-info').style.display = 'flex';
-            document.getElementById('user-name').innerText = currentUser.name || "مستخدم";
-            fetchUserCredits();
-        } catch (error) {
-            document.getElementById('login-nav-btn').style.display = 'block';
-            document.getElementById('user-info').style.display = 'none';
-            currentUser = null;
-        }
-    }
-
-    async function logout() { await account.deleteSession('current'); location.reload(); }
-    async function fetchUserCredits() {
-        try {
-            const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [ Query.equal('userId', currentUser.$id) ]);
-            if (response.documents.length > 0) document.getElementById('user-credits').innerText = response.documents[0].tokens;
-            else document.getElementById('user-credits').innerText = "0";
-        } catch (error) { console.error("Error fetching credits:", error); }
-    }
-
-    window.onload = () => {
-        checkSession();
-        // 1. الكود الوظيفي الأول (يعمل بسلام كما كان)
-        createAIToolUI('dynamic-tools-container', '⚙️ أدوات الكود الوظيفي الأول (الأساسي)', FUNCTION_ID_1);
-        // 2. الكود الوظيفي الثاني (أدوات الدردشة والصور القديمة)
-        createAIToolUI('dynamic-tools-container', '🚀 أدوات الكود الوظيفي رقم 2 (الدردشة والصور)', FUNCTION_ID_2);
-        // 3. الكود الوظيفي الثاني (أداة إنشاء الكتب المضافة حديثاً)
-        createBookToolUI('dynamic-tools-container', '📚 أداة إنشاء الكتب - تجريبية (الكود الوظيفي 2)', FUNCTION_ID_2);
-    };
-</script>
-
+<script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+<script src="app.js"></script>
 </body>
 </html>
