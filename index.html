@@ -151,13 +151,34 @@
     </div>
 
     <div id="loader" class="hidden" style="margin-top: 20px; color: #14539a; text-align: center; font-weight: bold;"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
+    
     <div class="result-box hidden" id="result-area">
         <h3 style="margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">النتيجة</h3>
         <div id="result-text" class="hidden"></div>
-        <textarea id="book-outline-text" class="hidden" readonly></textarea>
+        
+        <!-- مساحة الخطة القابلة للتعديل -->
+        <textarea id="book-outline-text" class="hidden"></textarea>
+        
+        <!-- أدوات التعديل واعتماد الخطة -->
+        <div id="book-actions" class="hidden" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 15px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold;">هل تريد تعديل الخطة؟</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="refine-prompt" placeholder="اكتب تعديلاتك هنا (مثال: أضف فصلاً عن كذا... أو اجعل الفصل الأول أطول)">
+                <button id="refine-btn" style="width: 150px; background: #eab308; color: #1f2937;"><i class="fas fa-edit"></i> تعديل الخطة</button>
+            </div>
+            <hr style="border: none; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
+            <button id="write-intro-btn" style="width: 100%; background: #16a34a; font-size: 1.1em;"><i class="fas fa-rocket"></i> اعتماد الخطة وكتابة المقدمة</button>
+        </div>
+
         <img id="result-image" class="result-image hidden" src="" alt="النتيجة">
         <br>
         <div id="source-badge" class="source-badge hidden"></div>
+    </div>
+
+    <!-- ورقة المقدمة الجديدة -->
+    <div id="intro-area" class="hidden" style="margin-top: 20px; padding: 25px; background: white; border: 2px solid #16a34a; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h2 style="color: #16a34a; text-align: center; border-bottom: 2px dashed #16a34a; padding-bottom: 10px; margin-top: 0;">مقدمة الكتاب</h2>
+        <div id="intro-text" style="white-space: pre-wrap; line-height: 1.8; font-size: 1.1em; color: #1f2937;"></div>
     </div>
 </div>
 
