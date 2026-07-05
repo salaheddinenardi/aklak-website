@@ -28,7 +28,7 @@
         /* النتائج */
         .result-box { margin-top: 20px; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; min-height: 100px; }
         #result-text, #book-outline-text { white-space: pre-wrap; line-height: 1.6; color: #374151; width: 100%; }
-        #book-outline-text { min-height: 300px; resize: vertical; border: 1px solid #cbd5e1; padding: 15px; background: white; border-radius: 8px; }
+        #book-outline-text { min-height: 300px; resize: vertical; border: 1px solid #cbd5e1; padding: 15px; background: white; border-radius: 8px; font-family: inherit; font-size: 1em; }
         .result-image { max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; border: 1px solid #e5e7eb; }
         .source-badge { display: inline-block; margin-top: 15px; padding: 5px 12px; background: #e0e7ff; color: #4338ca; border-radius: 20px; font-size: 0.8em; font-weight: bold; }
         
@@ -146,7 +146,7 @@
     </div>
 
     <div style="display: flex; gap: 10px; margin-top: 15px;">
-        <input type="text" id="main-prompt" placeholder="اكتب سؤالك، التعديل، أو ملاحظات إضافية للكتاب هنا...">
+        <input type="text" id="main-prompt" placeholder="اكتب سؤالك، أو ملاحظات إضافية هنا...">
         <button id="send-btn" style="width: 180px;"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
     </div>
 
@@ -160,7 +160,7 @@
         <textarea id="book-outline-text" class="hidden"></textarea>
         
         <!-- أدوات التعديل واعتماد الخطة -->
-        <div id="book-actions" class="hidden" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 15px;">
+        <div id="book-actions" class="hidden" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-top: 15px;">
             <label style="display: block; margin-bottom: 10px; font-weight: bold;">هل تريد تعديل الخطة؟</label>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <input type="text" id="refine-prompt" placeholder="اكتب تعديلاتك هنا (مثال: أضف فصلاً عن كذا... أو اجعل الفصل الأول أطول)">

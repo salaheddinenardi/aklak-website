@@ -32,6 +32,12 @@ const ui = {
     resultArea: document.getElementById('result-area'),
     resultText: document.getElementById('result-text'),
     bookOutlineText: document.getElementById('book-outline-text'),
+    bookActions: document.getElementById('book-actions'),
+    refinePrompt: document.getElementById('refine-prompt'),
+    refineBtn: document.getElementById('refine-btn'),
+    writeIntroBtn: document.getElementById('write-intro-btn'),
+    introArea: document.getElementById('intro-area'),
+    introText: document.getElementById('intro-text'),
     resultImage: document.getElementById('result-image'),
     sourceBadge: document.getElementById('source-badge'),
     imageFile: document.getElementById('image-file')
@@ -53,11 +59,9 @@ function updateUI() {
 
     const currentAction = ui.action.value;
 
-    // إظهار/إخفاء الأقسام
     ui.imageUpload.classList.toggle('hidden', currentAction !== 'edit');
     ui.bookSettings.classList.toggle('hidden', currentAction !== 'book_outline');
 
-    // تحديث المزودين
     if (currentAction === 'book_outline') {
         ui.provider.innerHTML = `
 <option value="gemini">Gemini 3.5 Flash (Free)</option>
@@ -102,12 +106,38 @@ ui.provider.addEventListener('change', updateModels);
 window.addEventListener('DOMContentLoaded', updateUI);
 
 // ==========================================
-// 3. الإرسال للباك إند
+// 3. التفاعل مع الخادم (Appwrite Functions)
 // ==========================================
-ui.sendBtn.addEventListener('click', async () => {
-    if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return; }
-    
+async function executeRequest(payloadObj) {
+    if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return null; }
+
     const targetFunctionId = ui.source.value;
+    
+    ui.loader.classList.remove('hidden');
+    
+    try {
+        const execution = await appwriteFunctions.createExecution(
+            targetFunctionId,
+            JSON.stringify(payloadObj),
+            false,
+            '/',
+            'POST',
+            { 'Content-Type': 'application/json' }
+        );
+
+        if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر.");
+        
+        return JSON.parse(execution.responseBody);
+    } catch (error) {
+        alert("خطأ في الاتصال بالسيرفر: " + error.message);
+        return null;
+    } finally {
+        ui.loader.classList.add('hidden');
+    }
+}
+
+// دالة توليد الخطة الأساسية
+ui.sendBtn.addEventListener('click', async () => {
     const actionType = ui.action.value;
     
     if (!ui.prompt.value.trim() && actionType !== 'book_outline') { 
@@ -115,7 +145,7 @@ ui.sendBtn.addEventListener('click', async () => {
     }
 
     let payloadObj = {
-        userId: currentUser.$id,
+        userId: currentUser?.$id,
         prompt: ui.prompt.value,
         provider: ui.provider.value,
         modelTier: ui.model.value
@@ -156,54 +186,100 @@ ui.sendBtn.addEventListener('click', async () => {
         }
     }
 
-    // إعداد حالة التحميل
-    ui.loader.classList.remove('hidden');
+    // تجهيز الواجهة
     ui.resultArea.classList.add('hidden');
     ui.resultText.classList.add('hidden');
     ui.bookOutlineText.classList.add('hidden');
+    ui.bookActions.classList.add('hidden');
+    ui.introArea.classList.add('hidden');
     ui.resultImage.classList.add('hidden');
     ui.sourceBadge.classList.add('hidden');
     ui.sendBtn.disabled = true;
 
-    try {
-        const execution = await appwriteFunctions.createExecution(
-            targetFunctionId,
-            JSON.stringify(payloadObj),
-            false,
-            '/',
-            'POST',
-            { 'Content-Type': 'application/json' }
-        );
+    const responseData = await executeRequest(payloadObj);
+    ui.sendBtn.disabled = false;
 
-        if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر.");
+    if (responseData && responseData.success) {
+        document.getElementById('user-credits').innerText = responseData.remainingTokens;
         
-        const responseData = JSON.parse(execution.responseBody);
-        
-        if (responseData.success) {
-            document.getElementById('user-credits').innerText = responseData.remainingTokens;
-            if (actionType === 'book_outline') {
-                ui.bookOutlineText.value = responseData.data;
-                ui.bookOutlineText.classList.remove('hidden');
-            } else if (responseData.resultType === 'text') {
-                ui.resultText.innerText = responseData.data;
-                ui.resultText.classList.remove('hidden');
-            } else if (responseData.resultType === 'image') {
-                ui.resultImage.src = responseData.data;
-                ui.resultImage.classList.remove('hidden');
-            }
-            if (responseData.sourceFunction) {
-                ui.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
-                ui.sourceBadge.classList.remove('hidden');
-            }
-            ui.resultArea.classList.remove('hidden');
-        } else {
-            alert(`❌ فشل: ${responseData.error}`);
+        if (actionType === 'book_outline') {
+            // عرض الخطة في الـ Textarea لتمكين التعديل اليدوي
+            ui.bookOutlineText.value = responseData.data;
+            ui.bookOutlineText.classList.remove('hidden');
+            ui.bookActions.classList.remove('hidden'); // إظهار أزرار التعديل والاعتماد
+        } else if (responseData.resultType === 'text') {
+            ui.resultText.innerText = responseData.data;
+            ui.resultText.classList.remove('hidden');
+        } else if (responseData.resultType === 'image') {
+            ui.resultImage.src = responseData.data;
+            ui.resultImage.classList.remove('hidden');
         }
-    } catch (error) {
-        alert("خطأ في الاتصال بالسيرفر: " + error.message);
-    } finally {
-        ui.loader.classList.add('hidden');
-        ui.sendBtn.disabled = false;
+        
+        if (responseData.sourceFunction) {
+            ui.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
+            ui.sourceBadge.classList.remove('hidden');
+        }
+        ui.resultArea.classList.remove('hidden');
+    } else if (responseData) {
+        alert(`❌ فشل: ${responseData.error}`);
+    }
+});
+
+// دالة تعديل الخطة (Refine)
+ui.refineBtn.addEventListener('click', async () => {
+    const refinePrompt = ui.refinePrompt.value.trim();
+    if (!refinePrompt) {
+        alert("يرجى كتابة التعديلات المطلوبة!"); return;
+    }
+
+    const payloadObj = {
+        userId: currentUser?.$id,
+        action: 'refine_outline',
+        provider: ui.provider.value,
+        modelTier: ui.model.value,
+        // نرسل الخطة الحالية كما هي موجودة في الـ Textarea حتى لو عدلها المستخدم يدوياً
+        previousOutline: ui.bookOutlineText.value, 
+        prompt: refinePrompt
+    };
+
+    ui.refineBtn.disabled = true;
+    const responseData = await executeRequest(payloadObj);
+    ui.refineBtn.disabled = false;
+
+    if (responseData && responseData.success) {
+        document.getElementById('user-credits').innerText = responseData.remainingTokens;
+        ui.bookOutlineText.value = responseData.data; // تحديث الخطة بالنتيجة الجديدة
+        ui.refinePrompt.value = ''; // تفريغ حقل التعديل
+        alert("✅ تم تعديل الخطة بنجاح!");
+    } else if (responseData) {
+        alert(`❌ فشل التعديل: ${responseData.error}`);
+    }
+});
+
+// دالة اعتماد الخطة وكتابة المقدمة
+ui.writeIntroBtn.addEventListener('click', async () => {
+    const payloadObj = {
+        userId: currentUser?.$id,
+        action: 'write_intro',
+        provider: ui.provider.value,
+        modelTier: ui.model.value,
+        // نرسل الخطة النهائية للباك إند لكتابة المقدمة بناءً عليها
+        outline: ui.bookOutlineText.value 
+    };
+
+    ui.writeIntroBtn.disabled = true;
+    const responseData = await executeRequest(payloadObj);
+    ui.writeIntroBtn.disabled = false;
+
+    if (responseData && responseData.success) {
+        document.getElementById('user-credits').innerText = responseData.remainingTokens;
+        ui.introText.innerText = responseData.data;
+        ui.introArea.classList.remove('hidden');
+        
+        // تمرير الشاشة للأسفل لرؤية المقدمة
+        ui.introArea.scrollIntoView({ behavior: 'smooth' });
+    } else if (responseData) {
+        alert(`❌ فشل كتابة المقدمة: ${responseData.error}`);
     }
 });
 
