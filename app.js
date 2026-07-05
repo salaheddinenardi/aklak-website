@@ -280,7 +280,7 @@ ui.refineBtn.addEventListener('click', async () => {
         document.getElementById('user-credits').innerText = responseData.remainingTokens;
         
         ui.bookOutlineText.innerText = responseData.data; 
-        saveHistoryState(); // حفظ النتيجة الجديدة في ذاكرة التراجع
+        saveHistoryState(); // لتراحفظ النتيجة الجديدة في ذاكةع
         ui.refinePrompt.value = ''; 
         alert("✅ تم تعديل الخطة بنجاح!");
     } else if (responseData) {
@@ -288,7 +288,7 @@ ui.refineBtn.addEventListener('click', async () => {
     }
 });
 
-// دالة اعتماد الخطة وكتابة المقدمة
+// دالة  الخطة وكتابة المقدمة
 ui.writeIntroBtn.addEventListener('click', async () => {
     const payloadObj = {
         userId: currentUser?.$id,
@@ -317,7 +317,6 @@ ui.writeIntroBtn.addEventListener('click', async () => {
     }
 });
 
-// دوال مساعدة
 function convertToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -327,7 +326,7 @@ function convertToBase64(file) {
     });
 }
 
-// باقي دوال المصادقة
+
 async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
