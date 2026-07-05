@@ -58,7 +58,13 @@ function updateUI() {
     ui.bookSettings.classList.toggle('hidden', currentAction !== 'book_outline');
 
     // تحديث المزودين
-    if (currentAction === 'text' || currentAction === 'book_outline') {
+    if (currentAction === 'book_outline') {
+        ui.provider.innerHTML = `
+<option value="gemini">Gemini 3.5 Flash (Free)</option>
+<option value="openai">OpenAI</option>
+<option value="cloudflare">Cloudflare</option>
+`;
+    } else if (currentAction === 'text') {
         ui.provider.innerHTML = `<option value="openai">OpenAI (متقدم)</option><option value="cloudflare">Cloudflare (اقتصادي)</option>`;
     } else if (currentAction === 'generate') {
         ui.provider.innerHTML = `<option value="cloudflare">Cloudflare (Flux)</option><option value="openai">OpenAI (DALL-E)</option>`;
@@ -74,7 +80,9 @@ function updateModels() {
     const provider = ui.provider.value;
 
     if (action === 'text' || action === 'book_outline') {
-        if (provider === 'openai') {
+        if (provider === 'gemini') {
+            ui.model.innerHTML = `<option value="gemini-3.5-flash">Gemini 3.5 Flash</option>`;
+        } else if (provider === 'openai') {
             ui.model.innerHTML = `<option value="gpt-4o">GPT-4o (8 نقاط)</option><option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option><option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>`;
         } else {
             ui.model.innerHTML = `<option value="llama">LLaMA 3.3 (5 نقاط)</option>`;
@@ -96,183 +104,110 @@ window.addEventListener('DOMContentLoaded', updateUI);
 // ==========================================
 // 3. الإرسال للباك إند
 // ==========================================
-
-// دالة مساعدة لجمع معلومات الكتاب
-function getBookDetails() {
-    const rawGenre = document.getElementById('b-genre').value;
-    const finalGenre = rawGenre === 'other' ? document.getElementById('b-custom-genre').value : rawGenre;
-    
-    let pages = parseInt(document.getElementById('b-pages').value);
-    if (isNaN(pages) || pages < 50) pages = 50;
-
-    return {
-        title: document.getElementById('b-title').value,
-        topic: document.getElementById('b-topic').value,
-        genre: finalGenre,
-        structure: document.getElementById('b-structure').value,
-        maxPages: pages,
-        audience: document.getElementById('b-audience').value,
-        tone: document.getElementById('b-tone').value,
-        pov: document.getElementById('b-pov').value,
-        language: document.getElementById('b-language').value,
-        imagesType: document.getElementById('b-images').value,
-        coverPrompt: document.getElementById('b-cover').value
-    };
-}
-
-// دالة إرسال طلبات الكتب (الخطة، التعديل، المقدمة)
-async function sendBookRequest(step, refineText = "") {
-    ui.loader.classList.remove('hidden');
-    
-    let payloadObj = {
-        userId: currentUser.$id,
-        action: 'book_outline',
-        provider: ui.provider.value,
-        modelTier: ui.model.value,
-        bookStep: step,
-        bookDetails: getBookDetails()
-    };
-
-    if (step === 'refine') {
-        payloadObj.previousOutline = ui.bookOutlineText.value;
-        payloadObj.prompt = refineText;
-    } else if (step === 'introduction') {
-        payloadObj.previousOutline = ui.bookOutlineText.value;
-    } else {
-        payloadObj.prompt = ui.prompt.value;
-    }
-
-    try {
-        const execution = await appwriteFunctions.createExecution(
-            ui.source.value, JSON.stringify(payloadObj), false, '/', 'POST', { 'Content-Type': 'application/json' }
-        );
-        
-        if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر.");
-
-        const responseData = JSON.parse(execution.responseBody);
-        
-        if (responseData.success) {
-            document.getElementById('user-credits').innerText = responseData.remainingTokens;
-            
-            if (step === 'introduction') {
-                document.getElementById('intro-text').innerText = responseData.data;
-                document.getElementById('intro-area').classList.remove('hidden');
-            } else {
-                ui.bookOutlineText.value = responseData.data;
-                ui.bookOutlineText.classList.remove('hidden');
-                document.getElementById('book-actions').classList.remove('hidden');
-            }
-            
-            if (responseData.sourceFunction) {
-                ui.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
-                ui.sourceBadge.classList.remove('hidden');
-            }
-        } else {
-            alert(`❌ فشل: ${responseData.error}`);
-        }
-    } catch (error) {
-        console.error(error);
-        alert("❌ حدث خطأ أثناء الاتصال بالدالة.");
-    } finally {
-        ui.loader.classList.add('hidden');
-    }
-}
-
-// زر الإرسال الرئيسي
 ui.sendBtn.addEventListener('click', async () => {
     if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return; }
     
+    const targetFunctionId = ui.source.value;
     const actionType = ui.action.value;
     
+    if (!ui.prompt.value.trim() && actionType !== 'book_outline') { 
+        alert("يرجى إدخال نص الطلب!"); return; 
+    }
+
+    let payloadObj = {
+        userId: currentUser.$id,
+        prompt: ui.prompt.value,
+        provider: ui.provider.value,
+        modelTier: ui.model.value
+    };
+
     if (actionType === 'book_outline') {
-        const details = getBookDetails();
-        if(!details.title || !details.topic) { alert("عنوان الكتاب وموضوعه ضروريان!"); return; }
-        
-        ui.resultArea.classList.remove('hidden');
-        ui.resultText.classList.add('hidden');
-        ui.resultImage.classList.add('hidden');
-        document.getElementById('book-actions')?.classList.add('hidden');
-        document.getElementById('intro-area')?.classList.add('hidden');
-        
-        await sendBookRequest('outline');
-    } else {
-        // أدوات المحادثة القديمة وتعديل الصور
-        if (!ui.prompt.value.trim()) { alert("يرجى إدخال نص الطلب!"); return; }
+        const rawGenre = document.getElementById('b-genre').value;
+        const finalGenre = rawGenre === 'other' ? document.getElementById('b-custom-genre').value : rawGenre;
 
-        let payloadObj = {
-            userId: currentUser.$id,
-            prompt: ui.prompt.value,
-            provider: ui.provider.value,
-            modelTier: ui.model.value,
-            action: 'legacy_chat',
-            mode: actionType
+        let pages = parseInt(document.getElementById('b-pages').value);
+        if (isNaN(pages) || pages < 50) pages = 50;
+        
+        payloadObj.action = 'book_outline';
+        payloadObj.bookDetails = {
+            title: document.getElementById('b-title').value,
+            topic: document.getElementById('b-topic').value,
+            genre: finalGenre,
+            structure: document.getElementById('b-structure').value,
+            maxPages: pages,
+            audience: document.getElementById('b-audience').value,
+            tone: document.getElementById('b-tone').value,
+            pov: document.getElementById('b-pov').value,
+            language: document.getElementById('b-language').value,
+            imagesType: document.getElementById('b-images').value,
+            coverPrompt: document.getElementById('b-cover').value
         };
-
+        
+        if(!payloadObj.bookDetails.title || !payloadObj.bookDetails.topic) {
+            alert("عنوان الكتاب وموضوعه ضروريان!"); return;
+        }
+    } else {
+        payloadObj.action = 'legacy_chat';
+        payloadObj.mode = actionType;
+        
         if (actionType === 'edit') {
             if (ui.imageFile.files.length === 0) { alert("يرجى اختيار صورة للتعديل."); return; }
             payloadObj.imageBase64 = await convertToBase64(ui.imageFile.files[0]);
         }
+    }
 
-        ui.loader.classList.remove('hidden');
-        ui.resultArea.classList.add('hidden');
-        ui.resultText.classList.add('hidden');
-        ui.bookOutlineText.classList.add('hidden');
-        document.getElementById('book-actions')?.classList.add('hidden');
-        ui.resultImage.classList.add('hidden');
-        ui.sourceBadge.classList.add('hidden');
-        ui.sendBtn.disabled = true;
+    // إعداد حالة التحميل
+    ui.loader.classList.remove('hidden');
+    ui.resultArea.classList.add('hidden');
+    ui.resultText.classList.add('hidden');
+    ui.bookOutlineText.classList.add('hidden');
+    ui.resultImage.classList.add('hidden');
+    ui.sourceBadge.classList.add('hidden');
+    ui.sendBtn.disabled = true;
 
-        try {
-            const execution = await appwriteFunctions.createExecution(
-                ui.source.value, JSON.stringify(payloadObj), false, '/', 'POST', { 'Content-Type': 'application/json' }
-            );
+    try {
+        const execution = await appwriteFunctions.createExecution(
+            targetFunctionId,
+            JSON.stringify(payloadObj),
+            false,
+            '/',
+            'POST',
+            { 'Content-Type': 'application/json' }
+        );
 
-            if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر.");
-
-            const responseData = JSON.parse(execution.responseBody);
-            
-            if (responseData.success) {
-                document.getElementById('user-credits').innerText = responseData.remainingTokens;
-                
-                if (responseData.resultType === 'text') {
-                    ui.resultText.innerText = responseData.data;
-                    ui.resultText.classList.remove('hidden');
-                } else if (responseData.resultType === 'image') {
-                    ui.resultImage.src = responseData.data;
-                    ui.resultImage.classList.remove('hidden');
-                }
-                
-                if (responseData.sourceFunction) {
-                    ui.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
-                    ui.sourceBadge.classList.remove('hidden');
-                }
-
-                ui.resultArea.classList.remove('hidden');
-            } else {
-                alert(`❌ فشل: ${responseData.error}`);
+        if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر.");
+        
+        const responseData = JSON.parse(execution.responseBody);
+        
+        if (responseData.success) {
+            document.getElementById('user-credits').innerText = responseData.remainingTokens;
+            if (actionType === 'book_outline') {
+                ui.bookOutlineText.value = responseData.data;
+                ui.bookOutlineText.classList.remove('hidden');
+            } else if (responseData.resultType === 'text') {
+                ui.resultText.innerText = responseData.data;
+                ui.resultText.classList.remove('hidden');
+            } else if (responseData.resultType === 'image') {
+                ui.resultImage.src = responseData.data;
+                ui.resultImage.classList.remove('hidden');
             }
-        } catch (error) {
-            console.error(error);
-            alert("❌ حدث خطأ أثناء الاتصال بالدالة.");
-        } finally {
-            ui.loader.classList.add('hidden');
-            ui.sendBtn.disabled = false;
+            if (responseData.sourceFunction) {
+                ui.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
+                ui.sourceBadge.classList.remove('hidden');
+            }
+            ui.resultArea.classList.remove('hidden');
+        } else {
+            alert(`❌ فشل: ${responseData.error}`);
         }
+    } catch (error) {
+        alert("خطأ في الاتصال بالسيرفر: " + error.message);
+    } finally {
+        ui.loader.classList.add('hidden');
+        ui.sendBtn.disabled = false;
     }
 });
 
-// تفعيل زر التعديل
-document.getElementById('refine-btn').addEventListener('click', async () => {
-    const refineText = document.getElementById('refine-prompt').value;
-    if (!refineText.trim()) { alert("يرجى كتابة التعديل المطلوب."); return; }
-    await sendBookRequest('refine', refineText);
-});
-
-// تفعيل زر كتابة المقدمة
-document.getElementById('write-intro-btn').addEventListener('click', async () => {
-    await sendBookRequest('introduction');
-});
-
+// دوال مساعدة
 function convertToBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -282,26 +217,13 @@ function convertToBase64(file) {
     });
 }
 
-// ==========================================
-// 4. دوال المصادقة
-// ==========================================
-function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
-function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
-function toggleAuthMode() {
-    isLoginMode = !isLoginMode;
-    document.getElementById('modal-title').innerText = isLoginMode ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
-    document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'دخول' : 'إنشاء حساب';
-    document.getElementById('name').classList.toggle('hidden', isLoginMode);
-    document.getElementById('toggle-auth-text').innerText = isLoginMode ? 'لديك حساب؟ دخول' : 'إنشاء حساب جديد';
-}
-
+// باقي دوال المصادقة
 async function handleAuth() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const name = document.getElementById('name').value;
     try {
         if (!isLoginMode) {
-            const newAccount = await account.create(ID.unique(), email, password, name);
+            const newAccount = await account.create(ID.unique(), email, password, document.getElementById('name').value);
             await account.createEmailPasswordSession(email, password);
             await databases.createDocument(DB_ID, COLLECTION_ID, ID.unique(), { userId: newAccount.$id, tokens: 70 });
         } else {
@@ -333,7 +255,17 @@ async function fetchUserCredits() {
     try {
         const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [ Query.equal('userId', currentUser.$id) ]);
         if (response.documents.length > 0) document.getElementById('user-credits').innerText = response.documents[0].tokens;
-    } catch (error) { console.error("Error fetching credits:", error); }
+    } catch (error) { console.error("Error fetching credits", error); }
 }
 
-window.onload = checkSession;
+function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
+function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
+function toggleAuthMode() {
+    isLoginMode = !isLoginMode;
+    document.getElementById('modal-title').innerText = isLoginMode ? 'تسجيل الدخول' : 'حساب جديد';
+    document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'دخول' : 'إنشاء حساب';
+    document.getElementById('name').classList.toggle('hidden', isLoginMode);
+    document.getElementById('toggle-auth-text').innerText = isLoginMode ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب؟ تسجيل الدخول';
+}
+
+checkSession();
