@@ -17,6 +17,29 @@ let currentUser = null;
 let isLoginMode = true;
 
 // ==========================================
+// نظام ذاكرة التراجع (Undo System)
+// ==========================================
+let editHistory = []; // مصفوفة لحفظ حالات النص
+
+function saveHistoryState() {
+    const currentText = ui.bookOutlineText.innerText;
+    // لا تحفظ إذا كان النص مطابقاً لآخر حالة تم حفظها لتجنب التكرار
+    if (editHistory.length === 0 || editHistory[editHistory.length - 1] !== currentText) {
+        editHistory.push(currentText);
+        if (editHistory.length > 50) editHistory.shift(); // الاحتفاظ بآخر 50 عملية فقط لعدم إثقال الذاكرة
+    }
+}
+
+function handleUndo() {
+    if (editHistory.length > 1) {
+        editHistory.pop(); // إزالة الحالة الحالية (الخاطئة)
+        ui.bookOutlineText.innerText = editHistory[editHistory.length - 1]; // استرجاع الحالة السابقة
+    } else if (editHistory.length === 1) {
+        ui.bookOutlineText.innerText = editHistory[0]; // العودة للنسخة الأصلية الأولى
+    }
+}
+
+// ==========================================
 // 2. إدارة الواجهة الديناميكية
 // ==========================================
 const ui = {
@@ -31,11 +54,13 @@ const ui = {
     loader: document.getElementById('loader'),
     resultArea: document.getElementById('result-area'),
     resultText: document.getElementById('result-text'),
-    bookOutlineText: document.getElementById('book-outline-text'),
+    bookOutlineText: document.getElementById('book-outline-text'), // الآن هو div contenteditable
+    editableContainer: document.getElementById('editable-outline-container'),
     bookActions: document.getElementById('book-actions'),
     refinePrompt: document.getElementById('refine-prompt'),
     refineBtn: document.getElementById('refine-btn'),
     writeIntroBtn: document.getElementById('write-intro-btn'),
+    undoBtn: document.getElementById('undo-btn'),
     introArea: document.getElementById('intro-area'),
     introText: document.getElementById('intro-text'),
     resultImage: document.getElementById('result-image'),
@@ -43,11 +68,21 @@ const ui = {
     imageFile: document.getElementById('image-file')
 };
 
+// ربط زر التراجع
+ui.undoBtn.addEventListener('click', handleUndo);
+
+// التقاط الكتابة اليدوية لحفظها في الذاكرة (كلمة بكلمة)
+ui.bookOutlineText.addEventListener('keyup', (e) => {
+    // يحفظ الحالة فقط عند الضغط على مسافة (انتهاء كلمة)، أو إدخال (سطر جديد)، أو مسح
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete') {
+        saveHistoryState();
+    }
+});
+
 function updateUI() {
     const source = ui.source.value;
     const action = ui.action.value;
 
-    // التحكم في توفر خيار "تأليف كتاب" بناءً على المصدر
     if (source === '6a3c7a760032067bd275') { 
         Array.from(ui.action.options).forEach(opt => {
             if (opt.value === 'book_outline') opt.disabled = true;
@@ -63,11 +98,7 @@ function updateUI() {
     ui.bookSettings.classList.toggle('hidden', currentAction !== 'book_outline');
 
     if (currentAction === 'book_outline') {
-        ui.provider.innerHTML = `
-<option value="gemini">Gemini 3.5 Flash (Free)</option>
-<option value="openai">OpenAI</option>
-<option value="cloudflare">Cloudflare</option>
-`;
+        ui.provider.innerHTML = `<option value="gemini">Gemini 3.5 Flash (Free)</option><option value="openai">OpenAI</option><option value="cloudflare">Cloudflare</option>`;
     } else if (currentAction === 'text') {
         ui.provider.innerHTML = `<option value="openai">OpenAI (متقدم)</option><option value="cloudflare">Cloudflare (اقتصادي)</option>`;
     } else if (currentAction === 'generate') {
@@ -75,7 +106,6 @@ function updateUI() {
     } else if (currentAction === 'edit') {
         ui.provider.innerHTML = `<option value="openai">OpenAI (تعديل صور)</option>`;
     }
-
     updateModels();
 }
 
@@ -112,7 +142,6 @@ async function executeRequest(payloadObj) {
     if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return null; }
 
     const targetFunctionId = ui.source.value;
-    
     ui.loader.classList.remove('hidden');
     
     try {
@@ -124,9 +153,7 @@ async function executeRequest(payloadObj) {
             'POST',
             { 'Content-Type': 'application/json' }
         );
-
         if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر.");
-        
         return JSON.parse(execution.responseBody);
     } catch (error) {
         alert("خطأ في الاتصال بالسيرفر: " + error.message);
@@ -154,7 +181,6 @@ ui.sendBtn.addEventListener('click', async () => {
     if (actionType === 'book_outline') {
         const rawGenre = document.getElementById('b-genre').value;
         const finalGenre = rawGenre === 'other' ? document.getElementById('b-custom-genre').value : rawGenre;
-
         let pages = parseInt(document.getElementById('b-pages').value);
         if (isNaN(pages) || pages < 50) pages = 50;
         
@@ -179,7 +205,6 @@ ui.sendBtn.addEventListener('click', async () => {
     } else {
         payloadObj.action = 'legacy_chat';
         payloadObj.mode = actionType;
-        
         if (actionType === 'edit') {
             if (ui.imageFile.files.length === 0) { alert("يرجى اختيار صورة للتعديل."); return; }
             payloadObj.imageBase64 = await convertToBase64(ui.imageFile.files[0]);
@@ -189,7 +214,7 @@ ui.sendBtn.addEventListener('click', async () => {
     // تجهيز الواجهة
     ui.resultArea.classList.add('hidden');
     ui.resultText.classList.add('hidden');
-    ui.bookOutlineText.classList.add('hidden');
+    ui.editableContainer.classList.add('hidden');
     ui.bookActions.classList.add('hidden');
     ui.introArea.classList.add('hidden');
     ui.resultImage.classList.add('hidden');
@@ -203,10 +228,13 @@ ui.sendBtn.addEventListener('click', async () => {
         document.getElementById('user-credits').innerText = responseData.remainingTokens;
         
         if (actionType === 'book_outline') {
-            // عرض الخطة في الـ Textarea لتمكين التعديل اليدوي
-            ui.bookOutlineText.value = responseData.data;
-            ui.bookOutlineText.classList.remove('hidden');
-            ui.bookActions.classList.remove('hidden'); // إظهار أزرار التعديل والاعتماد
+            // مسح الذاكرة القديمة وتخزين الخطة الجديدة
+            editHistory = []; 
+            ui.bookOutlineText.innerText = responseData.data; // استخدام innerText لأنها div
+            saveHistoryState(); // حفظ كأول نقطة في التاريخ
+            
+            ui.editableContainer.classList.remove('hidden');
+            ui.bookActions.classList.remove('hidden');
         } else if (responseData.resultType === 'text') {
             ui.resultText.innerText = responseData.data;
             ui.resultText.classList.remove('hidden');
@@ -225,7 +253,7 @@ ui.sendBtn.addEventListener('click', async () => {
     }
 });
 
-// دالة تعديل الخطة (Refine)
+// دالة تعديل الخطة (Refine) بالذكاء الاصطناعي
 ui.refineBtn.addEventListener('click', async () => {
     const refinePrompt = ui.refinePrompt.value.trim();
     if (!refinePrompt) {
@@ -234,12 +262,14 @@ ui.refineBtn.addEventListener('click', async () => {
 
     const payloadObj = {
         userId: currentUser?.$id,
-        action: 'refine_outline',
+        action: 'book_outline',
+        bookStep: 'refine',
         provider: ui.provider.value,
         modelTier: ui.model.value,
-        // نرسل الخطة الحالية كما هي موجودة في الـ Textarea حتى لو عدلها المستخدم يدوياً
-        previousOutline: ui.bookOutlineText.value, 
-        prompt: refinePrompt
+        // إرسال النص من الـ div المعدل يدوياً
+        previousOutline: ui.bookOutlineText.innerText, 
+        prompt: refinePrompt,
+        bookDetails: { title: document.getElementById('b-title').value }
     };
 
     ui.refineBtn.disabled = true;
@@ -248,8 +278,10 @@ ui.refineBtn.addEventListener('click', async () => {
 
     if (responseData && responseData.success) {
         document.getElementById('user-credits').innerText = responseData.remainingTokens;
-        ui.bookOutlineText.value = responseData.data; // تحديث الخطة بالنتيجة الجديدة
-        ui.refinePrompt.value = ''; // تفريغ حقل التعديل
+        
+        ui.bookOutlineText.innerText = responseData.data; 
+        saveHistoryState(); // حفظ النتيجة الجديدة في ذاكرة التراجع
+        ui.refinePrompt.value = ''; 
         alert("✅ تم تعديل الخطة بنجاح!");
     } else if (responseData) {
         alert(`❌ فشل التعديل: ${responseData.error}`);
@@ -260,11 +292,15 @@ ui.refineBtn.addEventListener('click', async () => {
 ui.writeIntroBtn.addEventListener('click', async () => {
     const payloadObj = {
         userId: currentUser?.$id,
-        action: 'write_intro',
+        action: 'book_outline',
+        bookStep: 'introduction',
         provider: ui.provider.value,
         modelTier: ui.model.value,
-        // نرسل الخطة النهائية للباك إند لكتابة المقدمة بناءً عليها
-        outline: ui.bookOutlineText.value 
+        previousOutline: ui.bookOutlineText.innerText, // اعتماد الخطة من الـ div
+        bookDetails: { 
+            title: document.getElementById('b-title').value,
+            topic: document.getElementById('b-topic').value
+        }
     };
 
     ui.writeIntroBtn.disabled = true;
@@ -275,8 +311,6 @@ ui.writeIntroBtn.addEventListener('click', async () => {
         document.getElementById('user-credits').innerText = responseData.remainingTokens;
         ui.introText.innerText = responseData.data;
         ui.introArea.classList.remove('hidden');
-        
-        // تمرير الشاشة للأسفل لرؤية المقدمة
         ui.introArea.scrollIntoView({ behavior: 'smooth' });
     } else if (responseData) {
         alert(`❌ فشل كتابة المقدمة: ${responseData.error}`);
