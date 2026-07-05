@@ -378,4 +378,4 @@ function toggleAuthMode() {
     document.getElementById('toggle-auth-text').innerText = isLoginMode ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب؟ تسجيل الدخول';
 }
 
-checkSession();
+checkSession(); 
