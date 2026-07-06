@@ -19,23 +19,24 @@ let isLoginMode = true;
 // ==========================================
 // نظام ذاكرة التراجع (Undo System)
 // ==========================================
-let editHistory = []; // مصفوفة لحفظ حالات النص
+let editHistory = [];
 
 function saveHistoryState() {
-    const currentText = ui.bookOutlineText.innerText;
-    // لا تحفظ إذا كان النص مطابقاً لآخر حالة تم حفظها لتجنب التكرار
+    const currentText = document.getElementById('book-outline-text').innerText;
     if (editHistory.length === 0 || editHistory[editHistory.length - 1] !== currentText) {
         editHistory.push(currentText);
-        if (editHistory.length > 50) editHistory.shift(); // الاحتفاظ بآخر 50 عملية فقط لعدم إثقال الذاكرة
+        if (editHistory.length > 50) {
+            editHistory.shift();
+        }
     }
 }
 
 function handleUndo() {
     if (editHistory.length > 1) {
-        editHistory.pop(); // إزالة الحالة الحالية (الخاطئة)
-        ui.bookOutlineText.innerText = editHistory[editHistory.length - 1]; // استرجاع الحالة السابقة
+        editHistory.pop(); 
+        document.getElementById('book-outline-text').innerText = editHistory[editHistory.length - 1]; 
     } else if (editHistory.length === 1) {
-        ui.bookOutlineText.innerText = editHistory[0]; // العودة للنسخة الأصلية الأولى
+        document.getElementById('book-outline-text').innerText = editHistory[0]; 
     }
 }
 
@@ -54,7 +55,7 @@ const ui = {
     loader: document.getElementById('loader'),
     resultArea: document.getElementById('result-area'),
     resultText: document.getElementById('result-text'),
-    bookOutlineText: document.getElementById('book-outline-text'), // الآن هو div contenteditable
+    bookOutlineText: document.getElementById('book-outline-text'),
     editableContainer: document.getElementById('editable-outline-container'),
     bookActions: document.getElementById('book-actions'),
     refinePrompt: document.getElementById('refine-prompt'),
@@ -68,12 +69,9 @@ const ui = {
     imageFile: document.getElementById('image-file')
 };
 
-// ربط زر التراجع
 ui.undoBtn.addEventListener('click', handleUndo);
 
-// التقاط الكتابة اليدوية لحفظها في الذاكرة (كلمة بكلمة)
-ui.bookOutlineText.addEventListener('keyup', (e) => {
-    // يحفظ الحالة فقط عند الضغط على مسافة (انتهاء كلمة)، أو إدخال (سطر جديد)، أو مسح
+ui.bookOutlineText.addEventListener('keyup', function(e) {
     if (e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete') {
         saveHistoryState();
     }
@@ -84,27 +82,38 @@ function updateUI() {
     const action = ui.action.value;
 
     if (source === '6a3c7a760032067bd275') { 
-        Array.from(ui.action.options).forEach(opt => {
+        Array.from(ui.action.options).forEach(function(opt) {
             if (opt.value === 'book_outline') opt.disabled = true;
         });
         if (action === 'book_outline') ui.action.value = 'text'; 
     } else {
-        Array.from(ui.action.options).forEach(opt => opt.disabled = false);
+        Array.from(ui.action.options).forEach(function(opt) {
+            opt.disabled = false;
+        });
     }
 
     const currentAction = ui.action.value;
 
-    ui.imageUpload.classList.toggle('hidden', currentAction !== 'edit');
-    ui.bookSettings.classList.toggle('hidden', currentAction !== 'book_outline');
+    if (currentAction === 'edit') {
+        ui.imageUpload.classList.remove('hidden');
+    } else {
+        ui.imageUpload.classList.add('hidden');
+    }
 
     if (currentAction === 'book_outline') {
-        ui.provider.innerHTML = `<option value="gemini">Gemini 3.5 Flash (Free)</option><option value="openai">OpenAI</option><option value="cloudflare">Cloudflare</option>`;
+        ui.bookSettings.classList.remove('hidden');
+    } else {
+        ui.bookSettings.classList.add('hidden');
+    }
+
+    if (currentAction === 'book_outline') {
+        ui.provider.innerHTML = '<option value="gemini">Gemini 3.5 Flash (Free)</option><option value="openai">OpenAI</option><option value="cloudflare">Cloudflare</option>';
     } else if (currentAction === 'text') {
-        ui.provider.innerHTML = `<option value="openai">OpenAI (متقدم)</option><option value="cloudflare">Cloudflare (اقتصادي)</option>`;
+        ui.provider.innerHTML = '<option value="openai">OpenAI (متقدم)</option><option value="cloudflare">Cloudflare (اقتصادي)</option>';
     } else if (currentAction === 'generate') {
-        ui.provider.innerHTML = `<option value="cloudflare">Cloudflare (Flux)</option><option value="openai">OpenAI (DALL-E)</option>`;
+        ui.provider.innerHTML = '<option value="cloudflare">Cloudflare (Flux)</option><option value="openai">OpenAI (DALL-E)</option>';
     } else if (currentAction === 'edit') {
-        ui.provider.innerHTML = `<option value="openai">OpenAI (تعديل صور)</option>`;
+        ui.provider.innerHTML = '<option value="openai">OpenAI (تعديل صور)</option>';
     }
     updateModels();
 }
@@ -115,17 +124,17 @@ function updateModels() {
 
     if (action === 'text' || action === 'book_outline') {
         if (provider === 'gemini') {
-            ui.model.innerHTML = `<option value="gemini-3.5-flash">Gemini 3.5 Flash</option>`;
+            ui.model.innerHTML = '<option value="gemini-3.5-flash">Gemini 3.5 Flash</option>';
         } else if (provider === 'openai') {
-            ui.model.innerHTML = `<option value="gpt-4o">GPT-4o (8 نقاط)</option><option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option><option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>`;
+            ui.model.innerHTML = '<option value="gpt-4o">GPT-4o (8 نقاط)</option><option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option><option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>';
         } else {
-            ui.model.innerHTML = `<option value="llama">LLaMA 3.3 (5 نقاط)</option>`;
+            ui.model.innerHTML = '<option value="llama">LLaMA 3.3 (5 نقاط)</option>';
         }
     } else {
         if (provider === 'openai') {
-            ui.model.innerHTML = `<option value="light">عادي (10 نقاط)</option><option value="mid">متوسط (15 نقطة)</option><option value="pro">Pro (20 نقطة)</option>`;
+            ui.model.innerHTML = '<option value="light">عادي (10 نقاط)</option><option value="mid">متوسط (15 نقطة)</option><option value="pro">Pro (20 نقطة)</option>';
         } else {
-            ui.model.innerHTML = `<option value="flux">Flux (5 نقاط)</option>`;
+            ui.model.innerHTML = '<option value="flux">Flux (5 نقاط)</option>';
         }
     }
 }
@@ -139,7 +148,11 @@ window.addEventListener('DOMContentLoaded', updateUI);
 // 3. التفاعل مع الخادم (Appwrite Functions)
 // ==========================================
 async function executeRequest(payloadObj) {
-    if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); openModal(); return null; }
+    if (!currentUser) { 
+        alert("يرجى تسجيل الدخول أولاً."); 
+        openModal(); 
+        return null; 
+    }
 
     const targetFunctionId = ui.source.value;
     ui.loader.classList.remove('hidden');
@@ -164,54 +177,62 @@ async function executeRequest(payloadObj) {
 }
 
 // دالة توليد الخطة الأساسية
-ui.sendBtn.addEventListener('click', async () => {
+ui.sendBtn.addEventListener('click', async function() {
     const actionType = ui.action.value;
     
     if (!ui.prompt.value.trim() && actionType !== 'book_outline') { 
-        alert("يرجى إدخال نص الطلب!"); return; 
+        alert("يرجى إدخال نص الطلب!"); 
+        return; 
     }
 
     let payloadObj = {
-        userId: currentUser?.$id,
+        userId: currentUser ? currentUser.$id : null,
         prompt: ui.prompt.value,
         provider: ui.provider.value,
         modelTier: ui.model.value
     };
 
     if (actionType === 'book_outline') {
-        const rawGenre = document.getElementById('b-genre').value;
-        const finalGenre = rawGenre === 'other' ? document.getElementById('b-custom-genre').value : rawGenre;
-        let pages = parseInt(document.getElementById('b-pages').value);
+        const bGenreSelect = document.getElementById('b-genre');
+        const bCustomGenre = document.getElementById('b-custom-genre');
+        const rawGenre = bGenreSelect ? bGenreSelect.value : '';
+        const finalGenre = (rawGenre === 'other' && bCustomGenre) ? bCustomGenre.value : rawGenre;
+        
+        const bPagesInput = document.getElementById('b-pages');
+        let pages = bPagesInput ? parseInt(bPagesInput.value) : 50;
         if (isNaN(pages) || pages < 50) pages = 50;
         
         payloadObj.action = 'book_outline';
         payloadObj.bookDetails = {
-            title: document.getElementById('b-title').value,
-            topic: document.getElementById('b-topic').value,
+            title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
+            topic: document.getElementById('b-topic') ? document.getElementById('b-topic').value : '',
             genre: finalGenre,
-            structure: document.getElementById('b-structure').value,
+            structure: document.getElementById('b-structure') ? document.getElementById('b-structure').value : '',
             maxPages: pages,
-            audience: document.getElementById('b-audience').value,
-            tone: document.getElementById('b-tone').value,
-            pov: document.getElementById('b-pov').value,
-            language: document.getElementById('b-language').value,
-            imagesType: document.getElementById('b-images').value,
-            coverPrompt: document.getElementById('b-cover').value
+            audience: document.getElementById('b-audience') ? document.getElementById('b-audience').value : '',
+            tone: document.getElementById('b-tone') ? document.getElementById('b-tone').value : '',
+            pov: document.getElementById('b-pov') ? document.getElementById('b-pov').value : '',
+            language: document.getElementById('b-language') ? document.getElementById('b-language').value : '',
+            imagesType: document.getElementById('b-images') ? document.getElementById('b-images').value : '',
+            coverPrompt: document.getElementById('b-cover') ? document.getElementById('b-cover').value : ''
         };
         
         if(!payloadObj.bookDetails.title || !payloadObj.bookDetails.topic) {
-            alert("عنوان الكتاب وموضوعه ضروريان!"); return;
+            alert("عنوان الكتاب وموضوعه ضروريان!"); 
+            return;
         }
     } else {
         payloadObj.action = 'legacy_chat';
         payloadObj.mode = actionType;
         if (actionType === 'edit') {
-            if (ui.imageFile.files.length === 0) { alert("يرجى اختيار صورة للتعديل."); return; }
+            if (ui.imageFile.files.length === 0) { 
+                alert("يرجى اختيار صورة للتعديل."); 
+                return; 
+            }
             payloadObj.imageBase64 = await convertToBase64(ui.imageFile.files[0]);
         }
     }
 
-    // تجهيز الواجهة
     ui.resultArea.classList.add('hidden');
     ui.resultText.classList.add('hidden');
     ui.editableContainer.classList.add('hidden');
@@ -225,13 +246,13 @@ ui.sendBtn.addEventListener('click', async () => {
     ui.sendBtn.disabled = false;
 
     if (responseData && responseData.success) {
-        document.getElementById('user-credits').innerText = responseData.remainingTokens;
+        const creditsElem = document.getElementById('user-credits');
+        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
         
         if (actionType === 'book_outline') {
-            // مسح الذاكرة القديمة وتخزين الخطة الجديدة
             editHistory = []; 
-            ui.bookOutlineText.innerText = responseData.data; // استخدام innerText لأنها div
-            saveHistoryState(); // حفظ كأول نقطة في التاريخ
+            ui.bookOutlineText.innerText = responseData.data; 
+            saveHistoryState(); 
             
             ui.editableContainer.classList.remove('hidden');
             ui.bookActions.classList.remove('hidden');
@@ -244,32 +265,34 @@ ui.sendBtn.addEventListener('click', async () => {
         }
         
         if (responseData.sourceFunction) {
-            ui.sourceBadge.innerHTML = `<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ${responseData.sourceFunction}`;
+            ui.sourceBadge.innerHTML = '<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ' + responseData.sourceFunction;
             ui.sourceBadge.classList.remove('hidden');
         }
         ui.resultArea.classList.remove('hidden');
     } else if (responseData) {
-        alert(`❌ فشل: ${responseData.error}`);
+        alert("❌ فشل: " + responseData.error);
     }
 });
 
 // دالة تعديل الخطة (Refine) بالذكاء الاصطناعي
-ui.refineBtn.addEventListener('click', async () => {
+ui.refineBtn.addEventListener('click', async function() {
     const refinePrompt = ui.refinePrompt.value.trim();
     if (!refinePrompt) {
-        alert("يرجى كتابة التعديلات المطلوبة!"); return;
+        alert("يرجى كتابة التعديلات المطلوبة!"); 
+        return;
     }
 
     const payloadObj = {
-        userId: currentUser?.$id,
+        userId: currentUser ? currentUser.$id : null,
         action: 'book_outline',
         bookStep: 'refine',
         provider: ui.provider.value,
         modelTier: ui.model.value,
-        // إرسال النص من الـ div المعدل يدوياً
         previousOutline: ui.bookOutlineText.innerText, 
         prompt: refinePrompt,
-        bookDetails: { title: document.getElementById('b-title').value }
+        bookDetails: { 
+            title: document.getElementById('b-title') ? document.getElementById('b-title').value : '' 
+        }
     };
 
     ui.refineBtn.disabled = true;
@@ -277,29 +300,30 @@ ui.refineBtn.addEventListener('click', async () => {
     ui.refineBtn.disabled = false;
 
     if (responseData && responseData.success) {
-        document.getElementById('user-credits').innerText = responseData.remainingTokens;
+        const creditsElem = document.getElementById('user-credits');
+        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
         
         ui.bookOutlineText.innerText = responseData.data; 
-        saveHistoryState(); // لتراحفظ النتيجة الجديدة في ذاكةع
+        saveHistoryState(); 
         ui.refinePrompt.value = ''; 
         alert("✅ تم تعديل الخطة بنجاح!");
     } else if (responseData) {
-        alert(`❌ فشل التعديل: ${responseData.error}`);
+        alert("❌ فشل التعديل: " + responseData.error);
     }
 });
 
-// دالة  الخطة وكتابة المقدمة
-ui.writeIntroBtn.addEventListener('click', async () => {
+// دالة اعتماد الخطة وكتابة المقدمة
+ui.writeIntroBtn.addEventListener('click', async function() {
     const payloadObj = {
-        userId: currentUser?.$id,
+        userId: currentUser ? currentUser.$id : null,
         action: 'book_outline',
         bookStep: 'introduction',
         provider: ui.provider.value,
         modelTier: ui.model.value,
-        previousOutline: ui.bookOutlineText.innerText, // اعتماد الخطة من الـ div
+        previousOutline: ui.bookOutlineText.innerText, 
         bookDetails: { 
-            title: document.getElementById('b-title').value,
-            topic: document.getElementById('b-topic').value
+            title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
+            topic: document.getElementById('b-topic') ? document.getElementById('b-topic').value : ''
         }
     };
 
@@ -308,24 +332,25 @@ ui.writeIntroBtn.addEventListener('click', async () => {
     ui.writeIntroBtn.disabled = false;
 
     if (responseData && responseData.success) {
-        document.getElementById('user-credits').innerText = responseData.remainingTokens;
+        const creditsElem = document.getElementById('user-credits');
+        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+        
         ui.introText.innerText = responseData.data;
         ui.introArea.classList.remove('hidden');
         ui.introArea.scrollIntoView({ behavior: 'smooth' });
     } else if (responseData) {
-        alert(`❌ فشل كتابة المقدمة: ${responseData.error}`);
+        alert("❌ فشل كتابة المقدمة: " + responseData.error);
     }
 });
 
 function convertToBase64(file) {
-    return new Promise((resolve, reject) => {
+    return new Promise(function(resolve, reject) {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
+        reader.onload = function() { resolve(reader.result); };
+        reader.onerror = function(error) { reject(error); };
     });
 }
-
 
 async function handleAuth() {
     const email = document.getElementById('email').value;
@@ -340,7 +365,9 @@ async function handleAuth() {
         }
         closeModal(); 
         checkSession();
-    } catch (error) { alert("خطأ: " + error.message); }
+    } catch (error) { 
+        alert("خطأ: " + error.message); 
+    }
 }
 
 async function checkSession() {
@@ -358,13 +385,20 @@ async function checkSession() {
     }
 }
 
-async function logout() { await account.deleteSession('current'); location.reload(); }
+async function logout() { 
+    await account.deleteSession('current'); 
+    location.reload(); 
+}
 
 async function fetchUserCredits() {
     try {
         const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [ Query.equal('userId', currentUser.$id) ]);
-        if (response.documents.length > 0) document.getElementById('user-credits').innerText = response.documents[0].tokens;
-    } catch (error) { console.error("Error fetching credits", error); }
+        if (response.documents.length > 0) {
+            document.getElementById('user-credits').innerText = response.documents[0].tokens;
+        }
+    } catch (error) { 
+        console.error("Error fetching credits", error); 
+    }
 }
 
 function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
@@ -373,8 +407,14 @@ function toggleAuthMode() {
     isLoginMode = !isLoginMode;
     document.getElementById('modal-title').innerText = isLoginMode ? 'تسجيل الدخول' : 'حساب جديد';
     document.getElementById('auth-submit-btn').innerText = isLoginMode ? 'دخول' : 'إنشاء حساب';
-    document.getElementById('name').classList.toggle('hidden', isLoginMode);
+    
+    if (isLoginMode) {
+        document.getElementById('name').classList.add('hidden');
+    } else {
+        document.getElementById('name').classList.remove('hidden');
+    }
+    
     document.getElementById('toggle-auth-text').innerText = isLoginMode ? 'ليس لديك حساب؟ إنشاء حساب جديد' : 'لديك حساب؟ تسجيل الدخول';
 }
 
-checkSession(); 
+checkSession();
