@@ -176,6 +176,13 @@
                 <button id="refine-btn" style="width: 150px; background: #eab308; color: #1f2937;"><i class="fas fa-magic"></i> تعديل ذكي</button>
             </div>
             <hr style="border: none; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
+            
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 5px; border: 1px solid #d1d5db;">
+                <label style="margin: 0; color: #4b5563;">عدد صفحات المقدمة المستهدفة:</label>
+                <input type="number" id="intro-pages-input" value="2" min="1" max="10" style="width: 80px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                <span id="remaining-pages-display" style="font-weight: bold; color: #16a34a; margin-right: auto;"></span>
+            </div>
+
             <button id="write-intro-btn" style="width: 100%; background: #16a34a; font-size: 1.1em;"><i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة</button>
         </div>
 
@@ -199,6 +206,14 @@
             <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> الصفحة السابقة</button>
             <span id="page-indicator" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
             <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">الصفحة التالية <i class="fas fa-arrow-left"></i></button>
+        </div>
+
+        <div id="intro-refine-section" style="width: 100%; max-width: 700px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 20px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #b45309;"><i class="fas fa-edit"></i> هل تريد إجراء تعديل على هذه المقدمة؟</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="refine-intro-prompt" placeholder="اكتب طلب التعديل هنا (مثال: اجعل البداية أكثر حماساً...)">
+                <button id="refine-intro-btn" style="width: 180px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة</button>
+            </div>
         </div>
         
         <div style="width: 100%; max-width: 700px; margin-top: 20px;">

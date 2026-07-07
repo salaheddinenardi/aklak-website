@@ -20,7 +20,6 @@ let isLoginMode = true;
 // نظام ذاكرة التراجع (Undo System)
 // ==========================================
 let editHistory = [];
-
 function saveHistoryState() {
     const currentText = document.getElementById('book-outline-text').innerText;
     if (editHistory.length === 0 || editHistory[editHistory.length - 1] !== currentText) {
@@ -45,6 +44,7 @@ function handleUndo() {
 // ==========================================
 let bookPagesData = []; 
 let currentViewedPageIndex = 0; 
+let rawIntroductionText = ""; // المتغير الجديد لحفظ نص المقدمة الأصلي
 
 // دالة لتقسيم النص الطويل إلى صفحات (حوالي 1200 حرف للصفحة)
 function paginateText(text) {
@@ -98,7 +98,13 @@ const ui = {
     introText: document.getElementById('intro-text'),
     resultImage: document.getElementById('result-image'),
     sourceBadge: document.getElementById('source-badge'),
-    imageFile: document.getElementById('image-file')
+    imageFile: document.getElementById('image-file'),
+
+    // العناصر الجديدة لتحديد عدد الصفحات وتعديل المقدمة
+    introPagesInput: document.getElementById('intro-pages-input'),
+    remainingPagesDisplay: document.getElementById('remaining-pages-display'),
+    refineIntroPrompt: document.getElementById('refine-intro-prompt'),
+    refineIntroBtn: document.getElementById('refine-intro-btn')
 };
 
 const pageUI = {
@@ -109,17 +115,34 @@ const pageUI = {
     continueBtn: document.getElementById('continue-writing-btn')
 };
 
-ui.undoBtn.addEventListener('click', handleUndo);
+if (ui.undoBtn) ui.undoBtn.addEventListener('click', handleUndo);
 
-ui.bookOutlineText.addEventListener('keyup', function(e) {
-    if (e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete') {
-        saveHistoryState();
+if (ui.bookOutlineText) {
+    ui.bookOutlineText.addEventListener('keyup', function(e) {
+        if (e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete') {
+            saveHistoryState();
+        }
+    });
+}
+
+// دالة حساب وعرض الصفحات المتبقية بشكل حي
+function calculateRemainingPages() {
+    if (!ui.introPagesInput) return;
+    const totalPages = parseInt(document.getElementById('b-pages') ? document.getElementById('b-pages').value : 50) || 50;
+    const introPages = parseInt(ui.introPagesInput.value) || 2;
+    const remaining = totalPages - introPages;
+    if (ui.remainingPagesDisplay) {
+        ui.remainingPagesDisplay.innerText = `(المتبقي لباقي الفصول: ${remaining} صفحة)`;
     }
-});
+}
+
+// ربط مستمعي الأحداث لتحديث عدد الصفحات تلقائياً
+if (ui.introPagesInput) ui.introPagesInput.addEventListener('input', calculateRemainingPages);
+if (document.getElementById('b-pages')) document.getElementById('b-pages').addEventListener('input', calculateRemainingPages);
 
 // دالة عرض صفحة محددة
 function renderCurrentPage() {
-    ui.introText.innerText = bookPagesData[currentViewedPageIndex];
+    if (ui.introText) ui.introText.innerText = bookPagesData[currentViewedPageIndex];
     if (pageUI.pageNumber) pageUI.pageNumber.innerText = currentViewedPageIndex + 1;
     if (pageUI.indicator) pageUI.indicator.innerText = 'صفحة ' + (currentViewedPageIndex + 1) + ' من ' + bookPagesData.length;
 
@@ -156,7 +179,7 @@ if (pageUI.nextBtn) {
 // زر إكمال الكتابة (مؤقت)
 if (pageUI.continueBtn) {
     pageUI.continueBtn.addEventListener('click', function() {
-        alert("سيتم برمجة زر الإكمال لاحقاً ليأخذ النص الحالي ويطلب من الذكاء الاصطناعي إكمال القصة.");
+        alert("سيتم برمجة زر الإكمال لاحقاً ليأخذ النص الحالي ويطلب من الذكاء الاصطناعي إكمال الفصل الأول.");
     });
 }
 
@@ -198,7 +221,9 @@ function updateUI() {
     } else if (currentAction === 'edit') {
         ui.provider.innerHTML = '<option value="openai">OpenAI (تعديل صور)</option>';
     }
+    
     updateModels();
+    calculateRemainingPages(); // تحديث العداد عند تغيير الواجهة
 }
 
 function updateModels() {
@@ -222,9 +247,9 @@ function updateModels() {
     }
 }
 
-ui.source.addEventListener('change', updateUI);
-ui.action.addEventListener('change', updateUI);
-ui.provider.addEventListener('change', updateModels);
+if (ui.source) ui.source.addEventListener('change', updateUI);
+if (ui.action) ui.action.addEventListener('change', updateUI);
+if (ui.provider) ui.provider.addEventListener('change', updateModels);
 window.addEventListener('DOMContentLoaded', updateUI);
 
 // ==========================================
@@ -260,181 +285,239 @@ async function executeRequest(payloadObj) {
 }
 
 // دالة توليد الخطة الأساسية
-ui.sendBtn.addEventListener('click', async function() {
-    const actionType = ui.action.value;
-    
-    if (!ui.prompt.value.trim() && actionType !== 'book_outline') { 
-        alert("يرجى إدخال نص الطلب!"); 
-        return; 
-    }
-
-    let payloadObj = {
-        userId: currentUser ? currentUser.$id : null,
-        prompt: ui.prompt.value,
-        provider: ui.provider.value,
-        modelTier: ui.model.value
-    };
-
-    if (actionType === 'book_outline') {
-        const bGenreSelect = document.getElementById('b-genre');
-        const bCustomGenre = document.getElementById('b-custom-genre');
-        const rawGenre = bGenreSelect ? bGenreSelect.value : '';
-        const finalGenre = (rawGenre === 'other' && bCustomGenre) ? bCustomGenre.value : rawGenre;
+if (ui.sendBtn) {
+    ui.sendBtn.addEventListener('click', async function() {
+        const actionType = ui.action.value;
         
-        const bPagesInput = document.getElementById('b-pages');
-        let pages = bPagesInput ? parseInt(bPagesInput.value) : 50;
-        if (isNaN(pages) || pages < 50) pages = 50;
-        
-        payloadObj.action = 'book_outline';
-        payloadObj.bookDetails = {
-            title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
-            topic: document.getElementById('b-topic') ? document.getElementById('b-topic').value : '',
-            genre: finalGenre,
-            structure: document.getElementById('b-structure') ? document.getElementById('b-structure').value : '',
-            maxPages: pages,
-            audience: document.getElementById('b-audience') ? document.getElementById('b-audience').value : '',
-            tone: document.getElementById('b-tone') ? document.getElementById('b-tone').value : '',
-            pov: document.getElementById('b-pov') ? document.getElementById('b-pov').value : '',
-            language: document.getElementById('b-language') ? document.getElementById('b-language').value : '',
-            imagesType: document.getElementById('b-images') ? document.getElementById('b-images').value : '',
-            coverPrompt: document.getElementById('b-cover') ? document.getElementById('b-cover').value : ''
+        if (!ui.prompt.value.trim() && actionType !== 'book_outline') { 
+            alert("يرجى إدخال نص الطلب!"); 
+            return; 
+        }
+
+        let payloadObj = {
+            userId: currentUser ? currentUser.$id : null,
+            prompt: ui.prompt.value,
+            provider: ui.provider.value,
+            modelTier: ui.model.value
         };
-        
-        if(!payloadObj.bookDetails.title || !payloadObj.bookDetails.topic) {
-            alert("عنوان الكتاب وموضوعه ضروريان!"); 
-            return;
-        }
-    } else {
-        payloadObj.action = 'legacy_chat';
-        payloadObj.mode = actionType;
-        if (actionType === 'edit') {
-            if (ui.imageFile.files.length === 0) { 
-                alert("يرجى اختيار صورة للتعديل."); 
-                return; 
-            }
-            payloadObj.imageBase64 = await convertToBase64(ui.imageFile.files[0]);
-        }
-    }
 
-    ui.resultArea.classList.add('hidden');
-    ui.resultText.classList.add('hidden');
-    ui.editableContainer.classList.add('hidden');
-    ui.bookActions.classList.add('hidden');
-    ui.introArea.classList.add('hidden');
-    ui.resultImage.classList.add('hidden');
-    ui.sourceBadge.classList.add('hidden');
-    ui.sendBtn.disabled = true;
-
-    const responseData = await executeRequest(payloadObj);
-    ui.sendBtn.disabled = false;
-
-    if (responseData && responseData.success) {
-        const creditsElem = document.getElementById('user-credits');
-        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
-        
         if (actionType === 'book_outline') {
-            editHistory = []; 
-            ui.bookOutlineText.innerText = responseData.data; 
-            saveHistoryState(); 
+            const bGenreSelect = document.getElementById('b-genre');
+            const bCustomGenre = document.getElementById('b-custom-genre');
+            const rawGenre = bGenreSelect ? bGenreSelect.value : '';
+            const finalGenre = (rawGenre === 'other' && bCustomGenre) ? bCustomGenre.value : rawGenre;
             
-            ui.editableContainer.classList.remove('hidden');
-            ui.bookActions.classList.remove('hidden');
-        } else if (responseData.resultType === 'text') {
-            ui.resultText.innerText = responseData.data;
-            ui.resultText.classList.remove('hidden');
-        } else if (responseData.resultType === 'image') {
-            ui.resultImage.src = responseData.data;
-            ui.resultImage.classList.remove('hidden');
+            const bPagesInput = document.getElementById('b-pages');
+            let pages = bPagesInput ? parseInt(bPagesInput.value) : 50;
+            if (isNaN(pages) || pages < 50) pages = 50;
+            
+            payloadObj.action = 'book_outline';
+            payloadObj.bookDetails = {
+                title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
+                topic: document.getElementById('b-topic') ? document.getElementById('b-topic').value : '',
+                genre: finalGenre,
+                structure: document.getElementById('b-structure') ? document.getElementById('b-structure').value : '',
+                maxPages: pages,
+                audience: document.getElementById('b-audience') ? document.getElementById('b-audience').value : '',
+                tone: document.getElementById('b-tone') ? document.getElementById('b-tone').value : '',
+                pov: document.getElementById('b-pov') ? document.getElementById('b-pov').value : '',
+                language: document.getElementById('b-language') ? document.getElementById('b-language').value : '',
+                imagesType: document.getElementById('b-images') ? document.getElementById('b-images').value : '',
+                coverPrompt: document.getElementById('b-cover') ? document.getElementById('b-cover').value : ''
+            };
+            
+            if(!payloadObj.bookDetails.title || !payloadObj.bookDetails.topic) {
+                alert("عنوان الكتاب وموضوعه ضروريان!"); 
+                return;
+            }
+        } else {
+            payloadObj.action = 'legacy_chat';
+            payloadObj.mode = actionType;
+            if (actionType === 'edit') {
+                if (ui.imageFile.files.length === 0) { 
+                    alert("يرجى اختيار صورة للتعديل."); 
+                    return; 
+                }
+                payloadObj.imageBase64 = await convertToBase64(ui.imageFile.files[0]);
+            }
         }
-        
-        if (responseData.sourceFunction) {
-            ui.sourceBadge.innerHTML = '<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ' + responseData.sourceFunction;
-            ui.sourceBadge.classList.remove('hidden');
+
+        ui.resultArea.classList.add('hidden');
+        ui.resultText.classList.add('hidden');
+        ui.editableContainer.classList.add('hidden');
+        ui.bookActions.classList.add('hidden');
+        ui.introArea.classList.add('hidden');
+        ui.resultImage.classList.add('hidden');
+        ui.sourceBadge.classList.add('hidden');
+        ui.sendBtn.disabled = true;
+
+        const responseData = await executeRequest(payloadObj);
+        ui.sendBtn.disabled = false;
+
+        if (responseData && responseData.success) {
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+            
+            if (actionType === 'book_outline') {
+                editHistory = []; 
+                ui.bookOutlineText.innerText = responseData.data; 
+                saveHistoryState(); 
+                
+                ui.editableContainer.classList.remove('hidden');
+                ui.bookActions.classList.remove('hidden');
+                calculateRemainingPages();
+            } else if (responseData.resultType === 'text') {
+                ui.resultText.innerText = responseData.data;
+                ui.resultText.classList.remove('hidden');
+            } else if (responseData.resultType === 'image') {
+                ui.resultImage.src = responseData.data;
+                ui.resultImage.classList.remove('hidden');
+            }
+            
+            if (responseData.sourceFunction) {
+                ui.sourceBadge.innerHTML = '<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ' + responseData.sourceFunction;
+                ui.sourceBadge.classList.remove('hidden');
+            }
+            ui.resultArea.classList.remove('hidden');
+        } else if (responseData) {
+            alert("❌ فشل: " + responseData.error);
         }
-        ui.resultArea.classList.remove('hidden');
-    } else if (responseData) {
-        alert("❌ فشل: " + responseData.error);
-    }
-});
+    });
+}
 
 // دالة تعديل الخطة (Refine) بالذكاء الاصطناعي
-ui.refineBtn.addEventListener('click', async function() {
-    const refinePrompt = ui.refinePrompt.value.trim();
-    if (!refinePrompt) {
-        alert("يرجى كتابة التعديلات المطلوبة!"); 
-        return;
-    }
-
-    const payloadObj = {
-        userId: currentUser ? currentUser.$id : null,
-        action: 'book_outline',
-        bookStep: 'refine',
-        provider: ui.provider.value,
-        modelTier: ui.model.value,
-        previousOutline: ui.bookOutlineText.innerText, 
-        prompt: refinePrompt,
-        bookDetails: { 
-            title: document.getElementById('b-title') ? document.getElementById('b-title').value : '' 
+if (ui.refineBtn) {
+    ui.refineBtn.addEventListener('click', async function() {
+        const refinePrompt = ui.refinePrompt.value.trim();
+        if (!refinePrompt) {
+            alert("يرجى كتابة التعديلات المطلوبة!"); 
+            return;
         }
-    };
 
-    ui.refineBtn.disabled = true;
-    const responseData = await executeRequest(payloadObj);
-    ui.refineBtn.disabled = false;
+        const payloadObj = {
+            userId: currentUser ? currentUser.$id : null,
+            action: 'book_outline',
+            bookStep: 'refine',
+            provider: ui.provider.value,
+            modelTier: ui.model.value,
+            previousOutline: ui.bookOutlineText.innerText, 
+            prompt: refinePrompt,
+            bookDetails: { 
+                title: document.getElementById('b-title') ? document.getElementById('b-title').value : '' 
+            }
+        };
 
-    if (responseData && responseData.success) {
-        const creditsElem = document.getElementById('user-credits');
-        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
-        
-        ui.bookOutlineText.innerText = responseData.data; 
-        saveHistoryState(); 
-        ui.refinePrompt.value = ''; 
-        alert("✅ تم تعديل الخطة بنجاح!");
-    } else if (responseData) {
-        alert("❌ فشل التعديل: " + responseData.error);
-    }
-});
+        ui.refineBtn.disabled = true;
+        const responseData = await executeRequest(payloadObj);
+        ui.refineBtn.disabled = false;
 
-// دالة اعتماد الخطة وكتابة المقدمة (تم تعديلها للعمل مع نظام الصفحات)
-ui.writeIntroBtn.addEventListener('click', async function() {
-    const payloadObj = {
-        userId: currentUser ? currentUser.$id : null,
-        action: 'book_outline',
-        bookStep: 'introduction',
-        provider: ui.provider.value,
-        modelTier: ui.model.value,
-        previousOutline: ui.bookOutlineText.innerText, 
-        bookDetails: { 
-            title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
-            topic: document.getElementById('b-topic') ? document.getElementById('b-topic').value : ''
+        if (responseData && responseData.success) {
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+            
+            ui.bookOutlineText.innerText = responseData.data; 
+            saveHistoryState(); 
+            ui.refinePrompt.value = ''; 
+            calculateRemainingPages();
+            alert("✅ تم تعديل الخطة بنجاح!");
+        } else if (responseData) {
+            alert("❌ فشل التعديل: " + responseData.error);
         }
-    };
+    });
+}
 
-    ui.writeIntroBtn.disabled = true;
-    ui.writeIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الكتابة...';
+// دالة اعتماد الخطة وكتابة المقدمة
+if (ui.writeIntroBtn) {
+    ui.writeIntroBtn.addEventListener('click', async function() {
+        const payloadObj = {
+            userId: currentUser ? currentUser.$id : null,
+            action: 'book_outline',
+            bookStep: 'introduction',
+            provider: ui.provider.value,
+            modelTier: ui.model.value,
+            previousOutline: ui.bookOutlineText.innerText, 
+            bookDetails: { 
+                title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
+                topic: document.getElementById('b-topic') ? document.getElementById('b-topic').value : '',
+                introPages: parseInt(ui.introPagesInput ? ui.introPagesInput.value : 2) // إرسال عدد صفحات المقدمة
+            }
+        };
 
-    const responseData = await executeRequest(payloadObj);
-    
-    ui.writeIntroBtn.disabled = false;
-    ui.writeIntroBtn.innerHTML = '<i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة';
+        ui.writeIntroBtn.disabled = true;
+        ui.writeIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الكتابة...';
 
-    if (responseData && responseData.success) {
-        const creditsElem = document.getElementById('user-credits');
-        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+        const responseData = await executeRequest(payloadObj);
         
-        // تقسيم النتيجة القادمة من الذكاء الاصطناعي إلى صفحات
-        bookPagesData = paginateText(responseData.data);
-        currentViewedPageIndex = 0;
+        ui.writeIntroBtn.disabled = false;
+        ui.writeIntroBtn.innerHTML = '<i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة';
+
+        if (responseData && responseData.success) {
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+            
+            rawIntroductionText = responseData.data; // حفظ نص المقدمة
+            bookPagesData = paginateText(rawIntroductionText);
+            currentViewedPageIndex = 0;
+            
+            ui.introArea.style.display = 'flex'; 
+            ui.introArea.classList.remove('hidden');
+            renderCurrentPage();
+            
+            ui.introArea.scrollIntoView({ behavior: 'smooth' });
+        } else if (responseData) {
+            alert("❌ فشل كتابة المقدمة: " + responseData.error);
+        }
+    });
+}
+
+// دالة التعديل الذكي على المقدمة وإعادة إرسال المعطيات
+if (ui.refineIntroBtn) {
+    ui.refineIntroBtn.addEventListener('click', async function() {
+        const promptText = ui.refineIntroPrompt ? ui.refineIntroPrompt.value.trim() : '';
+        if (!promptText) {
+            alert("يرجى كتابة التعديل الذي تريده على المقدمة أولاً!");
+            return;
+        }
+
+        const payloadObj = {
+            userId: currentUser ? currentUser.$id : null,
+            action: 'book_outline',
+            bookStep: 'refine_intro', // إرسال أمر التعديل
+            provider: ui.provider.value,
+            modelTier: ui.model.value,
+            previousOutline: ui.bookOutlineText.innerText, 
+            currentIntro: rawIntroductionText, 
+            prompt: promptText, 
+            bookDetails: { 
+                title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
+                introPages: parseInt(ui.introPagesInput ? ui.introPagesInput.value : 2)
+            }
+        };
+
+        ui.refineIntroBtn.disabled = true;
+        ui.refineIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعديل...';
+
+        const responseData = await executeRequest(payloadObj);
         
-        ui.introArea.style.display = 'flex'; 
-        ui.introArea.classList.remove('hidden');
-        renderCurrentPage();
-        
-        ui.introArea.scrollIntoView({ behavior: 'smooth' });
-    } else if (responseData) {
-        alert("❌ فشل كتابة المقدمة: " + responseData.error);
-    }
-});
+        ui.refineIntroBtn.disabled = false;
+        ui.refineIntroBtn.innerHTML = '<i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة';
+
+        if (responseData && responseData.success) {
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+            
+            rawIntroductionText = responseData.data; // تحديث النص بالجديد
+            bookPagesData = paginateText(rawIntroductionText);
+            currentViewedPageIndex = 0;
+            renderCurrentPage();
+            
+            if (ui.refineIntroPrompt) ui.refineIntroPrompt.value = ''; 
+            alert("✅ تم تعديل المقدمة بنجاح!");
+        } else if (responseData) {
+            alert("❌ فشل تعديل المقدمة: " + responseData.error);
+        }
+    });
+}
 
 function convertToBase64(file) {
     return new Promise(function(resolve, reject) {
