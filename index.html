@@ -184,9 +184,26 @@
         <div id="source-badge" class="source-badge hidden"></div>
     </div>
 
-    <div id="intro-area" class="hidden" style="margin-top: 20px; padding: 25px; background: white; border: 2px solid #16a34a; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-        <h2 style="color: #16a34a; text-align: center; border-bottom: 2px dashed #16a34a; padding-bottom: 10px; margin-top: 0;">مقدمة الكتاب</h2>
-        <div id="intro-text" style="white-space: pre-wrap; line-height: 1.8; font-size: 1.1em; color: #1f2937;"></div>
+    <div id="intro-area" class="hidden" style="margin-top: 30px; display: flex; flex-direction: column; align-items: center;">
+        
+        <div style="background: white; width: 100%; max-width: 700px; min-height: 600px; padding: 40px; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 20px;">
+            <div id="intro-text" style="white-space: pre-wrap; line-height: 2; font-size: 1.15em; color: #1f2937; text-align: justify; padding-bottom: 30px;">
+                </div>
+            
+            <div id="page-number" style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #6b7280; font-weight: bold; font-size: 1.1em;">
+                1
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; width: 100%; max-width: 700px; justify-content: center; align-items: center;">
+            <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> الصفحة السابقة</button>
+            <span id="page-indicator" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
+            <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">الصفحة التالية <i class="fas fa-arrow-left"></i></button>
+        </div>
+        
+        <div style="width: 100%; max-width: 700px; margin-top: 20px;">
+            <button id="continue-writing-btn" style="width: 100%; background: #2563eb; font-size: 1.1em;"><i class="fas fa-pen-fancy"></i> إكمال الكتابة (الصفحة التالية)</button>
+        </div>
     </div>
 </div>
 

@@ -41,6 +41,36 @@ function handleUndo() {
 }
 
 // ==========================================
+// متغيرات ودوال نظام صفحات الكتاب
+// ==========================================
+let bookPagesData = []; 
+let currentViewedPageIndex = 0; 
+
+// دالة لتقسيم النص الطويل إلى صفحات (حوالي 1200 حرف للصفحة)
+function paginateText(text) {
+    const charsPerPage = 1200;
+    let pages = [];
+    let currentIndex = 0;
+
+    while (currentIndex < text.length) {
+        let chunk = text.slice(currentIndex, currentIndex + charsPerPage);
+        if (currentIndex + charsPerPage < text.length) {
+            let lastSpace = chunk.lastIndexOf(' ');
+            if (lastSpace > 0) {
+                chunk = chunk.slice(0, lastSpace);
+                currentIndex += lastSpace + 1;
+            } else {
+                currentIndex += charsPerPage;
+            }
+        } else {
+            currentIndex += charsPerPage;
+        }
+        pages.push(chunk.trim());
+    }
+    return pages;
+}
+
+// ==========================================
 // 2. إدارة الواجهة الديناميكية
 // ==========================================
 const ui = {
@@ -62,11 +92,21 @@ const ui = {
     refineBtn: document.getElementById('refine-btn'),
     writeIntroBtn: document.getElementById('write-intro-btn'),
     undoBtn: document.getElementById('undo-btn'),
+    
+    // عناصر المقدمة وصفحات الكتاب
     introArea: document.getElementById('intro-area'),
     introText: document.getElementById('intro-text'),
     resultImage: document.getElementById('result-image'),
     sourceBadge: document.getElementById('source-badge'),
     imageFile: document.getElementById('image-file')
+};
+
+const pageUI = {
+    prevBtn: document.getElementById('prev-page-btn'),
+    nextBtn: document.getElementById('next-page-btn'),
+    indicator: document.getElementById('page-indicator'),
+    pageNumber: document.getElementById('page-number'),
+    continueBtn: document.getElementById('continue-writing-btn')
 };
 
 ui.undoBtn.addEventListener('click', handleUndo);
@@ -76,6 +116,49 @@ ui.bookOutlineText.addEventListener('keyup', function(e) {
         saveHistoryState();
     }
 });
+
+// دالة عرض صفحة محددة
+function renderCurrentPage() {
+    ui.introText.innerText = bookPagesData[currentViewedPageIndex];
+    if (pageUI.pageNumber) pageUI.pageNumber.innerText = currentViewedPageIndex + 1;
+    if (pageUI.indicator) pageUI.indicator.innerText = 'صفحة ' + (currentViewedPageIndex + 1) + ' من ' + bookPagesData.length;
+
+    if (pageUI.prevBtn) {
+        if (currentViewedPageIndex === 0) pageUI.prevBtn.classList.add('hidden');
+        else pageUI.prevBtn.classList.remove('hidden');
+    }
+    
+    if (pageUI.nextBtn) {
+        if (currentViewedPageIndex === bookPagesData.length - 1) pageUI.nextBtn.classList.add('hidden');
+        else pageUI.nextBtn.classList.remove('hidden');
+    }
+}
+
+// أزرار التنقل بين الصفحات
+if (pageUI.prevBtn) {
+    pageUI.prevBtn.addEventListener('click', function() {
+        if (currentViewedPageIndex > 0) {
+            currentViewedPageIndex--;
+            renderCurrentPage();
+        }
+    });
+}
+
+if (pageUI.nextBtn) {
+    pageUI.nextBtn.addEventListener('click', function() {
+        if (currentViewedPageIndex < bookPagesData.length - 1) {
+            currentViewedPageIndex++;
+            renderCurrentPage();
+        }
+    });
+}
+
+// زر إكمال الكتابة (مؤقت)
+if (pageUI.continueBtn) {
+    pageUI.continueBtn.addEventListener('click', function() {
+        alert("سيتم برمجة زر الإكمال لاحقاً ليأخذ النص الحالي ويطلب من الذكاء الاصطناعي إكمال القصة.");
+    });
+}
 
 function updateUI() {
     const source = ui.source.value;
@@ -312,7 +395,7 @@ ui.refineBtn.addEventListener('click', async function() {
     }
 });
 
-// دالة اعتماد الخطة وكتابة المقدمة
+// دالة اعتماد الخطة وكتابة المقدمة (تم تعديلها للعمل مع نظام الصفحات)
 ui.writeIntroBtn.addEventListener('click', async function() {
     const payloadObj = {
         userId: currentUser ? currentUser.$id : null,
@@ -328,15 +411,25 @@ ui.writeIntroBtn.addEventListener('click', async function() {
     };
 
     ui.writeIntroBtn.disabled = true;
+    ui.writeIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الكتابة...';
+
     const responseData = await executeRequest(payloadObj);
+    
     ui.writeIntroBtn.disabled = false;
+    ui.writeIntroBtn.innerHTML = '<i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة';
 
     if (responseData && responseData.success) {
         const creditsElem = document.getElementById('user-credits');
         if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
         
-        ui.introText.innerText = responseData.data;
+        // تقسيم النتيجة القادمة من الذكاء الاصطناعي إلى صفحات
+        bookPagesData = paginateText(responseData.data);
+        currentViewedPageIndex = 0;
+        
+        ui.introArea.style.display = 'flex'; 
         ui.introArea.classList.remove('hidden');
+        renderCurrentPage();
+        
         ui.introArea.scrollIntoView({ behavior: 'smooth' });
     } else if (responseData) {
         alert("❌ فشل كتابة المقدمة: " + responseData.error);
