@@ -27,12 +27,7 @@
         .result-box { margin-top: 20px; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; min-height: 100px; }
         #result-text { white-space: pre-wrap; line-height: 1.6; color: #374151; width: 100%; }
         
-        #book-outline-text { 
-            width: 100%; min-height: 450px; padding: 20px; font-family: 'Tajawal', inherit; 
-            font-size: 1.05em; line-height: 1.8; border: 2px solid #cbd5e1; border-radius: 8px; 
-            background-color: #fff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); 
-            overflow-y: auto; outline: none; white-space: pre-wrap; box-sizing: border-box;
-        }
+        #book-outline-text { width: 100%; min-height: 450px; padding: 20px; font-family: 'Tajawal', inherit; font-size: 1.05em; line-height: 1.8; border: 2px solid #cbd5e1; border-radius: 8px; background-color: #fff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); overflow-y: auto; outline: none; white-space: pre-wrap; box-sizing: border-box; }
         #book-outline-text:focus { border-color: #16a34a; }
         
         .result-image { max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; border: 1px solid #e5e7eb; }
@@ -41,12 +36,19 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 30px; width: 100%; max-width: 320px; text-align: center; border-radius: 12px; }
         .modal-content input { margin-bottom: 15px; }
+        
+        /* تصميم صندوق حالة التأليف الجديد */
+        #auto-generation-status { background: #eff6ff; border: 2px solid #3b82f6; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        #new-book-btn { width: auto; padding: 8px 20px; border-radius: 20px; background: #059669; margin-right: 15px; }
     </style>
 </head>
 <body>
 
 <div class="nav">
-    <div class="logo">aklake</div>
+    <div style="display: flex; align-items: center;">
+        <div class="logo">aklake</div>
+        <button id="new-book-btn" class="hidden" onclick="resetForNewBook()"><i class="fas fa-plus"></i> كتاب جديد</button>
+    </div>
     <div>
         <span id="user-info" class="hidden" style="font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 8px 15px; border-radius: 20px; border: 1px solid #bbf7d0; margin-left: 10px;">
             الرصيد: <span id="user-credits">0</span>
@@ -59,168 +61,171 @@
 <div class="container">
     <h2 style="text-align: center; color: #1f2937; margin-top: 0;">ساحة الذكاء الاصطناعي ⚡</h2>
     
-    <div class="controls-grid">
-        <div>
-            <label>المصدر (الكود الوظيفي):</label>
-            <select id="source-select">
-                <option value="6a3c7a760032067bd275">الكود الأول (الأساسي)</option>
-                <option value="6a445f680013960a14c6">الكود الثاني (المشتق/الموزع)</option>
+    <div id="auto-generation-status" class="hidden">
+        <h3 id="status-title" style="color: #1e40af; margin-top:0;"><i class="fas fa-cog fa-spin"></i> يتم الآن تأليف الكتاب في الخلفية...</h3>
+        <p style="font-size: 1.1em; font-weight: bold; color: #374151;">التقدم المنجز: <span id="progress-count" style="color: #2563eb; font-size: 1.3em;">0</span> صفحة / فصل</p>
+        <p style="font-size: 0.9em; color: #6b7280;">(يمكنك إغلاق الموقع بأمان، أو متابعة التقدم هنا)</p>
+        <button onclick="toggleMainInputs()" style="background: #3b82f6; width: auto; margin-top: 10px; padding: 8px 20px;"><i class="fas fa-eye"></i> إظهار/إخفاء بيانات الكتاب والصفحات</button>
+    </div>
+
+    <div id="main-inputs-wrapper">
+        <div class="controls-grid">
+            <div>
+                <label>المصدر (الكود الوظيفي):</label>
+                <select id="source-select">
+                    <option value="6a3c7a760032067bd275">الكود الأول (الأساسي)</option>
+                    <option value="6a445f680013960a14c6">الكود الثاني (المشتق/الموزع)</option>
+                </select>
+            </div>
+            <div>
+                <label>نوع الخدمة:</label>
+                <select id="action-select">
+                    <option value="text">💬 محادثة نصية</option>
+                    <option value="generate">🎨 توليد صور</option>
+                    <option value="edit">🖌️ تعديل صورة</option>
+                    <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
+                </select>
+            </div>
+            <div>
+                <label>المزود:</label>
+                <select id="provider-select"></select>
+            </div>
+            <div>
+                <label>النموذج (الموديل):</label>
+                <select id="model-select"></select>
+            </div>
+        </div>
+
+        <div id="image-upload-section" class="hidden" style="margin-bottom: 20px; text-align: right; background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+            <label>ارفع الصورة للتعديل:</label>
+            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp" style="background: white;">
+        </div>
+
+        <div id="book-settings" class="book-fields hidden">
+            <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
+            <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
+            <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
+            <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.classList.remove('hidden'); c.focus(); } else { c.classList.add('hidden'); }">
+                <optgroup label="الأدب الخيالي">
+                    <option value="رواية">رواية</option>
+                    <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
+                    <option value="رواية بوليسية">رواية بوليسية / غموض</option>
+                </optgroup>
+                <optgroup label="الأدب الواقعي والتعليمي">
+                    <option value="تطوير الذات">تطوير الذات</option>
+                    <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
+                    <option value="دليل إرشادي">دليل إرشادي (How-to)</option>
+                </optgroup>
+                <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
             </select>
-        </div>
-        <div>
-            <label>نوع الخدمة:</label>
-            <select id="action-select">
-                <option value="text">💬 محادثة نصية</option>
-                <option value="generate">🎨 توليد صور</option>
-                <option value="edit">🖌️ تعديل صورة</option>
-                <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
+            <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
+                 
+            <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
+            <select id="b-structure">
+                <option value="فصول (Chapters)">فصول (Chapters)</option>
+                <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
+                <option value="دروس (Lessons)">دروس (Lessons)</option>
+                <option value="أيام (Days)">أيام (Days)</option>
             </select>
-        </div>
-        <div>
-            <label>المزود:</label>
-            <select id="provider-select"></select>
-        </div>
-        <div>
-            <label>النموذج (الموديل):</label>
-            <select id="model-select"></select>
-        </div>
-    </div>
+            <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
+                
+            <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
+            <select id="b-audience">
+                <option value="الجمهور العام">الجمهور العام</option>
+                <option value="أطفال">أطفال</option>
+                <option value="مبتدئين">مبتدئين</option>
+                <option value="محترفين وخبراء">محترفين وخبراء</option>
+            </select>
+            <select id="b-tone">
+                <option value="حيادي وواضح">حيادي وواضح</option>
+                <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
+                <option value="فكاهي ومرح">فكاهي ومرح</option>
+            </select>
+            <select id="b-pov">
+                <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
+                <option value="المتكلم (أنا)">المتكلم (أنا)</option>
+            </select>
+            <select id="b-language">
+                <option value="العربية">اللغة العربية</option>
+                <option value="الإنجليزية">اللغة الإنجليزية</option>
+            </select>
 
-    <div id="image-upload-section" class="hidden" style="margin-bottom: 20px; text-align: right; background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1;">
-        <label>ارفع الصورة للتعديل:</label>
-        <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp" style="background: white;">
-    </div>
+            <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
+            <select id="b-images">
+                <option value="بدون صور">بدون صور داخلية</option>
+                <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
+                <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
+            </select>
+            <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اختياري)">
+        </div>
 
-    <div id="book-settings" class="book-fields hidden">
-        <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
-        <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
-        <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
-           
-        <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.classList.remove('hidden'); c.focus(); } else { c.classList.add('hidden'); }">
-            <optgroup label="الأدب الخيالي">
-                <option value="رواية">رواية</option>
-                <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
-                <option value="رواية بوليسية">رواية بوليسية / غموض</option>
-            </optgroup>
-            <optgroup label="الأدب الواقعي والتعليمي">
-                <option value="تطوير الذات">تطوير الذات</option>
-                <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
-                <option value="دليل إرشادي">دليل إرشادي (How-to)</option>
-            </optgroup>
-            <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
-        </select>
-        <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
-             
-        <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
-        <select id="b-structure">
-            <option value="فصول (Chapters)">فصول (Chapters)</option>
-            <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
-            <option value="دروس (Lessons)">دروس (Lessons)</option>
-            <option value="أيام (Days)">أيام (Days)</option>
-        </select>
-        <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <input type="text" id="main-prompt" placeholder="اكتب سؤالك، أو ملاحظات إضافية هنا...">
+            <button id="send-btn" style="width: 180px;"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
+        </div>
+
+        <div id="loader" class="hidden" style="margin-top: 20px; color: #14539a; text-align: center; font-weight: bold;"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
+        
+        <div class="result-box hidden" id="result-area">
+            <h3 style="margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">النتيجة</h3>
+            <div id="result-text" class="hidden"></div>
             
-        <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
-        <select id="b-audience">
-            <option value="الجمهور العام">الجمهور العام</option>
-            <option value="أطفال">أطفال</option>
-            <option value="مبتدئين">مبتدئين</option>
-            <option value="محترفين وخبراء">محترفين وخبراء</option>
-        </select>
-        <select id="b-tone">
-            <option value="حيادي وواضح">حيادي وواضح</option>
-            <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
-            <option value="فكاهي ومرح">فكاهي ومرح</option>
-        </select>
-        <select id="b-pov">
-            <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
-            <option value="المتكلم (أنا)">المتكلم (أنا)</option>
-        </select>
-        <select id="b-language">
-            <option value="العربية">اللغة العربية</option>
-            <option value="الإنجليزية">اللغة الإنجليزية</option>
-        </select>
-
-        <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
-        <select id="b-images">
-            <option value="بدون صور">بدون صور داخلية</option>
-            <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
-            <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
-        </select>
-        <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اختياري)">
-    </div>
-
-    <div style="display: flex; gap: 10px; margin-top: 15px;">
-        <input type="text" id="main-prompt" placeholder="اكتب سؤالك، أو ملاحظات إضافية هنا...">
-        <button id="send-btn" style="width: 180px;"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
-    </div>
-
-    <div id="loader" class="hidden" style="margin-top: 20px; color: #14539a; text-align: center; font-weight: bold;"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
-    
-    <div class="result-box hidden" id="result-area">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">النتيجة</h3>
-        <div id="result-text" class="hidden"></div>
-        
-        <div id="editable-outline-container" class="hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; padding: 10px; border-radius: 5px; border: 1px solid #bbf7d0; margin-bottom: 10px;">
-                <label style="font-weight: bold; color: #16a34a; margin: 0;"><i class="fas fa-edit"></i> الخطة أدناه قابلة للتعديل اليدوي</label>
-                <button id="undo-btn" style="width: auto; padding: 6px 15px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 0.9em; cursor: pointer;"><i class="fas fa-undo"></i> تراجع للخلف</button>
-            </div>
-            <div id="book-outline-text" contenteditable="true"></div>
-        </div>
-        
-        <div id="book-actions" class="hidden" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-top: 15px;">
-            <label style="display: block; margin-bottom: 10px; font-weight: bold;">هل تريد أن يقوم الذكاء الاصطناعي بتعديلها لك؟</label>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="refine-prompt" placeholder="اكتب طلبك هنا (مثال: أضف فصلاً عن كذا...)">
-                <button id="refine-btn" style="width: 150px; background: #eab308; color: #1f2937;"><i class="fas fa-magic"></i> تعديل ذكي</button>
-            </div>
-            <hr style="border: none; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
-            
-            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 5px; border: 1px solid #d1d5db;">
-                <label style="margin: 0; color: #4b5563;">عدد صفحات المقدمة المستهدفة:</label>
-                <input type="number" id="intro-pages-input" value="2" min="1" max="10" style="width: 80px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
-                <span id="remaining-pages-display" style="font-weight: bold; color: #16a34a; margin-right: auto;"></span>
-            </div>
-
-            <button id="write-intro-btn" style="width: 100%; background: #16a34a; font-size: 1.1em;"><i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة</button>
-        </div>
-
-        <img id="result-image" class="result-image hidden" src="" alt="النتيجة">
-        <br>
-        <div id="source-badge" class="source-badge hidden"></div>
-    </div>
-
-    <div id="intro-area" class="hidden" style="margin-top: 30px; display: flex; flex-direction: column; align-items: center;">
-        
-        <div style="background: white; width: 100%; max-width: 700px; min-height: 600px; padding: 40px; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 20px;">
-            <div id="intro-text" style="white-space: pre-wrap; line-height: 2; font-size: 1.15em; color: #1f2937; text-align: justify; padding-bottom: 30px;">
+            <div id="editable-outline-container" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; padding: 10px; border-radius: 5px; border: 1px solid #bbf7d0; margin-bottom: 10px;">
+                    <label style="font-weight: bold; color: #16a34a; margin: 0;"><i class="fas fa-edit"></i> الخطة أدناه قابلة للتعديل اليدوي</label>
+                    <button id="undo-btn" style="width: auto; padding: 6px 15px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 0.9em; cursor: pointer;"><i class="fas fa-undo"></i> تراجع للخلف</button>
                 </div>
+                <div id="book-outline-text" contenteditable="true"></div>
+            </div>
             
-            <div id="page-number" style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #6b7280; font-weight: bold; font-size: 1.1em;">
-                1
+            <div id="book-actions" class="hidden" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-top: 15px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: bold;">هل تريد أن يقوم الذكاء الاصطناعي بتعديلها لك؟</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="refine-prompt" placeholder="اكتب طلبك هنا (مثال: أضف فصلاً عن كذا...)">
+                    <button id="refine-btn" style="width: 150px; background: #eab308; color: #1f2937;"><i class="fas fa-magic"></i> تعديل ذكي</button>
+                </div>
+                <hr style="border: none; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
+                
+                <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 5px; border: 1px solid #d1d5db;">
+                    <label style="margin: 0; color: #4b5563;">عدد صفحات المقدمة المستهدفة:</label>
+                    <input type="number" id="intro-pages-input" value="2" min="1" max="10" style="width: 80px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    <span id="remaining-pages-display" style="font-weight: bold; color: #16a34a; margin-right: auto;"></span>
+                </div>
+
+                <button id="write-intro-btn" style="width: 100%; background: #16a34a; font-size: 1.1em;"><i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة</button>
             </div>
+
+            <img id="result-image" class="result-image hidden" src="" alt="النتيجة">
+            <br>
+            <div id="source-badge" class="source-badge hidden"></div>
         </div>
 
-        <div style="display: flex; gap: 15px; width: 100%; max-width: 700px; justify-content: center; align-items: center;">
-            <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> الصفحة السابقة</button>
-            <span id="page-indicator" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
-            <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">الصفحة التالية <i class="fas fa-arrow-left"></i></button>
-        </div>
+        <div id="intro-area" class="hidden" style="margin-top: 30px; display: flex; flex-direction: column; align-items: center;">
+            <div style="background: white; width: 100%; max-width: 700px; min-height: 600px; padding: 40px; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 20px;">
+                <div id="intro-text" style="white-space: pre-wrap; line-height: 2; font-size: 1.15em; color: #1f2937; text-align: justify; padding-bottom: 30px;">
+                </div>
+                <div id="page-number" style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #6b7280; font-weight: bold; font-size: 1.1em;">1</div>
+            </div>
 
-        <div id="intro-refine-section" style="width: 100%; max-width: 700px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 20px;">
-            <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #b45309;"><i class="fas fa-edit"></i> هل تريد إجراء تعديل على هذه المقدمة؟</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="refine-intro-prompt" placeholder="اكتب طلب التعديل هنا (مثال: اجعل البداية أكثر حماساً...)">
-                <button id="refine-intro-btn" style="width: 180px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة</button>
+            <div style="display: flex; gap: 15px; width: 100%; max-width: 700px; justify-content: center; align-items: center;">
+                <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> الصفحة السابقة</button>
+                <span id="page-indicator" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
+                <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">الصفحة التالية <i class="fas fa-arrow-left"></i></button>
+            </div>
+
+            <div id="intro-refine-section" style="width: 100%; max-width: 700px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 20px;">
+                <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #b45309;"><i class="fas fa-edit"></i> هل تريد إجراء تعديل على هذه المقدمة قبل البدء؟</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="refine-intro-prompt" placeholder="اكتب طلب التعديل هنا (مثال: اجعل البداية أكثر حماساً...)">
+                    <button id="refine-intro-btn" style="width: 180px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة</button>
+                </div>
+            </div>
+            
+            <div style="width: 100%; max-width: 700px; margin-top: 20px;">
+                <button id="start-auto-btn" style="width: 100%; background: #2563eb; font-size: 1.1em; padding: 15px;"><i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي بالكامل في الخلفية</button>
             </div>
         </div>
-        
-        <div style="width: 100%; max-width: 700px; margin-top: 20px;">
-            <button id="continue-writing-btn" style="width: 100%; background: #2563eb; font-size: 1.1em;"><i class="fas fa-pen-fancy"></i> إكمال الكتابة (الصفحة التالية)</button>
-        </div>
-    </div>
-</div>
+    </div> </div>
 
 <div class="modal" id="auth-modal">
     <div class="modal-content">
@@ -235,6 +240,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
-<script src="app.js"></script>
+<script src="APP.JS"></script>
 </body>
 </html>
