@@ -37,7 +37,6 @@
         .modal-content { background: white; padding: 30px; width: 100%; max-width: 320px; text-align: center; border-radius: 12px; }
         .modal-content input { margin-bottom: 15px; }
         
-        /* تصميم صندوق حالة التأليف الجديد */
         #auto-generation-status { background: #eff6ff; border: 2px solid #3b82f6; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
         #new-book-btn { width: auto; padding: 8px 20px; border-radius: 20px; background: #059669; margin-right: 15px; }
     </style>
@@ -88,11 +87,20 @@
             </div>
             <div>
                 <label>المزود:</label>
-                <select id="provider-select"></select>
+                <select id="provider-select">
+                    <!-- خيارات افتراضية لمنع ظهور القائمة فارغة -->
+                    <option value="openai">OpenAI (متقدم)</option>
+                    <option value="cloudflare">Cloudflare (اقتصادي)</option>
+                </select>
             </div>
             <div>
                 <label>النموذج (الموديل):</label>
-                <select id="model-select"></select>
+                <select id="model-select">
+                    <!-- خيارات افتراضية -->
+                    <option value="gpt-4o">GPT-4o (8 نقاط)</option>
+                    <option value="gpt-5.4-mini">GPT-5.4-mini (10 نقاط)</option>
+                    <option value="gpt-5.5">GPT-5.5 (15 نقطة)</option>
+                </select>
             </div>
         </div>
 
@@ -225,7 +233,8 @@
                 <button id="start-auto-btn" style="width: 100%; background: #2563eb; font-size: 1.1em; padding: 15px;"><i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي بالكامل في الخلفية</button>
             </div>
         </div>
-    </div> </div>
+    </div> 
+</div>
 
 <div class="modal" id="auth-modal">
     <div class="modal-content">
