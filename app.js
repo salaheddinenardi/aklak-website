@@ -93,6 +93,7 @@ const ui = {
     writeIntroBtn: document.getElementById('write-intro-btn'),
     undoBtn: document.getElementById('undo-btn'),
  
+
     // عناصر المقدمة وصفحات الكتاب
     introArea: document.getElementById('intro-area'),
     introText: document.getElementById('intro-text'),
@@ -289,6 +290,7 @@ if (ui.sendBtn) {
 
         let payloadObj = {
      
+
             userId: currentUser ? currentUser.$id : null,
             prompt: ui.prompt.value,
             provider: ui.provider.value,
@@ -297,42 +299,43 @@ if (ui.sendBtn) {
 
         if (actionType === 'book_outline') {
             const bGenreSelect = document.getElementById('b-genre');
-            const bCustomGenre 
+         
+           const bCustomGenre 
 = document.getElementById('b-custom-genre');
             const rawGenre = bGenreSelect ? bGenreSelect.value : '';
             const finalGenre = (rawGenre === 'other' && bCustomGenre) ? bCustomGenre.value : rawGenre;
             
             const bPagesInput = document.getElementById('b-pages');
-            let pages = bPagesInput ?
+let pages = bPagesInput ?
             parseInt(bPagesInput.value) : 50;
             if (isNaN(pages) || pages < 50) pages = 50;
             
             payloadObj.action = 'book_outline';
             payloadObj.bookDetails = {
                 title: document.getElementById('b-title') ?
-                document.getElementById('b-title').value : '',
+document.getElementById('b-title').value : '',
                 topic: document.getElementById('b-topic') ?
-                document.getElementById('b-topic').value : '',
+document.getElementById('b-topic').value : '',
                 genre: finalGenre,
                 structure: document.getElementById('b-structure') ?
-                document.getElementById('b-structure').value : '',
+document.getElementById('b-structure').value : '',
                 maxPages: pages,
                 audience: document.getElementById('b-audience') ?
-                document.getElementById('b-audience').value : '',
+document.getElementById('b-audience').value : '',
                 tone: document.getElementById('b-tone') ?
-                document.getElementById('b-tone').value : '',
+document.getElementById('b-tone').value : '',
                 pov: document.getElementById('b-pov') ?
-                document.getElementById('b-pov').value : '',
+document.getElementById('b-pov').value : '',
                 language: document.getElementById('b-language') ?
-                document.getElementById('b-language').value : '',
+document.getElementById('b-language').value : '',
                 imagesType: document.getElementById('b-images') ?
-                document.getElementById('b-images').value : '',
+document.getElementById('b-images').value : '',
                 coverPrompt: document.getElementById('b-cover') ?
-                document.getElementById('b-cover').value : ''
+document.getElementById('b-cover').value : ''
             };
             if(!payloadObj.bookDetails.title || !payloadObj.bookDetails.topic) {
                 alert("عنوان الكتاب وموضوعه ضروريان!");
-                return;
+return;
             }
         } else {
             payloadObj.action = 'legacy_chat';
@@ -340,7 +343,7 @@ if (ui.sendBtn) {
             if (actionType === 'edit') {
                 if (ui.imageFile.files.length === 0) { 
                     alert("يرجى اختيار صورة للتعديل.");
-                    return; 
+return; 
                 }
                 payloadObj.imageBase64 = await convertToBase64(ui.imageFile.files[0]);
             }
@@ -406,6 +409,7 @@ if (ui.refineBtn) {
             modelTier: ui.model.value,
             previousOutline: ui.bookOutlineText.innerText, 
             prompt: refinePrompt,
+    
             bookDetails: { 
   
                 title: document.getElementById('b-title') ? document.getElementById('b-title').value : '' 
@@ -417,9 +421,9 @@ if (ui.refineBtn) {
         ui.refineBtn.disabled = false;
 
         if (responseData && responseData.success) {
-            const creditsElem = document.getElementById('user-credits');
+  
+          const creditsElem = document.getElementById('user-credits');
             if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
-            
             ui.bookOutlineText.innerText = responseData.data; 
             saveHistoryState(); 
             ui.refinePrompt.value = ''; 
@@ -446,7 +450,8 @@ if (ui.writeIntroBtn) {
                 title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
                 topic: document.getElementById('b-topic') ? document.getElementById('b-topic').value : '',
                 introPages: parseInt(ui.introPagesInput ? ui.introPagesInput.value : 2) // إرسال عدد صفحات المقدمة
-     
+    
+ 
             }
         };
 
@@ -492,7 +497,8 @@ if (ui.refineIntroBtn) {
             provider: ui.provider.value,
             modelTier: ui.model.value,
             previousOutline: ui.bookOutlineText.innerText, 
-            currentIntro: rawIntroductionText, 
+            currentIntro: 
+            rawIntroductionText, 
   
             prompt: promptText, 
             bookDetails: { 
@@ -530,58 +536,100 @@ if (ui.refineIntroBtn) {
 // ==========================================
 let currentAutoBookId = null;
 let pollingInterval = null;
+let isGeneratingAutoBook = false; // 🔒 قفل جديد لمنع إرسال طلبات متعددة
 
 // نستخدم document.addEventListener بدلاً من المتغيرات الثابتة لتفادي أي خطأ إذا لم يتم إضافة الزر في HTML بعد
 document.addEventListener('click', async function(e) {
     
     // زر بدء التأليف الأوتوماتيكي
     if (e.target && (e.target.id === 'start-auto-btn' || e.target.closest('#start-auto-btn'))) {
+        
+        if (isGeneratingAutoBook) return; // منع الضغط المتكرر
+        
         const startBtnElem = document.getElementById('start-auto-btn');
         
         if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); return; }
         if (bookPagesData.length === 0) { alert("يجب كتابة والموافقة على المقدمة أولاً قبل توليد باقي الكتاب."); return; }
 
-        const payloadObj = {
-            userId: currentUser.$id,
-            action: 'start_auto_write',
-            provider: ui.provider.value,
-            modelTier: ui.model.value,
-            outline: ui.bookOutlineText.innerText,
-            introPagesArray: bookPagesData,
-            targetPages: parseInt(document.getElementById('b-pages').value) || 50,
-            title: document.getElementById('b-title').value || 'كتاب بدون عنوان'
-        };
-
         if(startBtnElem) {
             startBtnElem.disabled = true;
-            startBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إرسال الطلب...';
+            startBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق من الرصيد...';
         }
 
-        const responseData = await executeRequest(payloadObj);
+        isGeneratingAutoBook = true;
 
-        if(startBtnElem) {
-            startBtnElem.disabled = false;
-            startBtnElem.innerHTML = '<i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي بالكامل في الخلفية';
-        }
+        try {
+            // 🛡️ التحقق الفعلي والمسبق من الرصيد قبل إرسال الطلب للسيرفر 🛡️
+            const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [ Query.equal('userId', currentUser.$id) ]);
+            if (response.documents.length > 0) {
+                const currentCredits = response.documents[0].tokens;
+                if (currentCredits < 40) {
+                    alert(`عذراً، رصيدك غير كافٍ. تحتاج إلى 40 نقطة، لكن رصيدك الحالي هو ${currentCredits}.`);
+                    if(startBtnElem) {
+                        startBtnElem.disabled = false;
+                        startBtnElem.innerHTML = '<i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي بالكامل في الخلفية';
+                    }
+                    isGeneratingAutoBook = false;
+                    return; // إيقاف العملية بالكامل إذا لم يكن الرصيد كافياً
+                }
+            } else {
+                alert("لم يتم العثور على محفظة نقاط لهذا المستخدم.");
+                isGeneratingAutoBook = false;
+                return;
+            }
 
-        if (responseData && responseData.success) {
-            const creditsElem = document.getElementById('user-credits');
-            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+            // إذا كان الرصيد كافياً، نجهز الطلب للسيرفر
+            if(startBtnElem) {
+                startBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إرسال الطلب للسيرفر...';
+            }
 
-            currentAutoBookId = responseData.bookId;
+            const payloadObj = {
+                userId: currentUser.$id,
+                action: 'start_auto_write',
+                provider: ui.provider.value,
+                modelTier: ui.model.value,
+                outline: ui.bookOutlineText.innerText,
+                introPagesArray: bookPagesData,
+        
+                targetPages: parseInt(document.getElementById('b-pages').value) || 50,
+                title: document.getElementById('b-title').value || 'كتاب بدون عنوان'
+            };
+
+            const responseData = await executeRequest(payloadObj);
             
-            const mainInputs = document.getElementById('main-inputs-wrapper');
-            const statusBox = document.getElementById('auto-generation-status');
-            const newBtn = document.getElementById('new-book-btn');
+            if(startBtnElem) {
+                startBtnElem.disabled = false;
+                startBtnElem.innerHTML = '<i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي بالكامل في الخلفية';
+            }
+
+            if (responseData && responseData.success) {
+                const creditsElem = document.getElementById('user-credits');
+                if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+
+                currentAutoBookId = responseData.bookId;
+                
+                const mainInputs = document.getElementById('main-inputs-wrapper');
+                const statusBox = document.getElementById('auto-generation-status');
+                const newBtn = document.getElementById('new-book-btn');
+                if(mainInputs) mainInputs.classList.add('hidden');
+                if(statusBox) statusBox.classList.remove('hidden');
+                if(newBtn) newBtn.classList.remove('hidden');
+                
+                alert("✅ تم إرسال الطلب بنجاح وتم خصم 40 نقطة. الذكاء الاصطناعي يقوم الآن بالتأليف في الخلفية!");
+                startPolling();
+            } else if (responseData) {
+                alert("❌ فشل بدء التأليف الأوتوماتيكي: " + responseData.error);
+            }
             
-            if(mainInputs) mainInputs.classList.add('hidden');
-            if(statusBox) statusBox.classList.remove('hidden');
-            if(newBtn) newBtn.classList.remove('hidden');
-            
-            alert("✅ تم إرسال الطلب بنجاح وتم خصم 40 نقطة. الذكاء الاصطناعي يقوم الآن بالتأليف في الخلفية!");
-            startPolling();
-        } else if (responseData) {
-            alert("❌ فشل بدء التأليف الأوتوماتيكي: " + responseData.error);
+        } catch (err) {
+            console.error("خطأ أثناء بدء التأليف:", err);
+            alert("حدث خطأ غير متوقع أثناء الاتصال. يرجى المحاولة لاحقاً.");
+            if(startBtnElem) {
+                startBtnElem.disabled = false;
+                startBtnElem.innerHTML = '<i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي بالكامل في الخلفية';
+            }
+        } finally {
+            isGeneratingAutoBook = false; // فتح القفل في النهاية لتتمكن من المحاولة لاحقاً
         }
     }
 });
@@ -595,7 +643,6 @@ window.toggleMainInputs = function() {
 // دالة المراقبة وجلب الصفحات الجديدة
 function startPolling() {
     if (pollingInterval) clearInterval(pollingInterval);
-    
     pollingInterval = setInterval(async () => {
         if (!currentAutoBookId) return;
         try {
@@ -604,27 +651,29 @@ function startPolling() {
             
             if(progressCount) progressCount.innerText = bookDoc.generated_pages_count || bookPagesData.length;
             
+  
             if (bookDoc.status === 'completed') {
                 const statusTitle = document.getElementById('status-title');
                 if(statusTitle) statusTitle.innerHTML = "<i class='fas fa-check-circle'></i> 🎉 اكتمل تأليف الكتاب بنجاح!";
                 clearInterval(pollingInterval);
                 
+         
                 if(bookDoc.content_pages) {
                     bookPagesData = JSON.parse(bookDoc.content_pages);
                     renderCurrentPage(); 
                 }
             }
         } catch (err) {
+          
             console.error("خطأ في جلب حالة الكتاب:", err);
         }
-    }, 10000); 
+    }, 10000);
 }
 
 // دالة تصفير الواجهة للبدء من جديد
 window.resetForNewBook = function() {
     if (pollingInterval) clearInterval(pollingInterval);
     currentAutoBookId = null;
-    
     const statusBox = document.getElementById('auto-generation-status');
     const newBtn = document.getElementById('new-book-btn');
     const mainInputs = document.getElementById('main-inputs-wrapper');
@@ -632,7 +681,6 @@ window.resetForNewBook = function() {
     if(statusBox) statusBox.classList.add('hidden');
     if(newBtn) newBtn.classList.add('hidden');
     if(mainInputs) mainInputs.classList.remove('hidden');
-    
     const statusTitle = document.getElementById('status-title');
     const progressCount = document.getElementById('progress-count');
     if(statusTitle) statusTitle.innerHTML = "<i class='fas fa-cog fa-spin'></i> يتم الآن تأليف الكتاب في الخلفية...";
@@ -643,7 +691,7 @@ window.resetForNewBook = function() {
     ui.introArea.classList.add('hidden');
     ui.resultArea.classList.add('hidden');
     
-    updateUI(); 
+    updateUI();
 }
 
 // ==========================================
