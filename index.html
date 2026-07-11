@@ -54,6 +54,15 @@
 <div class="container">
     <h2 style="text-align: center; color: #1f2937; margin-top: 0;">ساحة الذكاء الاصطناعي ⚡</h2>
     
+    <!-- قسم مكتبتي الجديد -->
+    <div id="my-library-section" class="hidden" style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        <h3 style="margin-top: 0; color: #14539a; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px;"><i class="fas fa-book"></i> مكتبتي 📚</h3>
+        <div id="my-library-list" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+            <!-- سيتم حقن الكتب هنا عبر الجافاسكربت -->
+        </div>
+        <button onclick="window.toggleMainInputs()" style="margin-top: 15px; background: #10b981; width: auto; padding: 8px 15px; font-size: 0.9em; border-radius: 6px;"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
+    </div>
+    
     <div id="main-inputs-wrapper">
         <div class="controls-grid">
             <div>
@@ -192,14 +201,14 @@
             <div id="intro-text" style="white-space: pre-wrap; line-height: 2; font-size: 1.15em; color: #1f2937; text-align: justify; padding-bottom: 30px;">
             </div>
             
-            <div id="page-number" style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #6b7280; font-weight: bold; font-size: 1.1em;">
+            <div id="page-number" class="hidden" style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; color: #6b7280; font-weight: bold; font-size: 1.1em;">
                 1
             </div>
         </div>
 
         <div style="display: flex; gap: 15px; width: 100%; max-width: 700px; justify-content: center; align-items: center;">
             <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> الصفحة السابقة</button>
-            <span id="page-indicator" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
+            <span id="page-indicator" class="hidden" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
             <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">الصفحة التالية <i class="fas fa-arrow-left"></i></button>
         </div>
 
