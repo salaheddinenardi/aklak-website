@@ -39,33 +39,100 @@ function handleUndo() {
 }
 
 // ==========================================
-// متغيرات ودوال نظام صفحات الكتاب
+// متغيرات ودوال نظام صفحات الكتاب والتعديلات الجديدة
 // ==========================================
 let bookPagesData = []; 
 let currentViewedPageIndex = 0; 
-let rawIntroductionText = "";
+let rawBookTextFull = ""; // للاحتفاظ بالنص الخام قبل التقسيم
 
-function paginateText(text) {
-    const charsPerPage = 1200;
+let currentFontSize = 1.15; // الحجم الافتراضي
+
+// التحكم في حجم الخط
+window.changeFontSize = function(direction) {
+    const textContainer = document.getElementById('intro-text');
+    if (direction > 0 && currentFontSize < 2.5) currentFontSize += 0.1;
+    if (direction < 0 && currentFontSize > 0.8) currentFontSize -= 0.1;
+    textContainer.style.fontSize = currentFontSize + 'em';
+}
+
+// التحكم في خلفية الكتاب
+window.changeBookTheme = function(themeClass) {
+    const container = document.getElementById('book-container');
+    container.classList.remove('theme-white', 'theme-sepia', 'theme-dark');
+    container.classList.add(themeClass);
+}
+
+// الدالة الذكية لتقسيم النص لصفحات مع استخراج العناوين
+function smartPaginateText(rawText, targetPages) {
+    // 1. استخراج أول عنوان (بين ** **) للغلاف
+    const firstTitleMatch = rawText.match(/\*\*(.*?)\*\*/);
+    const coverElement = document.getElementById('book-cover-display');
+    if (firstTitleMatch) {
+        coverElement.innerText = firstTitleMatch[1];
+        coverElement.classList.remove('hidden');
+    } else {
+        coverElement.classList.add('hidden');
+    }
+
+    // 2. تحويل علامات ** ** إلى HTML ليكون العنوان كبيراً
+    let formattedText = rawText.replace(/\*\*(.*?)\*\*/g, '<div class="book-heading">$1</div>');
+
     let pages = [];
+    let totalLength = formattedText.length;
+    
+    // إذا كان المستخدم يطلب صفحة واحدة فقط، نعطيه النص كاملاً
+    if (targetPages <= 1) {
+        return [formattedText];
+    }
+
+    let avgCharsPerPage = Math.ceil(totalLength / targetPages);
     let currentIndex = 0;
 
-    while (currentIndex < text.length) {
-        let chunk = text.slice(currentIndex, currentIndex + charsPerPage);
-        if (currentIndex + charsPerPage < text.length) {
-            let lastSpace = chunk.lastIndexOf(' ');
-            if (lastSpace > 0) {
-                chunk = chunk.slice(0, lastSpace);
-                currentIndex += lastSpace + 1;
-            } else {
-                currentIndex += charsPerPage;
-            }
-        } else {
-            currentIndex += charsPerPage;
+    for (let i = 0; i < targetPages; i++) {
+        if (i === targetPages - 1) {
+            pages.push(formattedText.slice(currentIndex).trim());
+            break;
         }
-        pages.push(chunk.trim());
+
+        let chunkEnd = currentIndex + avgCharsPerPage;
+        if (chunkEnd >= totalLength) {
+            pages.push(formattedText.slice(currentIndex).trim());
+            break;
+        }
+
+        // محاولة إيجاد مكان مناسب للقطع (قبل عنوان، أو فقرة، أو مسافة)
+        let chunk = formattedText.slice(currentIndex, chunkEnd + 300); 
+        let headingIndex = chunk.indexOf('<div class="book-heading">');
+
+        // إذا وجدنا عنواناً في النصف الثاني من الصفحة، نقطع قبله ليبدأ في الصفحة التالية
+        if (headingIndex !== -1 && headingIndex > avgCharsPerPage * 0.4) {
+            chunkEnd = currentIndex + headingIndex;
+        } else {
+            // محاولة القطع عند مسافة مزدوجة (نهاية فقرة)
+            let lastNewline = formattedText.lastIndexOf('\n\n', chunkEnd);
+            if (lastNewline > currentIndex) {
+                chunkEnd = lastNewline;
+            } else {
+                let lastSpace = formattedText.lastIndexOf(' ', chunkEnd);
+                if (lastSpace > currentIndex) chunkEnd = lastSpace;
+            }
+        }
+
+        pages.push(formattedText.slice(currentIndex, chunkEnd).trim());
+        currentIndex = chunkEnd;
     }
-    return pages;
+    return pages.filter(p => p.trim() !== ""); // إزالة الصفحات الفارغة إن وجدت
+}
+
+// تطبيق التقسيم بناءً على طلب المستخدم
+window.recalculatePages = function() {
+    if (!rawBookTextFull) return;
+    const targetInput = document.getElementById('target-pages-input');
+    let target = parseInt(targetInput.value) || 5;
+    
+    bookPagesData = smartPaginateText(rawBookTextFull, target);
+    currentViewedPageIndex = 0;
+    renderCurrentPage();
 }
 
 // ==========================================
@@ -132,26 +199,41 @@ function calculateRemainingPages() {
 if (ui.introPagesInput) ui.introPagesInput.addEventListener('input', calculateRemainingPages);
 if (document.getElementById('b-pages')) document.getElementById('b-pages').addEventListener('input', calculateRemainingPages);
 
-// --- تعديل: دالة العرض لتدمج كل الصفحات في مستند واحد طويل وتخفي التمرير ---
+// --- تعديل: إرجاع العرض لصفحة واحدة وعرض أزرار التنقل ---
 function renderCurrentPage() {
-    if (ui.introText) {
-        // دمج المصفوفة كاملة لتجنب ضياع الحروف والنهايات المبتورة
-        ui.introText.innerText = bookPagesData.join('\n\n');
+    if (ui.introText && bookPagesData.length > 0) {
+        ui.introText.innerHTML = bookPagesData[currentViewedPageIndex] || "";
     }
     
-    // إخفاء عناصر التنقل صفحة بصفحة
-    if (pageUI.pageNumber) pageUI.pageNumber.classList.add('hidden');
-    if (pageUI.indicator) pageUI.indicator.classList.add('hidden');
-    if (pageUI.prevBtn) pageUI.prevBtn.classList.add('hidden');
-    if (pageUI.nextBtn) pageUI.nextBtn.classList.add('hidden');
+    // تحديث أرقام الصفحات
+    if (pageUI.pageNumber) {
+        pageUI.pageNumber.innerText = currentViewedPageIndex + 1;
+        pageUI.pageNumber.classList.remove('hidden');
+    }
+    if (pageUI.indicator) {
+        pageUI.indicator.innerText = `صفحة ${currentViewedPageIndex + 1} من ${bookPagesData.length}`;
+        pageUI.indicator.classList.remove('hidden');
+    }
+
+    // إظهار وإخفاء أزرار التنقل بناءً على الموقع الحالي
+    if (pageUI.prevBtn) {
+        pageUI.prevBtn.classList.remove('hidden');
+        pageUI.prevBtn.disabled = currentViewedPageIndex === 0;
+        if(currentViewedPageIndex === 0) pageUI.prevBtn.style.opacity = '0.5'; else pageUI.prevBtn.style.opacity = '1';
+    }
+    if (pageUI.nextBtn) {
+        pageUI.nextBtn.classList.remove('hidden');
+        pageUI.nextBtn.disabled = currentViewedPageIndex === bookPagesData.length - 1;
+        if(currentViewedPageIndex === bookPagesData.length - 1) pageUI.nextBtn.style.opacity = '0.5'; else pageUI.nextBtn.style.opacity = '1';
+    }
 }
 
-// أبقينا على أزرار التمرير احتياطياً في الكود ولكنها ستكون مخفية
 if (pageUI.prevBtn) {
     pageUI.prevBtn.addEventListener('click', function() {
         if (currentViewedPageIndex > 0) {
             currentViewedPageIndex--;
             renderCurrentPage();
+            document.getElementById('book-container').scrollIntoView({ behavior: 'smooth' });
         }
     });
 }
@@ -161,6 +243,7 @@ if (pageUI.nextBtn) {
         if (currentViewedPageIndex < bookPagesData.length - 1) {
             currentViewedPageIndex++;
             renderCurrentPage();
+            document.getElementById('book-container').scrollIntoView({ behavior: 'smooth' });
         }
     });
 }
@@ -432,8 +515,11 @@ if (ui.writeIntroBtn) {
             const creditsElem = document.getElementById('user-credits');
             if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
             
-            rawIntroductionText = responseData.data; 
-            bookPagesData = paginateText(rawIntroductionText);
+            rawBookTextFull = responseData.data; 
+            // تحديد هدف الصفحات الافتراضي من المدخل
+            const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5;
+            
+            bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
             currentViewedPageIndex = 0;
             
             ui.introArea.style.display = 'flex'; 
@@ -462,7 +548,7 @@ if (ui.refineIntroBtn) {
             provider: ui.provider.value,
             modelTier: ui.model.value,
             previousOutline: ui.bookOutlineText.innerText, 
-            currentIntro: rawIntroductionText, 
+            currentIntro: rawBookTextFull, 
             prompt: promptText, 
             bookDetails: { 
                 title: document.getElementById('b-title') ? document.getElementById('b-title').value : '',
@@ -481,8 +567,9 @@ if (ui.refineIntroBtn) {
             const creditsElem = document.getElementById('user-credits');
             if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
             
-            rawIntroductionText = responseData.data; 
-            bookPagesData = paginateText(rawIntroductionText);
+            rawBookTextFull = responseData.data;
+            const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5; 
+            bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
             currentViewedPageIndex = 0;
             renderCurrentPage();
             
@@ -612,12 +699,15 @@ function startPolling() {
                 clearInterval(pollingInterval);
                 
                 if(bookDoc.content_pages) {
-                    // --- تعديل: تأمين فك التشفير لتجنب الأخطاء ---
                     try {
-                        bookPagesData = JSON.parse(bookDoc.content_pages);
+                        let rawPages = JSON.parse(bookDoc.content_pages);
+                        rawBookTextFull = rawPages.join('\n\n'); 
+                        const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 10;
+                        bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
                     } catch (e) {
-                        // في حال فشل الـ JSON، نعامله كنص عادي مباشرة
-                        bookPagesData = [bookDoc.content_pages];
+                        rawBookTextFull = bookDoc.content_pages;
+                        const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 10;
+                        bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
                     }
                     renderCurrentPage(); 
                 }
@@ -644,6 +734,7 @@ window.resetForNewBook = function() {
     if(progressCount) progressCount.innerText = "0";
     
     bookPagesData = [];
+    rawBookTextFull = "";
     ui.bookOutlineText.innerText = "";
     ui.introArea.classList.add('hidden');
     ui.resultArea.classList.add('hidden');
@@ -688,7 +779,7 @@ async function checkSession() {
         document.getElementById('logout-btn').classList.remove('hidden');
         document.getElementById('user-info').classList.remove('hidden');
         fetchUserCredits();
-        fetchUserBooks(); // --- التعديل: استدعاء دالة جلب مكتبة الكتب فور تسجيل الدخول ---
+        fetchUserBooks(); 
     } catch (error) {
         document.getElementById('login-btn').classList.remove('hidden');
         document.getElementById('logout-btn').classList.add('hidden');
@@ -715,9 +806,6 @@ async function fetchUserCredits() {
     }
 }
 
-// ==========================================
-// --- تعديل: إضافة مكتبتي (My Library) ---
-// ==========================================
 async function fetchUserBooks() {
     try {
         const response = await databases.listDocuments(DB_ID, 'books', [
@@ -765,23 +853,24 @@ function loadBookFromLibrary(book) {
     
     ui.resultArea.classList.add('hidden');
     
-    let contentArray = [];
     if (book.content_pages) {
         try {
-            contentArray = JSON.parse(book.content_pages);
+            let parsed = JSON.parse(book.content_pages);
+            rawBookTextFull = parsed.join('\n\n');
         } catch(e) {
-            contentArray = [book.content_pages];
+            rawBookTextFull = book.content_pages;
         }
     } else {
-        contentArray = ["جاري التأليف أو لا يوجد محتوى بعد..."];
+        rawBookTextFull = "جاري التأليف أو لا يوجد محتوى بعد...";
     }
     
-    bookPagesData = contentArray;
+    const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 10;
+    bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
+    currentViewedPageIndex = 0;
     
     ui.introArea.style.display = 'flex';
     ui.introArea.classList.remove('hidden');
     
-    // إخفاء قسم تعديل المقدمة وأزرار الإكمال لأن هذا الكتاب جلب من المكتبة
     const introRefine = document.getElementById('intro-refine-section');
     if (introRefine) introRefine.classList.add('hidden');
     
@@ -791,7 +880,6 @@ function loadBookFromLibrary(book) {
     renderCurrentPage();
     ui.introArea.scrollIntoView({ behavior: 'smooth' });
 }
-// ==========================================
 
 function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
 function closeModal() { document.getElementById('auth-modal').style.display = 'none'; }
