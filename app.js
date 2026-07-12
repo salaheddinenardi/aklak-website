@@ -15,6 +15,28 @@ const DB_ID = '6a3706880011ad5651b5';
 const COLLECTION_ID = 'cvs_chat_cv_mab';
 let currentUser = null;
 let isLoginMode = true;
+const SECOND_FUNCTION_ID = '6a445f680013960a14c6';
+const AGENT_AVATAR_URL = 'https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif';
+const MODEL_MEMORY_KEY = 'aklake_remembered_models_v1';
+const MODEL_CATALOG = {
+    text: [
+        { provider: 'cloudflare', model: 'llama', name: 'LLaMA 3.3', description: 'اقتصادي للمحادثات اليومية', cost: '5 نقاط', icon: 'fa-feather' },
+        { provider: 'openai', model: 'gpt-4o', name: 'GPT-4o', description: 'متوازن وسريع للمحادثة', cost: '8 نقاط', icon: 'fa-bolt' },
+        { provider: 'openai', model: 'gpt-5.4-mini', name: 'GPT-5.4 mini', description: 'تفكير أقوى وتكلفة متوسطة', cost: '10 نقاط', icon: 'fa-brain' },
+        { provider: 'openai', model: 'gpt-5.5', name: 'GPT-5.5', description: 'أعلى جودة ضمن الإعدادات الحالية', cost: '15 نقطة', icon: 'fa-gem' }
+    ],
+    generate: [
+        { provider: 'cloudflare', model: 'flux', name: 'Cloudflare Flux', description: 'توليد صور اقتصادي وسريع', cost: '5 نقاط', icon: 'fa-image' },
+        { provider: 'openai', model: 'light', name: 'OpenAI Light', description: 'صورة عادية بتكلفة أقل', cost: '10 نقاط', icon: 'fa-wand-magic-sparkles' },
+        { provider: 'openai', model: 'mid', name: 'OpenAI Medium', description: 'جودة وتفاصيل أعلى', cost: '15 نقطة', icon: 'fa-wand-magic-sparkles' },
+        { provider: 'openai', model: 'pro', name: 'OpenAI Pro', description: 'أعلى جودة متاحة حاليًا', cost: '20 نقطة', icon: 'fa-crown' }
+    ],
+    edit: [
+        { provider: 'openai', model: 'light', name: 'OpenAI Edit Light', description: 'تعديل بسيط واقتصادي', cost: '10 نقاط', icon: 'fa-pen' },
+        { provider: 'openai', model: 'mid', name: 'OpenAI Edit Medium', description: 'تعديل أدق للصورة', cost: '15 نقطة', icon: 'fa-wand-magic-sparkles' },
+        { provider: 'openai', model: 'pro', name: 'OpenAI Edit Pro', description: 'أقوى تعديل متاح حاليًا', cost: '20 نقطة', icon: 'fa-crown' }
+    ]
+};
 
 // ==========================================
 // نظام ذاكرة التراجع (Undo System)
@@ -180,7 +202,24 @@ const ui = {
     settingsToggle: document.getElementById('settings-toggle-btn'),
     workspaceTitle: document.getElementById('workspace-title'),
     workspaceKicker: document.getElementById('workspace-kicker'),
-    activeModelLabel: document.getElementById('active-model-label')
+    activeModelLabel: document.getElementById('active-model-label'),
+    attachBtn: document.getElementById('composer-attach-btn'),
+    imageModeBtn: document.getElementById('composer-image-mode-btn'),
+    modelBtn: document.getElementById('composer-model-btn'),
+    modeBanner: document.getElementById('composer-mode-banner'),
+    modeTitle: document.getElementById('composer-mode-title'),
+    modeDescription: document.getElementById('composer-mode-description'),
+    modeCloseBtn: document.getElementById('composer-mode-close-btn'),
+    attachmentPreview: document.getElementById('composer-attachment-preview'),
+    attachmentImage: document.getElementById('composer-attachment-image'),
+    attachmentName: document.getElementById('composer-attachment-name'),
+    removeAttachmentBtn: document.getElementById('remove-composer-attachment-btn'),
+    modelPopover: document.getElementById('model-chooser-popover'),
+    modelChoicesList: document.getElementById('model-choices-list'),
+    modelChooserTitle: document.getElementById('model-chooser-title'),
+    modelChooserDescription: document.getElementById('model-chooser-description'),
+    rememberModelToggle: document.getElementById('remember-model-toggle'),
+    confirmModelBtn: document.getElementById('confirm-model-choice-btn')
 };
 const pageUI = {
     prevBtn: document.getElementById('prev-page-btn'),
@@ -316,8 +355,10 @@ function appendChatMessage(role, content, metadata, resultType) {
     row.className = `message-row ${role === 'user' ? 'user-message' : 'assistant-message'}`;
 
     const avatar = document.createElement('div');
-    avatar.className = 'message-avatar';
-    avatar.innerHTML = role === 'user' ? '<i class="far fa-user"></i>' : '<i class="fas fa-sparkles"></i>';
+    avatar.className = role === 'user' ? 'message-avatar' : 'message-avatar agent-avatar';
+    avatar.innerHTML = role === 'user'
+        ? '<i class="far fa-user"></i>'
+        : '<img src="' + AGENT_AVATAR_URL + '" alt="وكيل AKLAKE">';
 
     const contentWrap = document.createElement('div');
     contentWrap.className = 'message-content';
@@ -354,7 +395,7 @@ function appendTypingIndicator() {
     const row = document.createElement('div');
     row.className = 'message-row assistant-message typing-row';
     row.innerHTML = `
-        <div class="message-avatar"><i class="fas fa-sparkles"></i></div>
+        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
         <div class="message-content">
             <div class="message-bubble typing-bubble" aria-label="النموذج يكتب">
                 <i></i><i></i><i></i><i></i>
@@ -385,6 +426,206 @@ function autoResizeTextarea(textarea) {
     textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px';
 }
 
+let modelChooserState = { action: 'text', sendAfterChoice: false, selected: null };
+let skipModelGateOnce = false;
+const oneShotModelChoices = {};
+const activeComposerChoices = {};
+
+function readRememberedModels() {
+    try {
+        const value = JSON.parse(localStorage.getItem(MODEL_MEMORY_KEY) || '{}');
+        return value && typeof value === 'object' ? value : {};
+    } catch (error) {
+        return {};
+    }
+}
+
+function writeRememberedModels(value) {
+    localStorage.setItem(MODEL_MEMORY_KEY, JSON.stringify(value));
+}
+
+function getComposerModeKey(action) {
+    return ['text', 'generate', 'edit'].includes(action) ? action : null;
+}
+
+function findCatalogChoice(action, provider, model) {
+    return (MODEL_CATALOG[action] || []).find(function(choice) {
+        return choice.provider === provider && choice.model === model;
+    }) || null;
+}
+
+function applyModelChoice(action, choice) {
+    if (!choice || !getComposerModeKey(action)) return;
+    activeComposerChoices[action] = choice;
+    ui.source.value = SECOND_FUNCTION_ID;
+    ui.action.value = action;
+    updateUI();
+    ui.provider.value = choice.provider;
+    updateModels();
+    ui.model.value = choice.model;
+    syncWorkspaceFromSelections();
+    refreshComposerModelLabel();
+}
+
+function refreshComposerModelLabel() {
+    if (!ui.activeModelLabel || !ui.action) return;
+    const action = getComposerModeKey(ui.action.value);
+    if (!action) {
+        ui.activeModelLabel.textContent = 'إعدادات الأداة';
+        return;
+    }
+    const remembered = readRememberedModels()[action];
+    const choice = activeComposerChoices[action]
+        || (remembered ? findCatalogChoice(action, remembered.provider, remembered.model) : null);
+    ui.activeModelLabel.textContent = choice ? choice.name + ' • ' + choice.cost : 'اختيار النموذج';
+}
+
+function renderModelChoices(action) {
+    if (!ui.modelChoicesList) return;
+    ui.modelChoicesList.innerHTML = '';
+    const remembered = readRememberedModels()[action];
+    const current = modelChooserState.selected
+        || activeComposerChoices[action]
+        || (remembered ? findCatalogChoice(action, remembered.provider, remembered.model) : null);
+
+    (MODEL_CATALOG[action] || []).forEach(function(choice) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'model-choice-card';
+        if (current && current.provider === choice.provider && current.model === choice.model) {
+            button.classList.add('selected');
+            modelChooserState.selected = choice;
+        }
+        button.innerHTML = `
+            <span class="model-choice-icon"><i class="fas ${choice.icon}"></i></span>
+            <span class="model-choice-copy"><strong>${choice.name}</strong><small>${choice.description}</small></span>
+            <span class="model-choice-cost">${choice.cost}</span>`;
+        button.addEventListener('click', function() {
+            modelChooserState.selected = choice;
+            ui.modelChoicesList.querySelectorAll('.model-choice-card').forEach(function(card) { card.classList.remove('selected'); });
+            button.classList.add('selected');
+            if (ui.confirmModelBtn) ui.confirmModelBtn.disabled = false;
+        });
+        ui.modelChoicesList.appendChild(button);
+    });
+    if (ui.confirmModelBtn) ui.confirmModelBtn.disabled = !modelChooserState.selected;
+}
+
+function openModelChooser(action, sendAfterChoice) {
+    const mode = getComposerModeKey(action) || 'text';
+    modelChooserState = { action: mode, sendAfterChoice: Boolean(sendAfterChoice), selected: null };
+    const titles = {
+        text: ['اختر نموذج المحادثة', 'جميع هذه النماذج تُستدعى من الكود الوظيفي الثاني.'],
+        generate: ['اختر نموذج توليد الصور', 'اختر بين Flux الاقتصادي أو مستويات OpenAI.'],
+        edit: ['اختر نموذج تعديل الصور', 'الصورة المرفقة والبرومبت سيُرسلان إلى الكود الوظيفي الثاني.']
+    };
+    if (ui.modelChooserTitle) ui.modelChooserTitle.textContent = titles[mode][0];
+    if (ui.modelChooserDescription) ui.modelChooserDescription.textContent = titles[mode][1];
+    const remembered = readRememberedModels()[mode];
+    if (ui.rememberModelToggle) ui.rememberModelToggle.checked = Boolean(remembered);
+    const rememberIcon = document.querySelector('.remember-toggle-icon');
+    if (rememberIcon) {
+        rememberIcon.classList.toggle('fa-toggle-on', Boolean(remembered));
+        rememberIcon.classList.toggle('fa-toggle-off', !remembered);
+    }
+    if (ui.confirmModelBtn) ui.confirmModelBtn.innerHTML = sendAfterChoice
+        ? '<i class="fas fa-check"></i> متابعة وإرسال'
+        : '<i class="fas fa-check"></i> اعتماد الاختيار';
+    renderModelChoices(mode);
+    if (ui.modelPopover) ui.modelPopover.classList.remove('hidden');
+}
+
+function closeModelChooser() {
+    if (ui.modelPopover) ui.modelPopover.classList.add('hidden');
+    modelChooserState = { action: 'text', sendAfterChoice: false, selected: null };
+}
+
+function confirmModelChoice() {
+    const choice = modelChooserState.selected;
+    if (!choice) return;
+    const action = modelChooserState.action;
+    const sendAfterChoice = modelChooserState.sendAfterChoice;
+    applyModelChoice(action, choice);
+
+    const rememberedModels = readRememberedModels();
+    if (ui.rememberModelToggle && ui.rememberModelToggle.checked) {
+        rememberedModels[action] = { provider: choice.provider, model: choice.model };
+        writeRememberedModels(rememberedModels);
+    } else {
+        delete rememberedModels[action];
+        writeRememberedModels(rememberedModels);
+        if (!sendAfterChoice) oneShotModelChoices[action] = choice;
+    }
+    closeModelChooser();
+    refreshComposerModelLabel();
+
+    if (sendAfterChoice) {
+        skipModelGateOnce = true;
+        ui.sendBtn.click();
+    }
+}
+
+function prepareModelForSend(action) {
+    if (!getComposerModeKey(action)) return true;
+    const remembered = readRememberedModels()[action];
+    if (remembered) {
+        const choice = findCatalogChoice(action, remembered.provider, remembered.model);
+        if (choice) {
+            applyModelChoice(action, choice);
+            return true;
+        }
+    }
+    if (oneShotModelChoices[action]) {
+        applyModelChoice(action, oneShotModelChoices[action]);
+        delete oneShotModelChoices[action];
+        return true;
+    }
+    openModelChooser(action, true);
+    return false;
+}
+
+function syncComposerModeUI() {
+    if (!ui.action) return;
+    const action = ui.action.value;
+    const isImageMode = action === 'generate' || action === 'edit';
+    if (ui.modeBanner) ui.modeBanner.classList.toggle('hidden', !isImageMode);
+    if (ui.imageModeBtn) ui.imageModeBtn.classList.toggle('active', action === 'generate');
+    if (ui.attachBtn) ui.attachBtn.classList.toggle('active', action === 'edit');
+    if (ui.modeTitle) ui.modeTitle.textContent = action === 'edit' ? 'وضع تعديل الصورة' : 'وضع توليد الصور';
+    if (ui.modeDescription) ui.modeDescription.textContent = action === 'edit'
+        ? 'اكتب التعديل المطلوب على الصورة المرفقة'
+        : 'اكتب وصف الصورة التي تريد إنشاءها';
+    refreshComposerModelLabel();
+}
+
+function setUnifiedComposerMode(action) {
+    const target = getComposerModeKey(action) || 'text';
+    ui.source.value = SECOND_FUNCTION_ID;
+    ui.action.value = target;
+    updateUI();
+    syncComposerModeUI();
+    if (ui.prompt) ui.prompt.focus();
+}
+
+function clearComposerAttachment(returnToChat) {
+    if (ui.imageFile) ui.imageFile.value = '';
+    if (ui.attachmentImage) ui.attachmentImage.src = '';
+    if (ui.attachmentPreview) ui.attachmentPreview.classList.add('hidden');
+    if (returnToChat && ui.action.value === 'edit') setUnifiedComposerMode('text');
+}
+
+function showComposerAttachment(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+        if (ui.attachmentImage) ui.attachmentImage.src = reader.result;
+        if (ui.attachmentName) ui.attachmentName.textContent = file.name;
+        if (ui.attachmentPreview) ui.attachmentPreview.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+    setUnifiedComposerMode('edit');
+}
+
 function syncWorkspaceFromSelections() {
     if (!ui.action) return;
     const action = ui.action.value;
@@ -406,26 +647,25 @@ function syncWorkspaceFromSelections() {
     if (ui.workspaceTitle) ui.workspaceTitle.textContent = data.title;
     if (ui.prompt) ui.prompt.placeholder = data.placeholder;
 
-    if (ui.activeModelLabel && ui.source && ui.provider && ui.model) {
-        const sourceShort = ui.source.value === '6a3c7a760032067bd275' ? 'الكود الأول' : 'الكود الثاني';
-        const providerShort = ui.provider.options[ui.provider.selectedIndex] ? ui.provider.options[ui.provider.selectedIndex].text : '';
-        const modelShort = ui.model.options[ui.model.selectedIndex] ? ui.model.options[ui.model.selectedIndex].text : '';
-        ui.activeModelLabel.textContent = `${sourceShort} • ${providerShort} • ${modelShort}`;
-    }
+    refreshComposerModelLabel();
+    syncComposerModeUI();
 }
 
 window.selectAITool = function(action) {
     openWorkspace();
     if (!ui.action || !ui.source) return;
 
+    if (action !== 'edit' && ui.imageFile && ui.imageFile.files && ui.imageFile.files.length > 0) {
+        clearComposerAttachment(false);
+    }
+
     const mainInputs = document.getElementById('main-inputs-wrapper');
     const libraryDrawer = document.getElementById('my-library-section');
     if (mainInputs) mainInputs.classList.remove('hidden');
     if (libraryDrawer) libraryDrawer.classList.add('hidden');
 
-    // تأليف الكتاب يحتاج إلى الكود الثاني كما كان في المشروع الأصلي.
-    // المحادثة والصور تبدأ اقتصاديًا من الكود الأول، ويمكن تغيير المصدر من الإعدادات.
-    ui.source.value = action === 'book_outline' ? '6a445f680013960a14c6' : '6a3c7a760032067bd275';
+    // المحادثة والصور والكتب واللوحات تمر الآن عبر الكود الوظيفي الثاني.
+    ui.source.value = SECOND_FUNCTION_ID;
     ui.action.value = action;
     updateUI();
     if (action === 'art_studio') {
@@ -992,7 +1232,7 @@ async function runArtAI(mode, targetFrame) {
         return;
     }
 
-    ui.source.value = '6a3c7a760032067bd275';
+    ui.source.value = SECOND_FUNCTION_ID;
     selected.saved = false;
     setArtFrameProcessing(selected, true);
     setArtStudioStatus(mode === 'edit' ? 'الفرشاة تعمل الآن على تحويل صورتك...' : 'يتم الآن رسم لوحة جديدة من وصفك...');
@@ -1326,6 +1566,7 @@ if (ui.provider) ui.provider.addEventListener('change', updateModels);
 if (ui.model) ui.model.addEventListener('change', syncWorkspaceFromSelections);
 
 window.addEventListener('DOMContentLoaded', function() {
+    ui.source.value = SECOND_FUNCTION_ID;
     updateUI();
     initBackgroundParallax();
     initHomeNavigation();
@@ -1341,9 +1582,45 @@ window.addEventListener('DOMContentLoaded', function() {
 
     if (ui.settingsToggle) {
         ui.settingsToggle.addEventListener('click', function() {
-            ui.advancedSettings.classList.toggle('hidden');
+            if (getComposerModeKey(ui.action.value)) openModelChooser(ui.action.value, false);
+            else ui.advancedSettings.classList.toggle('hidden');
         });
     }
+
+    if (ui.modelBtn) ui.modelBtn.addEventListener('click', function() { openModelChooser(ui.action.value, false); });
+    const closeModelChooserBtn = document.getElementById('close-model-chooser-btn');
+    if (closeModelChooserBtn) closeModelChooserBtn.addEventListener('click', closeModelChooser);
+    if (ui.confirmModelBtn) ui.confirmModelBtn.addEventListener('click', confirmModelChoice);
+    if (ui.rememberModelToggle) {
+        ui.rememberModelToggle.addEventListener('change', function() {
+            const icon = document.querySelector('.remember-toggle-icon');
+            if (icon) {
+                icon.classList.toggle('fa-toggle-on', ui.rememberModelToggle.checked);
+                icon.classList.toggle('fa-toggle-off', !ui.rememberModelToggle.checked);
+            }
+        });
+    }
+
+    if (ui.attachBtn && ui.imageFile) ui.attachBtn.addEventListener('click', function() { ui.imageFile.click(); });
+    if (ui.imageFile) {
+        ui.imageFile.addEventListener('change', function() {
+            if (ui.imageFile.files && ui.imageFile.files[0]) showComposerAttachment(ui.imageFile.files[0]);
+        });
+    }
+    if (ui.removeAttachmentBtn) ui.removeAttachmentBtn.addEventListener('click', function() { clearComposerAttachment(true); });
+    if (ui.imageModeBtn) {
+        ui.imageModeBtn.addEventListener('click', function() {
+            if (ui.action.value === 'generate') setUnifiedComposerMode('text');
+            else {
+                clearComposerAttachment(false);
+                setUnifiedComposerMode('generate');
+            }
+        });
+    }
+    if (ui.modeCloseBtn) ui.modeCloseBtn.addEventListener('click', function() {
+        clearComposerAttachment(false);
+        setUnifiedComposerMode('text');
+    });
 
     const libraryToggle = document.getElementById('library-toggle-btn');
     const librarySection = document.getElementById('my-library-section');
@@ -1380,6 +1657,13 @@ window.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    const rememberedChat = readRememberedModels().text;
+    if (rememberedChat) {
+        const rememberedChoice = findCatalogChoice('text', rememberedChat.provider, rememberedChat.model);
+        if (rememberedChoice) applyModelChoice('text', rememberedChoice);
+    }
+    refreshComposerModelLabel();
 });
 
 // ==========================================
@@ -1421,6 +1705,11 @@ if (ui.sendBtn) {
         if (!promptSnapshot && actionType !== 'book_outline') { 
             alert("يرجى إدخال نص الطلب!"); 
             return; 
+        }
+
+        if (getComposerModeKey(actionType)) {
+            if (skipModelGateOnce) skipModelGateOnce = false;
+            else if (!prepareModelForSend(actionType)) return;
         }
 
         // لا نفرغ الرسالة من الواجهة قبل تسجيل الدخول، حتى لا يضطر المستخدم لكتابتها من جديد.
@@ -1490,6 +1779,9 @@ if (ui.sendBtn) {
         if (actionType !== 'book_outline') {
             openWorkspace();
             appendChatMessage('user', promptSnapshot, '', 'text');
+            if (actionType === 'edit' && ui.attachmentImage && ui.attachmentImage.src) {
+                appendChatMessage('user', ui.attachmentImage.src, 'الصورة المرفقة للتعديل', 'image');
+            }
             typingIndicator = appendTypingIndicator();
             ui.prompt.value = '';
             autoResizeTextarea(ui.prompt);
@@ -1514,6 +1806,7 @@ if (ui.sendBtn) {
                 appendChatMessage('assistant', responseData.data, getSourceMetadata(responseData), 'text');
             } else if (responseData.resultType === 'image') {
                 appendChatMessage('assistant', responseData.data, getSourceMetadata(responseData), 'image');
+                if (actionType === 'edit') clearComposerAttachment(true);
             }
             
             if (actionType === 'book_outline' && responseData.sourceFunction) {

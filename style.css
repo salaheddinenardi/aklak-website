@@ -1,1054 +1,435 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&display=swap');
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKLAKE Studio | مساحة الإبداع بالذكاء الاصطناعي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- ربط ملف الستايل الجديد -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-:root {
-    --bg: #030406;
-    --panel: rgba(12, 15, 20, 0.76);
-    --panel-strong: rgba(15, 18, 24, 0.92);
-    --panel-soft: rgba(255, 255, 255, 0.055);
-    --line: rgba(255, 255, 255, 0.12);
-    --line-strong: rgba(255, 255, 255, 0.2);
-    --text: #f7f8fb;
-    --muted: #a5adba;
-    --accent: #f7f8fb;
-    --accent-dark: #111318;
-    --success: #70e1b4;
-    --danger: #ff7d86;
-    --shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
-}
+<header class="nav">
+    <div class="brand-navigation">
+        <button id="home-btn" class="home-button" type="button" aria-label="العودة إلى الواجهة الرئيسية" title="الواجهة الرئيسية"><i class="fas fa-house"></i></button>
+        <a id="brand-link" class="brand-button" href="./" draggable="true" aria-label="AKLAKE — الواجهة الرئيسية" title="اسحب الرابط إلى نافذة أخرى أو افتحه في تبويب جديد">
+            <span class="brand-orbit"><i class="fas fa-sparkles"></i></span>
+            <span class="brand-lockup"><span class="logo">AKLAKE</span><small>CREATIVE AI</small></span>
+        </a>
+    </div>
+    <div class="account-actions">
+        <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt"></i> <span id="user-credits">0</span> نقطة</span>
+        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات"><i class="fas fa-bag-shopping"></i><span class="cart-button-text">السلة</span><b id="cart-count">0</b></button>
+        <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i> تسجيل الدخول</button>
+        <button id="logout-btn" class="account-btn danger hidden" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i> خروج</button>
+    </div>
+</header>
 
-* { box-sizing: border-box; }
+<section id="welcome-screen" class="welcome-screen">
+    <div class="welcome-copy">
+        <span class="eyebrow">AKLAKE CREATIVE AI</span>
+        <h1>حوّل فكرتك إلى عمل حقيقي</h1>
+        <p>تحدث مع الذكاء الاصطناعي، أنشئ كتابًا طويلًا، اصنع صورة، أو صمّم لوحة فنية داخل غرفتك.</p>
+    </div>
+    <div class="quick-chat-card">
+        <textarea id="quick-chat-prompt" rows="1" placeholder="اكتب ما تريد البدء به..."></textarea>
+        <button id="open-chat-btn" type="button" aria-label="بدء المحادثة"><i class="fas fa-arrow-up"></i></button>
+    </div>
+    <div class="quick-actions">
+        <button type="button" data-welcome-tool="text"><i class="far fa-message"></i> محادثة</button>
+        <button type="button" data-welcome-tool="book_outline"><i class="fas fa-book-open"></i> إنشاء كتاب</button>
+        <button type="button" data-welcome-tool="generate"><i class="far fa-image"></i> إنشاء صورة</button>
+        <button type="button" data-welcome-tool="art_studio"><i class="fas fa-palette"></i> استوديو اللوحات</button>
+    </div>
+</section>
 
-html { min-height: 100%; background: #000; }
+<div id="app-shell" class="app-shell is-collapsed" data-action="text">
+    <aside class="tools-sidebar" aria-label="أدوات الذكاء الاصطناعي">
+        <div class="sidebar-title">الأدوات</div>
+        <button class="tool-button active" type="button" data-tool="text">
+            <span class="tool-icon"><i class="far fa-message"></i></span><span>المحادثة</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="book_outline">
+            <span class="tool-icon"><i class="fas fa-book-open"></i></span><span>إنشاء كتاب</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="art_studio">
+            <span class="tool-icon"><i class="fas fa-palette"></i></span><span>رسم اللوحات</span>
+        </button>
+        <div class="sidebar-spacer"></div>
+        <button id="library-toggle-btn" class="tool-button secondary" type="button">
+            <span class="tool-icon"><i class="fas fa-layer-group"></i></span><span>أعمالي</span>
+        </button>
+    </aside>
 
-body {
-    min-height: 100vh;
-    margin: 0;
-    color: var(--text);
-    font-family: 'Tajawal', sans-serif;
-    background-color: var(--bg);
-    background-image:
-        linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.58)),
-        url('1765337248_new_1_ℭ𝔬𝔫𝔱𝔞𝔠𝔱.gif');
-    background-repeat: no-repeat;
-    background-position: top center;
-    background-attachment: fixed;
-    background-size: cover;
-    overflow-x: hidden;
-}
+    <main class="workspace-main">
+        <div class="workspace-header">
+            <div>
+                <span id="workspace-kicker" class="workspace-kicker">AKLAKE CHAT</span>
+                <h2 id="workspace-title">محادثة جديدة</h2>
+            </div>
+            <button id="settings-toggle-btn" class="icon-button" type="button" aria-label="إعدادات النموذج" title="إعدادات النموذج"><i class="fas fa-sliders"></i></button>
+        </div>
 
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background:
-        radial-gradient(circle at 14% 20%, rgba(255,255,255,.09), transparent 24%),
-        radial-gradient(circle at 82% 68%, rgba(92,106,130,.13), transparent 28%);
-}
+        <div id="my-library-section" class="library-drawer hidden">
+            <div class="panel-heading">
+                <div><span class="panel-eyebrow">MY CREATIONS</span><h3><i class="fas fa-layer-group"></i> أعمالي المحفوظة</h3></div>
+                <button type="button" class="close-panel-btn" data-close-library><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="library-tabs" role="tablist">
+                <button class="library-tab active" type="button" data-library-tab="books"><i class="fas fa-book"></i> الكتب</button>
+                <button class="library-tab" type="button" data-library-tab="artworks"><i class="fas fa-palette"></i> اللوحات</button>
+                <button class="library-tab" type="button" data-library-tab="cart"><i class="fas fa-bag-shopping"></i> السلة <b id="drawer-cart-count">0</b></button>
+            </div>
+            <div class="library-panel" data-library-panel="books">
+                <div id="my-library-list"></div>
+                <button onclick="window.selectAITool('book_outline')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
+            </div>
+            <div class="library-panel hidden" data-library-panel="artworks">
+                <div id="artworks-library-list" class="artworks-library-grid"></div>
+                <button onclick="window.selectAITool('art_studio')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء لوحة جديدة</button>
+            </div>
+            <div class="library-panel hidden" data-library-panel="cart">
+                <div id="cart-list" class="cart-list"></div>
+                <div class="cart-summary"><span>المجموع المؤقت</span><strong id="cart-total">0.00 $</strong></div>
+                <button id="checkout-btn" class="small-primary-btn checkout-btn"><i class="fas fa-lock"></i> إكمال الشراء لاحقًا</button>
+            </div>
+        </div>
 
-button, input, select, textarea { font: inherit; }
-button { cursor: pointer; }
-.hidden { display: none !important; }
+        <div id="main-inputs-wrapper">
+        <div id="advanced-settings" class="advanced-settings hidden">
+            <div class="settings-label"><i class="fas fa-sliders"></i> إعدادات النموذج <span>يمكن تغييرها، والخيارات الاقتصادية محددة افتراضيًا.</span></div>
+            <div class="controls-grid">
+            <div>
+                <label>المصدر (الكود الوظيفي):</label>
+                <select id="source-select">
+                    <option value="6a3c7a760032067bd275" disabled>الكود الأول (محجوز لوظيفة أخرى)</option>
+                    <option value="6a445f680013960a14c6" selected>الكود الثاني (المحادثة والصور)</option>
+                </select>
+            </div>
+            <div>
+                <label>نوع الخدمة:</label>
+                <select id="action-select">
+                    <option value="text">💬 محادثة نصية</option>
+                    <option value="generate">🎨 توليد صور</option>
+                    <option value="edit">🖌️ تعديل صورة</option>
+                    <option value="art_studio">🖼️ استوديو اللوحات الفنية</option>
+                    <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
+                </select>
+            </div>
+            <div>
+                <label>المزود:</label>
+                <select id="provider-select"></select>
+            </div>
+            <div>
+                <label>النموذج (الموديل):</label>
+                <select id="model-select"></select>
+            </div>
+            </div>
+        </div>
 
-.nav {
-    position: fixed;
-    inset: 0 0 auto 0;
-    z-index: 100;
-    height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-    background: rgba(3, 4, 6, 0.54);
-    border-bottom: 1px solid rgba(255,255,255,.09);
-    backdrop-filter: blur(20px) saturate(135%);
-    -webkit-backdrop-filter: blur(20px) saturate(135%);
-}
+        <div id="image-upload-section" class="upload-panel hidden">
+            <label><i class="fas fa-cloud-arrow-up"></i> ارفع الصورة التي تريد تعديلها</label>
+            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
+        </div>
 
-.brand-button {
-    width: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0;
-    color: var(--text);
-    background: transparent;
-    border: 0;
-}
+        <div id="book-settings" class="book-fields hidden">
+            <div class="book-form-intro">
+                <span><i class="fas fa-book-open"></i></span>
+                <div><h3>ابنِ كتابك خطوة بخطوة</h3><p>أدخل المعلومات الأساسية، وستبقى آلية التأليف الحالية كما هي.</p></div>
+            </div>
+            <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
+            <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
+            <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
+               
+            <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.classList.remove('hidden'); c.focus(); } else { c.classList.add('hidden'); }">
+                <optgroup label="الأدب الخيالي">
+                    <option value="رواية">رواية</option>
+                    <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
+                    <option value="رواية بوليسية">رواية بوليسية / غموض</option>
+                </optgroup>
+                <optgroup label="الأدب الواقعي والتعليمي">
+                    <option value="تطوير الذات">تطوير الذات</option>
+                    <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
+                    <option value="دليل إرشادي">دليل إرشادي (How-to)</option>
+                </optgroup>
+                <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
+            </select>
+            <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
+                 
+            <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
+            <select id="b-structure">
+                <option value="فصول (Chapters)">فصول (Chapters)</option>
+                <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
+                <option value="دروس (Lessons)">دروس (Lessons)</option>
+                <option value="أيام (Days)">أيام (Days)</option>
+            </select>
+            <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
+                
+            <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
+            <select id="b-audience">
+                <option value="الجمهور العام">الجمهور العام</option>
+                <option value="أطفال">أطفال</option>
+                <option value="مبتدئين">مبتدئين</option>
+                <option value="محترفين وخبراء">محترفين وخبراء</option>
+            </select>
+            <select id="b-tone">
+                <option value="حيادي وواضح">حيادي وواضح</option>
+                <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
+                <option value="فكاهي ومرح">فكاهي ومرح</option>
+            </select>
+            <select id="b-pov">
+                <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
+                <option value="المتكلم (أنا)">المتكلم (أنا)</option>
+            </select>
+            <select id="b-language">
+                <option value="العربية">اللغة العربية</option>
+                <option value="الإنجليزية">اللغة الإنجليزية</option>
+            </select>
 
-.brand-orbit {
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--line-strong);
-    border-radius: 50%;
-    background: rgba(255,255,255,.08);
-    box-shadow: inset 0 0 18px rgba(255,255,255,.05);
-}
+            <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
+            <select id="b-images">
+                <option value="بدون صور">بدون صور داخلية</option>
+                <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
+                <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
+            </select>
+            <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اختياري)">
+        </div>
 
-.logo { font-size: 1.42rem; font-weight: 700; letter-spacing: .8px; }
-.account-actions { display: flex; align-items: center; gap: 10px; }
-.account-btn, .credit-pill {
-    width: auto;
-    min-height: 38px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    background: rgba(255,255,255,.07);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-}
-.account-btn:hover { background: rgba(255,255,255,.13); }
-.account-btn.danger { color: #ffd8db; }
-.credit-pill { color: var(--success); font-weight: 700; }
+        <section id="art-studio" class="art-studio hidden" aria-label="استوديو اللوحات الفنية">
+            <div class="studio-intro">
+                <div class="studio-intro-icon"><i class="fas fa-palette"></i></div>
+                <div>
+                    <span class="panel-eyebrow">AKLAKE ART ROOM</span>
+                    <h3>علّق فكرتك على الحائط قبل أن تشتريها</h3>
+                    <p>أضف لوحة، حرّكها داخل الغرفة، ارفع صورتك ثم حوّلها إلى أسلوب فني باستخدام OpenAI.</p>
+                </div>
+                <div class="studio-model-badge"><i class="fas fa-bolt"></i><span>الكود الثاني</span><strong>OpenAI Pro</strong></div>
+            </div>
 
-.welcome-screen {
-    min-height: 100vh;
-    width: min(760px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 150px 0 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    transition: opacity .35s ease, transform .35s ease;
-}
+            <div class="art-stage-column">
+                <div id="art-wall-stage" class="art-wall-stage">
+                    <div class="room-light"></div>
+                    <div class="room-floor"></div>
+                    <div id="art-frames-layer" class="art-frames-layer"></div>
+                    <div id="empty-wall-hint" class="empty-wall-hint">
+                        <i class="fas fa-hand-pointer"></i>
+                        <strong>الحائط في انتظار لوحتك</strong>
+                        <span>أضف لوحة كبيرة ثم استخدم مقبض اليد فوقها لتحريكها.</span>
+                    </div>
+                </div>
 
-.welcome-screen.is-hidden {
-    position: fixed;
-    opacity: 0;
-    transform: translateY(-16px) scale(.98);
-    pointer-events: none;
-}
+                <div class="frame-size-picker">
+                    <div><span class="panel-eyebrow">ADD A LARGE FRAME</span><strong>إضافة لوحة مستطيلة</strong></div>
+                    <button type="button" data-add-frame="large"><i class="fas fa-expand"></i><span>كبيرة جدًا</span></button>
+                    <button type="button" data-add-frame="medium"><i class="fas fa-up-right-and-down-left-from-center"></i><span>كبيرة</span></button>
+                    <button type="button" data-add-frame="small"><i class="far fa-image"></i><span>متوسطة</span></button>
+                </div>
+                <div id="art-studio-status" class="art-studio-status" aria-live="polite"></div>
+            </div>
 
-.welcome-copy { max-width: 620px; margin-bottom: 28px; }
-.eyebrow, .workspace-kicker {
-    display: inline-block;
-    color: #c9d0da;
-    font-size: .72rem;
-    font-weight: 700;
-    letter-spacing: 1.8px;
-}
-.welcome-copy h1 {
-    margin: 12px 0 10px;
-    font-size: clamp(2.15rem, 6vw, 4.4rem);
-    line-height: 1.08;
-    letter-spacing: -1.5px;
-}
-.welcome-copy p { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.8; }
+            <input id="art-image-upload" class="hidden" type="file" accept="image/png,image/jpeg,image/webp">
 
-.quick-chat-card {
-    width: min(650px, 100%);
-    display: flex;
-    align-items: flex-end;
-    gap: 12px;
-    padding: 12px 12px 12px 14px;
-    border: 1px solid var(--line-strong);
-    border-radius: 22px;
-    background: rgba(14, 17, 22, .7);
-    box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);
-    backdrop-filter: blur(18px);
-}
+            <div id="art-prompt-modal" class="studio-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="art-prompt-modal-title">
+                <div class="studio-dialog-card">
+                    <div class="studio-dialog-heading">
+                        <div><span class="panel-eyebrow">ART DIRECTION</span><h3 id="art-prompt-modal-title">صف اللوحة التي تريدها</h3></div>
+                        <button type="button" data-close-art-dialog aria-label="إغلاق"><i class="fas fa-xmark"></i></button>
+                    </div>
+                    <label for="art-prompt">اكتب وصفًا واضحًا للأسلوب والنتيجة</label>
+                    <textarea id="art-prompt" rows="5" placeholder="مثال: حوّل الصورة إلى لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية..."></textarea>
+                    <div class="art-prompt-chips">
+                        <button type="button" data-art-prompt="لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية">كلاسيكي</button>
+                        <button type="button" data-art-prompt="لوحة انطباعية بألوان هادئة وملمس زيت واضح">انطباعي</button>
+                        <button type="button" data-art-prompt="لوحة مائية راقية بخلفية ورقية ناعمة">ألوان مائية</button>
+                    </div>
+                    <button id="art-prompt-confirm-btn" type="button" class="art-primary-btn"><i class="fas fa-wand-magic-sparkles"></i> بدء إنجاز اللوحة</button>
+                </div>
+            </div>
 
-.quick-chat-card textarea, .composer textarea {
-    min-height: 48px;
-    max-height: 180px;
-    flex: 1;
-    resize: none;
-    overflow-y: auto;
-    padding: 13px 8px;
-    color: var(--text);
-    caret-color: #fff;
-    background: transparent;
-    border: 0;
-    outline: 0;
-    line-height: 1.55;
-}
-.quick-chat-card textarea::placeholder, .composer textarea::placeholder { color: #838b98; }
+            <div id="art-replace-modal" class="studio-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="art-replace-title">
+                <div class="studio-dialog-card compact-dialog">
+                    <span class="dialog-choice-icon"><i class="fas fa-images"></i></span>
+                    <h3 id="art-replace-title">هذه اللوحة تحتوي صورة سابقة</h3>
+                    <p>هل تريد استبدال الصورة القديمة، أم الاحتفاظ بها وإنشاء لوحة جديدة بالمقاس والاتجاه نفسيهما؟</p>
+                    <div class="replace-choice-grid">
+                        <button id="replace-old-art-btn" type="button"><i class="fas fa-rotate"></i><strong>استبدال القديمة</strong><span>تتغير هذه اللوحة نفسها</span></button>
+                        <button id="duplicate-art-btn" type="button"><i class="fas fa-clone"></i><strong>لوحة جديدة</strong><span>تبقى القديمة كما هي</span></button>
+                    </div>
+                    <button type="button" class="dialog-cancel-btn" data-close-art-dialog>إلغاء</button>
+                </div>
+            </div>
+        </section>
 
-.quick-chat-card button, #send-btn {
-    flex: 0 0 44px;
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    color: #090a0d;
-    background: #fff;
-    border: 0;
-    border-radius: 14px;
-    transition: transform .18s ease, opacity .18s ease;
-}
-.quick-chat-card button:hover, #send-btn:hover { transform: translateY(-2px); }
-.quick-chat-card button:disabled, #send-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+        <div id="chat-stream" class="chat-stream">
+            <div id="chat-messages" class="chat-messages" aria-live="polite">
+                <div class="message-row assistant-message">
+                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
+                    <div class="message-content">
+                        <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
+                        <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الثاني</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-.quick-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
-.quick-actions button {
-    width: auto;
-    padding: 8px 13px;
-    color: #cbd1da;
-    background: rgba(255,255,255,.045);
-    border: 1px solid rgba(255,255,255,.09);
-    border-radius: 999px;
-}
-.quick-actions button:hover { color: #fff; background: rgba(255,255,255,.1); }
+        <div class="composer-wrap">
+            <div id="composer-mode-banner" class="composer-mode-banner hidden">
+                <span id="composer-mode-icon"><i class="fas fa-image"></i></span>
+                <div><strong id="composer-mode-title">وضع توليد الصور</strong><small id="composer-mode-description">اكتب وصف الصورة ثم أرسل الطلب</small></div>
+                <button id="composer-mode-close-btn" type="button" aria-label="العودة إلى المحادثة"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div id="composer-attachment-preview" class="composer-attachment-preview hidden">
+                <img id="composer-attachment-image" src="" alt="الصورة المرفقة">
+                <div><strong>صورة مرفقة للتعديل</strong><span id="composer-attachment-name"></span></div>
+                <button id="remove-composer-attachment-btn" type="button" aria-label="إزالة الصورة"><i class="far fa-trash-can"></i></button>
+            </div>
+            <div class="composer">
+                <button id="composer-attach-btn" class="composer-side-btn" type="button" aria-label="إرفاق صورة للتعديل" title="إرفاق صورة"><i class="fas fa-plus"></i></button>
+                <textarea id="main-prompt" rows="1" placeholder="اكتب رسالتك هنا..."></textarea>
+                <button id="send-btn" type="button" aria-label="إرسال الطلب"><i class="fas fa-arrow-up"></i></button>
+            </div>
+            <div class="composer-tools">
+                <button id="composer-model-btn" type="button"><i class="fas fa-microchip"></i><span id="active-model-label">اختيار النموذج</span><i class="fas fa-chevron-up"></i></button>
+                <button id="composer-image-mode-btn" type="button"><i class="far fa-image"></i><span>توليد صورة</span></button>
+                <span class="composer-shortcut">Enter للإرسال · Shift + Enter لسطر جديد</span>
+            </div>
+            <div id="model-chooser-popover" class="model-chooser-popover hidden">
+                <div class="model-chooser-heading">
+                    <div><span class="panel-eyebrow">MODEL ROUTER</span><h3 id="model-chooser-title">اختر النموذج المناسب</h3></div>
+                    <button id="close-model-chooser-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button>
+                </div>
+                <p id="model-chooser-description">سيُستخدم النموذج المختار لهذا الطلب.</p>
+                <div id="model-choices-list" class="model-choices-list"></div>
+                <label class="remember-model-card">
+                    <input id="remember-model-toggle" type="checkbox">
+                    <span class="memory-card-icon"><i class="fas fa-memory"></i></span>
+                    <span><strong>تذكّر اختياري</strong><small>استمر مع هذا النموذج ولا تسألني في كل مرة</small></span>
+                    <i class="fas fa-toggle-off remember-toggle-icon"></i>
+                </label>
+                <button id="confirm-model-choice-btn" class="confirm-model-choice-btn" type="button" disabled><i class="fas fa-check"></i> متابعة وإرسال</button>
+            </div>
+        </div>
+        </div>
 
-.app-shell {
-    width: 100%;
-    min-height: 100vh;
-    padding-top: 72px;
-    display: grid;
-    grid-template-columns: 220px minmax(0, 1fr);
-    direction: rtl;
-    opacity: 1;
-    transition: opacity .35s ease;
-}
-.app-shell.is-collapsed { position: fixed; inset: 0; opacity: 0; pointer-events: none; }
+        <div id="loader" class="hidden"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
+    
+    <div class="result-box hidden" id="result-area">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">النتيجة</h3>
+        <div id="result-text" class="hidden"></div>
+        
+        <div id="editable-outline-container" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; padding: 10px; border-radius: 5px; border: 1px solid #bbf7d0; margin-bottom: 10px;">
+                <label style="font-weight: bold; color: #16a34a; margin: 0;"><i class="fas fa-edit"></i> الخطة أدناه قابلة للتعديل اليدوي</label>
+                <button id="undo-btn" style="width: auto; padding: 6px 15px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 0.9em; cursor: pointer;"><i class="fas fa-undo"></i> تراجع للخلف</button>
+            </div>
+            <div id="book-outline-text" contenteditable="true"></div>
+        </div>
+        
+        <div id="book-actions" class="hidden" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-top: 15px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold;">هل تريد أن يقوم الذكاء الاصطناعي بتعديلها لك؟</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="refine-prompt" placeholder="اكتب طلبك هنا (مثال: أضف فصلاً عن كذا...)">
+                <button id="refine-btn" style="width: 150px; background: #eab308; color: #1f2937;"><i class="fas fa-magic"></i> تعديل ذكي</button>
+            </div>
+            <hr style="border: none; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
+            
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 5px; border: 1px solid #d1d5db;">
+                <label style="margin: 0; color: #4b5563;">عدد صفحات المقدمة المستهدفة:</label>
+                <input type="number" id="intro-pages-input" value="2" min="1" max="10" style="width: 80px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                <span id="remaining-pages-display" style="font-weight: bold; color: #16a34a; margin-right: auto;"></span>
+            </div>
 
-.tools-sidebar {
-    position: sticky;
-    top: 72px;
-    height: calc(100vh - 72px);
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    padding: 20px 14px;
-    background: rgba(5, 7, 10, .7);
-    border-left: 1px solid var(--line);
-    backdrop-filter: blur(20px);
-}
-.sidebar-title { padding: 4px 12px 12px; color: #78818e; font-size: .74rem; font-weight: 700; letter-spacing: 1px; }
-.tool-button {
-    position: relative;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 10px 11px;
-    color: #aeb6c1;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 13px;
-    text-align: right;
-    transition: .2s ease;
-}
-.tool-button:hover { color: #fff; background: rgba(255,255,255,.055); }
-.tool-button.active {
-    color: #fff;
-    background: rgba(255,255,255,.1);
-    border-color: rgba(255,255,255,.13);
-    box-shadow: inset 0 1px rgba(255,255,255,.08), 0 0 24px rgba(255,255,255,.035);
-}
-.tool-button.active::after {
-    content: '';
-    position: absolute;
-    right: -15px;
-    width: 3px;
-    height: 24px;
-    background: #fff;
-    border-radius: 0 4px 4px 0;
-    box-shadow: 0 0 14px rgba(255,255,255,.8);
-}
-.tool-icon {
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    flex: 0 0 34px;
-    border-radius: 10px;
-    background: rgba(255,255,255,.06);
-}
-.tool-button.active .tool-icon { background: rgba(255,255,255,.14); }
-.sidebar-spacer { flex: 1; }
-.tool-button.secondary { border-top: 1px solid var(--line); border-radius: 0; padding-top: 17px; }
+            <button id="write-intro-btn" style="width: 100%; background: #16a34a; font-size: 1.1em;"><i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة</button>
+        </div>
 
-.workspace-main {
-    width: 100%;
-    min-width: 0;
-    min-height: calc(100vh - 72px);
-    display: flex;
-    flex-direction: column;
-    padding: 0 clamp(18px, 4vw, 64px) 24px;
-    background: linear-gradient(180deg, rgba(3,4,6,.2), rgba(3,4,6,.54));
-}
-.workspace-header {
-    min-height: 90px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.workspace-header h2 { margin: 5px 0 0; font-size: 1.35rem; }
-.icon-button, .close-panel-btn {
-    width: 42px;
-    height: 42px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    color: #c8cfd9;
-    background: rgba(255,255,255,.06);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-}
-.icon-button:hover, .close-panel-btn:hover { color: #fff; background: rgba(255,255,255,.12); }
+        <img id="result-image" class="result-image hidden" src="" alt="النتيجة">
+        <br>
+        <div id="source-badge" class="source-badge hidden"></div>
+    </div>
 
-#main-inputs-wrapper { width: min(920px, 100%); margin: 0 auto; display: flex; flex: 1; flex-direction: column; }
-.advanced-settings, .glass-panel, .upload-panel, .book-fields, .result-box, #auto-generation-status {
-    margin-top: 18px;
-    padding: 18px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: 0 15px 45px rgba(0,0,0,.22);
-    backdrop-filter: blur(22px) saturate(125%);
-    -webkit-backdrop-filter: blur(22px) saturate(125%);
-}
-.advanced-settings { width: min(920px, 100%); margin-inline: auto; }
-.settings-label { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-weight: 700; }
-.settings-label span { margin-right: auto; color: var(--muted); font-size: .78rem; font-weight: 400; }
-.controls-grid { display: grid; grid-template-columns: repeat(4, minmax(135px, 1fr)); gap: 12px; }
-label { display: block; margin-bottom: 6px; color: #c2c9d3; font-size: .82rem; font-weight: 600; }
+    <div id="intro-area" class="hidden" style="margin-top: 30px; display: flex; flex-direction: column; align-items: center;">
+        
+        <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
+        <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
+        <div class="book-toolbar">
+            <div style="display: flex; align-items: center; gap: 5px; margin-left: 15px;">
+                <label style="margin:0; font-size:0.8em;">الخلفية:</label>
+                <button class="toolbar-btn" onclick="changeBookTheme('theme-white')" style="background: white; border: 1px solid #ccc;">أبيض</button>
+                <button class="toolbar-btn" onclick="changeBookTheme('theme-sepia')" style="background: #f4ecd8; border: 1px solid #d4c5b0;">بني</button>
+                <button class="toolbar-btn" onclick="changeBookTheme('theme-dark')" style="background: #1a1a1a; color: white; border: 1px solid #333;">أسود</button>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 5px; margin-left: 15px;">
+                <label style="margin:0; font-size:0.8em;">الخط:</label>
+                <button class="toolbar-btn" onclick="changeFontSize(1)">تكبير <b>+</b></button>
+                <button class="toolbar-btn" onclick="changeFontSize(-1)">تصغير <b>-</b></button>
+            </div>
 
-select, input {
-    width: 100%;
-    padding: 11px 12px;
-    color: var(--text);
-    background: rgba(255,255,255,.065);
-    border: 1px solid var(--line);
-    border-radius: 11px;
-    outline: 0;
-}
-select option { color: #111; background: #fff; }
-select:focus, input:focus { border-color: rgba(255,255,255,.4); box-shadow: 0 0 0 3px rgba(255,255,255,.06); }
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="margin:0; font-size:0.8em;">عدد الصفحات:</label>
+                <input type="number" id="target-pages-input" value="5" min="1" max="100" style="width: 60px; padding: 4px; font-size: 0.9em;">
+                <button class="toolbar-btn" onclick="recalculatePages()" style="background: #14539a; color: white; font-weight: bold;">تطبيق التقسيم</button>
+            </div>
+        </div>
 
-.upload-panel { width: min(920px, 100%); margin-inline: auto; border-style: dashed; }
-.upload-panel input { margin-top: 8px; }
+        <!-- التعديل: إظهار عنوان الغلاف -->
+        <div id="book-cover-display" class="book-cover-title hidden"></div>
 
-.book-fields {
-    width: min(920px, 100%);
-    margin-inline: auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 13px;
-    max-height: calc(100vh - 300px);
-    overflow-y: auto;
-}
-.book-form-intro { grid-column: 1 / -1; display: flex; align-items: center; gap: 13px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.book-form-intro > span { width: 44px; height: 44px; display: grid; place-items: center; background: rgba(255,255,255,.09); border-radius: 13px; }
-.book-form-intro h3 { margin: 0 0 4px; }
-.book-form-intro p { margin: 0; color: var(--muted); font-size: .83rem; }
-.book-section-title { grid-column: 1 / -1; margin-top: 9px; padding-bottom: 7px; color: #e6e9ee; border-bottom: 1px solid rgba(255,255,255,.08); font-weight: 700; }
+        <div id="book-container" class="theme-white" style="width: 100%; max-width: 700px; min-height: 600px; padding: 40px; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 20px; transition: background 0.3s, color 0.3s;">
+            <div id="intro-text" style="white-space: pre-wrap; line-height: 2; font-size: 1.15em; text-align: justify; padding-bottom: 30px;">
+            </div>
+            
+            <div id="page-number" class="hidden" style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; opacity: 0.7; font-weight: bold; font-size: 1.1em;">
+                1
+            </div>
+        </div>
 
-.chat-stream { flex: 1; min-height: 0; }
-.chat-messages { width: min(820px, 100%); min-height: 320px; margin: 0 auto; padding: 26px 0 130px; }
-.message-row { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 22px; animation: messageIn .24s ease both; }
-.message-row.user-message { flex-direction: row-reverse; }
-.message-avatar { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; color: #0b0c10; background: #fff; border-radius: 11px; }
-.user-message .message-avatar { color: #d7dde5; background: rgba(255,255,255,.08); border: 1px solid var(--line); }
-.message-content { max-width: min(76%, 680px); }
-.message-bubble {
-    padding: 13px 15px;
-    color: #e9ecf1;
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.09);
-    border-radius: 7px 17px 17px 17px;
-    white-space: pre-wrap;
-    line-height: 1.75;
-    overflow-wrap: anywhere;
-}
-.user-message .message-bubble { background: rgba(255,255,255,.13); border-radius: 17px 7px 17px 17px; }
-.message-source { margin-top: 7px; color: #77818e; font-size: .72rem; }
-.message-image { display: block; max-width: min(100%, 620px); max-height: 620px; border-radius: 14px; border: 1px solid var(--line); }
+        <div style="display: flex; gap: 15px; width: 100%; max-width: 700px; justify-content: center; align-items: center;">
+            <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> السابقة</button>
+            <span id="page-indicator" class="hidden" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
+            <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">التالية <i class="fas fa-arrow-left"></i></button>
+        </div>
 
-.typing-bubble { min-width: 68px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
-.typing-bubble i { width: 6px; height: 6px; display: block; background: #cfd5dd; border-radius: 50%; animation: typing 1.15s infinite ease-in-out; }
-.typing-bubble i:nth-child(2) { animation-delay: .16s; }
-.typing-bubble i:nth-child(3) { animation-delay: .32s; }
-.typing-bubble i:nth-child(4) { animation-delay: .48s; }
+        <div id="intro-refine-section" style="width: 100%; max-width: 700px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 20px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #b45309;"><i class="fas fa-edit"></i> هل تريد إجراء تعديل على هذه المقدمة؟</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="refine-intro-prompt" placeholder="اكتب طلب التعديل هنا (مثال: اجعل البداية أكثر حماساً...)">
+                <button id="refine-intro-btn" style="width: 180px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة</button>
+            </div>
+        </div>
+        
+        <div style="width: 100%; max-width: 700px; margin-top: 20px; display: flex; gap: 15px;">
+            <button id="continue-writing-btn" style="width: 40%; background: #2563eb; font-size: 1.1em;"><i class="fas fa-pen-fancy"></i> إكمال يدوياً</button>
+            <button id="start-auto-btn" style="width: 60%; background: #7c3aed; font-size: 1.1em;"><i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي في الخلفية</button>
+        </div>
+    </div>
 
-.composer-wrap {
-    position: sticky;
-    bottom: 0;
-    z-index: 20;
-    width: min(820px, 100%);
-    margin: auto auto 0;
-    padding: 12px 0 0;
-    background: linear-gradient(180deg, transparent, rgba(4,5,8,.94) 28%);
-}
-.composer {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    padding: 9px 9px 9px 13px;
-    background: rgba(17,20,26,.86);
-    border: 1px solid var(--line-strong);
-    border-radius: 19px;
-    box-shadow: 0 14px 45px rgba(0,0,0,.4), inset 0 1px rgba(255,255,255,.04);
-    backdrop-filter: blur(22px);
-}
-.composer-note { display: flex; justify-content: space-between; gap: 12px; padding: 7px 7px 0; color: #68717d; font-size: .69rem; }
-#active-model-label { color: #8f99a7; }
+    <div id="auto-generation-status" class="hidden" style="text-align: center; margin-top: 30px; padding: 40px; background: #eef2ff; border-radius: 12px; border: 2px dashed #818cf8;">
+        <h2 id="status-title" style="color: #4338ca;"><i class='fas fa-cog fa-spin'></i> يتم الآن تأليف الكتاب بالكامل في الخلفية...</h2>
+        <p style="font-size: 1.2em; color: #3730a3; margin-top: 20px;">عدد الصفحات/الأجزاء المنجزة حتى الآن</p>
+        <div style="font-size: 4em; font-weight: bold; color: #312e81; margin: 10px 0;" id="progress-count">0</div>
+        <p style="color: #6b7280;">(يمكنك إغلاق الصفحة والعودة لاحقاً، الذكاء الاصطناعي يعمل نيابة عنك)</p>
+        
+        <button id="new-book-btn" class="hidden" onclick="resetForNewBook()" style="margin-top: 30px; background: #10b981; width: auto; padding: 12px 30px; font-size: 1.1em;"><i class="fas fa-plus"></i> تأليف كتاب جديد</button>
+    </div>
 
-.app-shell[data-action="book_outline"] .chat-stream { display: none; }
-.app-shell[data-action="book_outline"] .composer-wrap { margin-top: 16px; }
+    </main>
+</div>
 
-#loader { text-align: center; color: var(--muted); padding: 10px; }
-.result-box { width: min(920px, 100%); margin-inline: auto; }
-.result-box h3 { color: var(--text); }
-#result-text { color: #e1e5eb; white-space: pre-wrap; line-height: 1.75; }
-#book-outline-text { min-height: 430px; padding: 18px; color: #16191f; background: rgba(255,255,255,.94); border-radius: 13px; line-height: 1.8; white-space: pre-wrap; outline: none; }
-.result-image { max-width: 100%; height: auto; border-radius: 14px; }
-.source-badge { display: inline-block; margin-top: 12px; padding: 6px 10px; color: #d8dde5; background: rgba(255,255,255,.08); border: 1px solid var(--line); border-radius: 999px; font-size: .75rem; }
+<div class="modal" id="auth-modal">
+    <div class="modal-content">
+        <h3 id="modal-title">تسجيل الدخول</h3>
+        <input type="email" id="email" placeholder="البريد الإلكتروني">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <input type="text" id="name" placeholder="الاسم" class="hidden">
+        <button id="auth-submit-btn" onclick="handleAuth()">دخول</button>
+        <p style="margin-top: 15px; font-size: 0.9em;"><a href="#" onclick="toggleAuthMode()" id="toggle-auth-text" style="color: #4b5563;">إنشاء حساب جديد</a></p>
+        <button onclick="closeModal()" style="background: transparent; color: #6b7280; text-decoration: underline; margin-top: 5px; border: none; cursor: pointer;">إلغاء</button>
+    </div>
+</div>
 
-.glass-panel { width: min(920px, 100%); margin-inline: auto; }
-.panel-heading { display: flex; align-items: center; justify-content: space-between; }
-.panel-heading h3 { margin: 0; }
-#my-library-list { max-height: 260px; overflow-y: auto; margin: 14px 0; }
-.small-primary-btn { width: auto; padding: 9px 13px; color: #0b0c0e; background: #fff; border: 0; border-radius: 10px; font-weight: 700; }
-
-button { border: 0; }
-.book-toolbar { display: flex; flex-wrap: wrap; gap: 10px; width: min(700px,100%); margin-bottom: 15px; padding: 10px; color: #1f2937; background: rgba(255,255,255,.9); border-radius: 12px; justify-content: center; }
-.toolbar-btn { width: auto; padding: 6px 11px; color: #333; background: #fff; border: 1px solid #ccc; border-radius: 6px; }
-.book-heading { margin-bottom: 20px; font-size: 1.6em; font-weight: 700; text-align: center; }
-.book-cover-title { margin-bottom: 20px; padding-bottom: 10px; color: #fff; font-size: 2em; font-weight: 700; text-align: center; }
-.theme-white { background-color: #fff; color: #1f2937; }
-.theme-sepia { background-color: #f4ecd8; color: #4a3b2c; }
-.theme-dark { background-color: #1a1a1a; color: #e5e5e5; }
-
-.modal { display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.72); backdrop-filter: blur(10px); }
-.modal-content { width: min(360px, 100%); padding: 26px; text-align: center; background: rgba(18,21,27,.95); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
-.modal-content input { margin-bottom: 12px; }
-.modal-content button { width: 100%; padding: 11px; color: #111; background: #fff; border-radius: 10px; font-weight: 700; }
-
-@keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: .38; } 30% { transform: translateY(-5px); opacity: 1; } }
-@keyframes messageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-@media (max-width: 980px) {
-    .controls-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
-    .app-shell { grid-template-columns: 88px minmax(0, 1fr); }
-    .sidebar-title, .tool-button > span:last-child { display: none; }
-    .tool-button { justify-content: center; }
-    .tool-button.active::after { right: -15px; }
-}
-
-@media (max-width: 720px) {
-    .nav { height: 62px; padding: 0 14px; }
-    .logo { font-size: 1.15rem; }
-    .brand-orbit { width: 30px; height: 30px; }
-    .account-btn { width: 38px; height: 38px; justify-content: center; padding: 0; }
-    .account-btn:not(.danger) { font-size: 0; }
-    .account-btn i { font-size: .9rem; }
-    .credit-pill { padding: 7px 10px; font-size: .78rem; }
-    .welcome-screen { padding-top: 110px; }
-    .welcome-copy h1 { font-size: 2.35rem; }
-    .welcome-copy p { font-size: .92rem; }
-    .app-shell { display: block; padding: 62px 0 74px; }
-    .tools-sidebar {
-        position: fixed;
-        inset: auto 0 0;
-        z-index: 90;
-        height: 68px;
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 3px;
-        padding: 7px 8px;
-        background: rgba(6,8,11,.92);
-        border: 1px solid var(--line);
-        backdrop-filter: blur(20px);
-    }
-    .sidebar-title, .sidebar-spacer { display: none; }
-    .tool-button { justify-content: center; padding: 6px; border-radius: 11px; }
-    .tool-button.secondary { padding-top: 6px; border-top: 0; border-radius: 11px; }
-    .tool-button.active::after { right: 50%; bottom: -7px; width: 22px; height: 2px; transform: translateX(50%); }
-    .tool-icon { width: 31px; height: 31px; flex-basis: 31px; }
-    .workspace-main { min-height: calc(100vh - 136px); padding: 0 14px 14px; }
-    .workspace-header { min-height: 76px; }
-    .workspace-header h2 { font-size: 1.15rem; }
-    .advanced-settings, .glass-panel, .upload-panel, .book-fields, .result-box { border-radius: 15px; padding: 14px; }
-    .controls-grid, .book-fields { grid-template-columns: 1fr; }
-    .book-form-intro, .book-section-title { grid-column: 1; }
-    .book-fields { max-height: none; }
-    .chat-messages { padding-top: 18px; }
-    .message-content { max-width: 86%; }
-    .message-avatar { width: 30px; height: 30px; flex-basis: 30px; }
-    .composer-note span:last-child { display: none; }
-    .composer-note { justify-content: center; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
-}
-
-/* =========================================================
-   AKLAKE GREEN SYSTEM — وضوح أعلى فوق خلفية النجوم
-   ========================================================= */
-:root {
-    --green: #79e2ad;
-    --green-bright: #a5f3cd;
-    --green-deep: #174c39;
-    --green-soft: rgba(121, 226, 173, .12);
-    --green-line: rgba(121, 226, 173, .34);
-    --panel: rgba(7, 14, 12, .86);
-    --panel-strong: rgba(6, 12, 10, .96);
-    --panel-soft: rgba(121, 226, 173, .065);
-    --line: rgba(164, 243, 204, .19);
-    --line-strong: rgba(164, 243, 204, .35);
-    --text: #f4fff9;
-    --muted: #b6cec1;
-    --success: var(--green);
-}
-
-body {
-    --parallax-x: 0px;
-    --parallax-y: 0px;
-    color: var(--text);
-    background-attachment: scroll;
-    background-position: calc(50% + var(--parallax-x)) calc(50% + var(--parallax-y));
-    transition: background-position .09s linear;
-}
-
-body::before {
-    background:
-        radial-gradient(circle at 16% 24%, rgba(121,226,173,.12), transparent 25%),
-        radial-gradient(circle at 82% 68%, rgba(121,226,173,.09), transparent 30%),
-        linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,8,5,.22));
-}
-
-.nav { background: rgba(3, 9, 7, .78); border-color: var(--green-line); }
-.brand-orbit { color: var(--green-bright); border-color: var(--green-line); border-radius: 8px; background: var(--green-soft); box-shadow: 0 0 24px rgba(121,226,173,.13); }
-.brand-lockup { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; }
-.logo { color: var(--green-bright); font-size: 1.34rem; letter-spacing: 2.3px; text-shadow: 0 0 22px rgba(121,226,173,.18); }
-.brand-lockup small { margin-top: 5px; color: #d9f9e8; font-size: .54rem; font-weight: 700; letter-spacing: 2px; }
-
-.account-btn, .credit-pill {
-    color: var(--green-bright);
-    background: rgba(5, 19, 14, .9);
-    border-color: var(--green-line);
-    border-radius: 8px;
-    font-weight: 700;
-}
-.account-btn:hover { color: #fff; background: rgba(121,226,173,.16); border-color: var(--green); }
-.cart-header-btn { position: relative; }
-.cart-header-btn b, #drawer-cart-count {
-    min-width: 20px;
-    height: 20px;
-    display: inline-grid;
-    place-items: center;
-    padding: 0 5px;
-    color: #042016;
-    background: var(--green-bright);
-    border-radius: 5px;
-    font-size: .72rem;
-}
-
-.eyebrow, .workspace-kicker, .panel-eyebrow { color: var(--green-bright); }
-.welcome-copy h1 { color: #fff; text-shadow: 0 8px 34px rgba(0,0,0,.85); }
-.welcome-copy p { color: #d2e5da; text-shadow: 0 3px 18px #000; }
-.quick-chat-card, .composer {
-    background: rgba(5, 15, 11, .9);
-    border-color: var(--green-line);
-    border-radius: 10px;
-    box-shadow: 0 18px 65px rgba(0,0,0,.55), inset 0 1px rgba(165,243,205,.08);
-}
-.quick-chat-card textarea, .composer textarea { color: #fff; }
-.quick-chat-card textarea::placeholder, .composer textarea::placeholder { color: #a7c7b6; }
-.quick-chat-card button, #send-btn {
-    color: #062017;
-    background: var(--green-bright);
-    border-radius: 7px;
-    box-shadow: 0 0 20px rgba(121,226,173,.16);
-}
-.quick-actions button, .art-prompt-chips button {
-    color: #d8f8e7;
-    background: rgba(7,20,15,.88);
-    border-color: var(--green-line);
-    border-radius: 7px;
-    font-weight: 600;
-}
-.quick-actions button:hover, .art-prompt-chips button:hover { color: #fff; background: var(--green-soft); border-color: var(--green); }
-
-.tools-sidebar { background: rgba(3, 10, 7, .86); border-color: var(--green-line); }
-.sidebar-title { color: #9bcbb1; }
-.tool-button { color: #c1dfcf; border-radius: 7px; }
-.tool-button:hover { color: #fff; background: rgba(121,226,173,.09); border-color: rgba(121,226,173,.18); }
-.tool-button.active { color: var(--green-bright); background: rgba(121,226,173,.14); border-color: var(--green-line); box-shadow: inset 0 1px rgba(165,243,205,.12), 0 0 26px rgba(121,226,173,.08); }
-.tool-button.active::after { background: var(--green-bright); box-shadow: 0 0 15px var(--green); }
-.tool-icon { color: var(--green-bright); background: rgba(121,226,173,.09); border-radius: 6px; }
-.tool-button.secondary { color: #d8f8e7; }
-
-.workspace-main { background: linear-gradient(180deg, rgba(0,8,5,.24), rgba(0,8,5,.66)); }
-.workspace-header { border-color: rgba(121,226,173,.18); }
-.workspace-header h2, .panel-heading h3, .studio-intro h3 { color: #fff; }
-.icon-button, .close-panel-btn, .danger-icon-btn {
-    color: var(--green-bright);
-    background: rgba(5,18,13,.92);
-    border: 1px solid var(--green-line);
-    border-radius: 7px;
-}
-.icon-button:hover, .close-panel-btn:hover { color: #fff; background: var(--green-soft); border-color: var(--green); }
-
-.advanced-settings, .glass-panel, .upload-panel, .book-fields, .result-box, #auto-generation-status,
-#book-actions, #intro-refine-section {
-    color: var(--text) !important;
-    background: rgba(5, 14, 10, .9) !important;
-    border-color: var(--green-line) !important;
-    border-radius: 9px !important;
-    box-shadow: 0 18px 50px rgba(0,0,0,.35) !important;
-}
-.advanced-settings *, .upload-panel *, .book-fields *, .result-box *, #book-actions *, #intro-refine-section * { border-color: var(--line); }
-.settings-label, label, .book-section-title, .book-form-intro h3 { color: #e7fff2; }
-.settings-label span, .book-form-intro p { color: #b3d3c1; }
-.book-form-intro > span { color: var(--green-bright); background: var(--green-soft); border-radius: 7px; }
-.book-section-title { color: var(--green-bright); border-color: rgba(121,226,173,.22); }
-
-select, input, textarea {
-    color: #f3fff8;
-    background: rgba(2, 10, 7, .82);
-    border-color: rgba(121,226,173,.25);
-    border-radius: 6px;
-}
-select:focus, input:focus, textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(121,226,173,.1); }
-select option { color: #eafff3; background: #07130e; }
-input::placeholder, textarea::placeholder { color: #87aa98; }
-input[type="file"]::file-selector-button { color: #062017; background: var(--green-bright); border: 0; border-radius: 5px; padding: 8px 10px; font-weight: 700; }
-
-.message-avatar { color: #062017; background: var(--green-bright); border-radius: 7px; }
-.user-message .message-avatar { color: var(--green-bright); background: rgba(121,226,173,.1); border-color: var(--green-line); }
-.message-bubble { color: #effff6; background: rgba(5,18,13,.9); border-color: rgba(121,226,173,.2); border-radius: 5px 10px 10px 10px; }
-.user-message .message-bubble { background: rgba(121,226,173,.13); border-radius: 10px 5px 10px 10px; }
-.message-source, .composer-note, #active-model-label { color: #a3c7b3; }
-.typing-bubble i { background: var(--green-bright); }
-.composer-wrap { background: linear-gradient(180deg, transparent, rgba(1,8,5,.97) 30%); }
-.source-badge { color: var(--green-bright); background: var(--green-soft); border-color: var(--green-line); border-radius: 6px; }
-.modal-content { color: #effff6; background: rgba(4,14,10,.98); border-color: var(--green-line); border-radius: 8px; }
-.modal-content h3 { color: #fff; }
-.modal-content a { color: var(--green-bright) !important; }
-.modal-content button { color: #062017 !important; background: var(--green-bright) !important; border-radius: 6px; }
-.modal-content button[onclick="closeModal()"] { color: #c6e7d5 !important; background: transparent !important; }
-.book-toolbar { color: #effff6 !important; background: rgba(5,16,12,.94) !important; border: 1px solid var(--green-line) !important; border-radius: 7px !important; }
-.book-toolbar label { color: #dffbed !important; }
-.toolbar-btn { color: #eafff3 !important; background: rgba(121,226,173,.1) !important; border-color: var(--green-line) !important; border-radius: 5px !important; }
-.toolbar-btn:hover { background: rgba(121,226,173,.2) !important; }
-#editable-outline-container > div:first-child,
-#book-actions > div,
-#intro-refine-section { background: rgba(121,226,173,.06) !important; border-color: var(--green-line) !important; border-radius: 6px !important; }
-#refine-btn, #write-intro-btn, #refine-intro-btn, #continue-writing-btn, #start-auto-btn, #new-book-btn,
-#prev-page-btn, #next-page-btn {
-    color: #f4fff9 !important;
-    background: #176244 !important;
-    border: 1px solid rgba(165,243,205,.4) !important;
-    border-radius: 6px !important;
-}
-#page-indicator, #remaining-pages-display { color: var(--green-bright) !important; }
-
-.small-primary-btn, .art-primary-btn, .checkout-btn {
-    color: #062017 !important;
-    background: var(--green-bright) !important;
-    border: 1px solid var(--green-bright) !important;
-    border-radius: 6px !important;
-    font-weight: 700;
-}
-.small-primary-btn:hover, .art-primary-btn:hover { background: #c1f9dd !important; }
-.library-book-btn {
-    color: #eafff3 !important;
-    background: rgba(5,18,13,.88) !important;
-    border-color: var(--green-line) !important;
-    border-radius: 6px !important;
-}
-/* نافذة الأعمال الجانبية */
-/* نافذة الأعمال الجانبية */
-.library-drawer {
-    position: fixed;
-    z-index: 80;
-    top: 72px;
-    right: 220px;
-    width: min(410px, calc(100vw - 220px));
-    height: calc(100vh - 72px);
-    padding: 20px;
-    overflow-y: auto;
-    color: #effff6;
-    background: rgba(3, 11, 8, .97);
-    border-left: 1px solid var(--green-line);
-    box-shadow: -26px 0 70px rgba(0,0,0,.42);
-    backdrop-filter: blur(24px);
-}
-.panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.panel-heading h3 { margin: 5px 0 0; }
-.library-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 20px 0; padding: 5px; background: rgba(121,226,173,.055); border: 1px solid var(--line); border-radius: 7px; }
-.library-tab { padding: 9px 6px; color: #b9d5c6; background: transparent; border: 1px solid transparent; border-radius: 5px; font-weight: 700; }
-.library-tab.active { color: var(--green-bright); background: var(--green-soft); border-color: var(--green-line); }
-.artworks-library-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.artwork-library-card { padding: 8px; color: #eafff3; background: rgba(121,226,173,.06); border: 1px solid var(--line); border-radius: 7px; }
-.artwork-library-card img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #f5f2e9; border-radius: 4px; }
-.artwork-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: .76rem; }
-.artwork-card-meta button, .cart-item button { color: #ffafb4; background: transparent; }
-.empty-library { padding: 30px 12px; color: #a8c5b5; text-align: center; border: 1px dashed var(--green-line); border-radius: 7px; }
-.cart-list { display: grid; gap: 9px; }
-.cart-item { display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 10px; padding: 9px; background: rgba(121,226,173,.055); border: 1px solid var(--line); border-radius: 7px; }
-.cart-item img { width: 62px; height: 52px; object-fit: cover; background: #f4f0e5; border-radius: 4px; }
-.cart-item strong, .cart-item span { display: block; color: #effff6; }
-.cart-item span { margin-top: 4px; color: var(--green-bright); font-size: .76rem; }
-.cart-summary { display: flex; justify-content: space-between; margin: 16px 0 12px; padding-top: 14px; border-top: 1px solid var(--green-line); }
-.cart-summary strong { color: var(--green-bright); }
-.checkout-btn { width: 100%; padding: 11px; }
-
-/* استوديو اللوحات */
-.art-studio { width: min(1180px, 100%); margin: 18px auto 40px; }
-.studio-intro { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin-bottom: 14px; padding: 16px; background: rgba(5,16,12,.92); border: 1px solid var(--green-line); border-radius: 8px; }
-.studio-intro-icon { width: 48px; height: 48px; display: grid; place-items: center; color: var(--green-bright); background: var(--green-soft); border: 1px solid var(--green-line); border-radius: 7px; font-size: 1.25rem; }
-.studio-intro h3 { margin: 4px 0 3px; }
-.studio-intro p { margin: 0; color: #b7d1c2; font-size: .82rem; }
-.studio-model-badge { display: grid; grid-template-columns: auto auto; gap: 2px 8px; padding: 9px 11px; color: var(--green-bright); background: rgba(121,226,173,.08); border: 1px solid var(--green-line); border-radius: 6px; font-size: .7rem; }
-.studio-model-badge i { grid-row: 1 / 3; align-self: center; }
-.studio-model-badge strong { color: #fff; }
-.art-studio-layout { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; direction: ltr; }
-.art-stage-column, .art-editor-panel { direction: rtl; }
-.art-wall-stage {
-    position: relative;
-    width: 100%;
-    min-height: 520px;
-    overflow: hidden;
-    isolation: isolate;
-    background-image:
-        linear-gradient(180deg, rgba(7,14,11,.06), rgba(7,14,11,.12)),
-        url('art-room-bg.jpg'),
-        linear-gradient(180deg, #c9c4b8 0 69%, #72695d 69% 100%);
-    background-size: cover;
-    background-position: center;
-    border: 2px solid rgba(121,226,173,.42);
-    border-radius: 8px;
-    box-shadow: 0 26px 70px rgba(0,0,0,.42), inset 0 0 60px rgba(0,0,0,.12);
-    touch-action: none;
-}
-.room-light { position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 50% 0, rgba(255,255,238,.46), transparent 45%); }
-.room-floor { position: absolute; inset: 69% 0 0; z-index: -1; pointer-events: none; background: linear-gradient(105deg, rgba(255,255,255,.05), transparent 35%), repeating-linear-gradient(92deg, rgba(0,0,0,.04) 0 2px, transparent 2px 70px); transform: perspective(300px) rotateX(7deg); transform-origin: bottom; }
-.art-frames-layer { position: absolute; inset: 7% 4% 25%; }
-.empty-wall-hint { position: absolute; top: 33%; left: 50%; width: min(310px, 80%); display: grid; justify-items: center; gap: 6px; padding: 15px; color: #1a3c2e; background: rgba(238,255,247,.78); border: 1px dashed rgba(18,88,58,.45); border-radius: 7px; text-align: center; transform: translate(-50%,-50%); backdrop-filter: blur(6px); }
-.empty-wall-hint i { color: #247553; }
-.empty-wall-hint span { font-size: .73rem; }
-.art-frame {
-    position: absolute;
-    display: grid;
-    place-items: center;
-    padding: 7px;
-    background: #27231f;
-    border: 3px solid #cbb98f;
-    border-radius: 3px;
-    box-shadow: 0 10px 20px rgba(0,0,0,.38), inset 0 0 0 2px #40372c;
-    cursor: grab;
-    user-select: none;
-    touch-action: none;
-}
-.art-frame:active { cursor: grabbing; }
-.art-frame.large { width: 29%; aspect-ratio: 4 / 3; }
-.art-frame.medium { width: 23%; aspect-ratio: 4 / 3; }
-.art-frame.small { width: 17%; aspect-ratio: 4 / 3; }
-.art-frame.selected { outline: 3px solid var(--green-bright); outline-offset: 4px; box-shadow: 0 0 0 7px rgba(121,226,173,.14), 0 12px 24px rgba(0,0,0,.45); }
-.art-frame.collision { outline: 3px solid #ff7d86; }
-.art-frame-canvas { position: relative; width: 100%; height: 100%; overflow: hidden; display: grid; place-items: center; background: #f5f1e6; }
-.art-frame-canvas > img { width: 100%; height: 100%; display: block; object-fit: cover; pointer-events: none; }
-.art-frame-placeholder { display: grid; justify-items: center; gap: 5px; color: #436152; font-size: .68rem; text-align: center; }
-.art-frame-placeholder i { font-size: 1.15rem; color: #2e7655; }
-.brush-loader { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; overflow: hidden; background: rgba(5,18,13,.62); backdrop-filter: blur(3px); }
-.art-frame.processing .brush-loader { display: flex; }
-.brush-loader i { position: absolute; width: 60%; height: 6px; background: linear-gradient(90deg, transparent, var(--green-bright), transparent); border-radius: 2px; filter: drop-shadow(0 0 7px var(--green)); animation: brushSweep 1.15s infinite ease-in-out alternate; }
-.brush-loader i:nth-child(2) { width: 45%; animation-delay: .22s; }
-.brush-loader i:nth-child(3) { width: 32%; animation-delay: .44s; }
-.frame-size-picker { display: grid; grid-template-columns: 1fr repeat(3, auto); align-items: center; gap: 8px; margin-top: 10px; padding: 10px; background: rgba(5,16,12,.94); border: 1px solid var(--green-line); border-radius: 7px; }
-.frame-size-picker > div { display: grid; }
-.frame-size-picker > div strong { color: #fff; font-size: .84rem; }
-.frame-size-picker button { min-width: 76px; display: grid; justify-items: center; gap: 3px; padding: 8px; color: var(--green-bright); background: rgba(121,226,173,.07); border: 1px solid var(--green-line); border-radius: 6px; }
-.frame-size-picker button:hover { color: #fff; background: rgba(121,226,173,.16); }
-.frame-size-picker button span { font-size: .72rem; }
-.art-editor-panel { min-height: 520px; padding: 16px; background: rgba(4,14,10,.96); border: 1px solid var(--green-line); border-radius: 8px; box-shadow: 0 20px 55px rgba(0,0,0,.32); }
-.art-editor-empty { min-height: 480px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; color: #a9c9b8; text-align: center; }
-.art-editor-empty > i { width: 48px; height: 48px; display: grid; place-items: center; color: var(--green-bright); background: var(--green-soft); border-radius: 7px; }
-.art-editor-empty h4 { margin: 8px 0 0; color: #fff; }
-.art-editor-empty p { max-width: 230px; margin: 0; font-size: .8rem; line-height: 1.6; }
-.selected-art-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-.selected-art-heading h4 { margin: 4px 0 0; color: #fff; }
-.danger-icon-btn { width: 38px; height: 38px; color: #ffafb4; border-color: rgba(255,125,134,.34); }
-.art-upload-box { min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; margin-bottom: 13px; padding: 12px; color: #d8f7e6; background: rgba(121,226,173,.055); border: 1px dashed var(--green-line); border-radius: 6px; cursor: pointer; }
-.art-upload-box:hover { background: rgba(121,226,173,.1); border-color: var(--green); }
-.art-upload-box i { color: var(--green-bright); font-size: 1.25rem; }
-.art-upload-box span { color: #98b9a7; font-size: .7rem; }
-.art-upload-box input { display: none; }
-#art-prompt { width: 100%; resize: vertical; margin-bottom: 8px; padding: 10px; }
-.art-prompt-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
-.art-prompt-chips button { padding: 5px 8px; font-size: .68rem; }
-.art-action-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 7px; }
-.art-primary-btn, .art-secondary-btn, .art-save-btn, .art-cart-btn { padding: 10px 8px; border-radius: 6px; font-weight: 700; }
-.art-secondary-btn { color: var(--green-bright); background: rgba(121,226,173,.08); border: 1px solid var(--green-line); }
-.art-secondary-btn:hover { color: #fff; background: rgba(121,226,173,.15); }
-.art-save-btn, .art-cart-btn { width: 100%; margin-top: 7px; color: #e9fff3; background: rgba(5,20,14,.9); border: 1px solid var(--green-line); }
-.art-save-btn:hover, .art-cart-btn:hover { color: var(--green-bright); background: var(--green-soft); }
-.art-studio-status { min-height: 20px; margin-top: 8px; color: #a9c9b8; font-size: .74rem; line-height: 1.5; }
-.art-studio-status.success { color: var(--green-bright); }
-.art-studio-status.error { color: #ffafb4; }
-.app-shell[data-action="art_studio"] #chat-stream,
-.app-shell[data-action="art_studio"] .composer-wrap,
-.app-shell[data-action="art_studio"] #advanced-settings { display: none !important; }
-
-@keyframes brushSweep { from { transform: translate(-45%, -28px) rotate(-12deg); opacity: .45; } to { transform: translate(45%, 28px) rotate(-12deg); opacity: 1; } }
-
-@media (max-width: 1100px) {
-    .art-studio-layout { grid-template-columns: 1fr; }
-    .art-editor-panel { min-height: auto; }
-    .art-editor-empty { min-height: 180px; }
-    .library-drawer { right: 88px; width: min(410px, calc(100vw - 88px)); }
-}
-
-@media (max-width: 720px) {
-    .tools-sidebar { grid-template-columns: repeat(6, 1fr); }
-    .cart-button-text { display: none; }
-    .brand-lockup small { display: none; }
-    .library-drawer { top: 62px; right: 0; bottom: 68px; width: 100%; height: auto; padding: 15px; }
-    .studio-intro { grid-template-columns: auto 1fr; }
-    .studio-model-badge { grid-column: 1 / -1; grid-template-columns: auto auto 1fr; }
-    .studio-model-badge i { grid-row: auto; }
-    .art-wall-stage { min-height: 390px; }
-    .art-frames-layer { inset: 7% 3% 23%; }
-    .art-frame.large { width: 38%; }
-    .art-frame.medium { width: 31%; }
-    .art-frame.small { width: 24%; }
-    .frame-size-picker { grid-template-columns: repeat(3, 1fr); }
-    .frame-size-picker > div { grid-column: 1 / -1; }
-    .frame-size-picker button { min-width: 0; }
-    .art-action-grid { grid-template-columns: 1fr; }
-}
-
-/* =========================================================
-   ART GALLERY V2 — معرض كبير، مستطيلات حادة وأدوات لكل لوحة
-   ========================================================= */
-.brand-navigation { display: flex; align-items: center; gap: 8px; }
-.brand-button { text-decoration: none; cursor: grab; }
-.brand-button:active { cursor: grabbing; }
-.home-button {
-    width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    color: var(--green-bright);
-    background: rgba(5,19,14,.9);
-    border: 1px solid var(--green-line);
-    border-radius: 5px;
-}
-.home-button:hover { color: #fff; background: rgba(121,226,173,.16); border-color: var(--green); }
-
-/* الخلفية في طبقة واحدة ثابتة ومن دون تكرار؛ تتحرك بهدوء بواسطة transform فقط */
-body {
-    background-color: #010503;
-    background-image: none !important;
-    background-position: center !important;
-    transition: none !important;
-}
-body::after {
-    content: '';
-    position: fixed;
-    inset: -5%;
-    z-index: -2;
-    pointer-events: none;
-    background-image: url('1765337248_new_1_ℭ𝔬𝔫𝔱𝔞𝔠𝔱.gif');
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center center;
-    transform: translate3d(var(--parallax-x), var(--parallax-y), 0) scale(1.06);
-    transition: transform .32s cubic-bezier(.2,.7,.2,1);
-    will-change: transform;
-    animation: cosmicBackgroundPan 70s ease-in-out infinite alternate;
-}
-@keyframes cosmicBackgroundPan {
-    0% { background-position: 48% 48%; }
-    100% { background-position: 52% 52%; }
-}
-
-.app-shell[data-action="art_studio"] #main-inputs-wrapper { width: min(1500px, 100%); }
-.art-studio { width: 100%; max-width: 1500px; }
-.studio-intro { border-radius: 4px; }
-.art-stage-column { width: 100%; }
-.art-wall-stage {
-    min-height: 760px;
-    background-image:
-        linear-gradient(180deg, rgba(5,12,9,.02), rgba(5,12,9,.08)),
-        url('background minimal plant.jpg'),
-        linear-gradient(180deg, #d7d2c8 0 78%, #756e64 78% 100%);
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center center;
-    border-radius: 2px;
-}
-.room-floor { display: none; }
-.art-frames-layer { inset: 7% 2% 9%; }
-.empty-wall-hint { border-radius: 2px; }
-.frame-size-picker { border-radius: 4px; }
-.frame-size-picker button { border-radius: 3px; min-width: 104px; }
-.art-studio-status { min-height: 24px; padding: 8px 4px; }
-
-/* اللوحة نفسها بلا خلفية أو حواف دائرية؛ الإطار يطبّق فقط على القماش */
-.art-frame {
-    padding: 0;
-    background: transparent;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    cursor: default;
-    overflow: visible;
-    transition: width .2s ease, left .15s ease, top .15s ease;
-}
-.art-frame.large { width: 44%; aspect-ratio: auto; }
-.art-frame.medium { width: 36%; aspect-ratio: auto; }
-.art-frame.small { width: 30%; aspect-ratio: auto; }
-.art-frame.orientation-vertical.large { width: 21%; }
-.art-frame.orientation-vertical.medium { width: 18%; }
-.art-frame.orientation-vertical.small { width: 15%; }
-.art-frame.selected { outline: 0; box-shadow: none; }
-.art-frame.selected .art-frame-canvas { outline: 2px solid var(--green-bright); outline-offset: 3px; }
-.art-frame.collision .art-frame-canvas { outline: 3px solid #ff7d86; outline-offset: 2px; }
-
-.art-frame-canvas {
-    aspect-ratio: 16 / 10;
-    padding: 0;
-    border-radius: 0;
-    background: #f4f1e8;
-    box-shadow: 0 13px 27px rgba(0,0,0,.35);
-    overflow: hidden;
-}
-.art-frame.orientation-vertical .art-frame-canvas { aspect-ratio: 10 / 16; }
-.art-frame.frame-style-classic .art-frame-canvas {
-    border: 8px solid #28231d;
-    box-shadow: inset 0 0 0 2px #b9a77d, 0 13px 27px rgba(0,0,0,.4);
-}
-.art-frame.frame-style-thin .art-frame-canvas {
-    border: 2px solid #24211d;
-    box-shadow: 0 12px 24px rgba(0,0,0,.34);
-}
-.art-frame.frame-style-frameless .art-frame-canvas {
-    border: 0;
-    box-shadow: 0 10px 22px rgba(0,0,0,.26);
-}
-
-.art-frame-toolbar {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 6px);
-    z-index: 5;
-    display: flex;
-    gap: 4px;
-    opacity: .9;
-}
-.art-frame-toolbar button,
-.art-frame-actions button,
-.frame-placeholder-actions button {
-    min-width: 30px;
-    min-height: 29px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 5px 7px;
-    color: #eafff3;
-    background: rgba(3,14,9,.94);
-    border: 1px solid rgba(121,226,173,.46);
-    border-radius: 2px;
-    font-size: .68rem;
-    box-shadow: 0 5px 15px rgba(0,0,0,.22);
-}
-.art-frame-toolbar button:hover,
-.art-frame-actions button:hover,
-.frame-placeholder-actions button:hover { color: var(--green-bright); background: rgba(13,54,37,.96); }
-.art-frame-toolbar .frame-drag-handle { cursor: grab; }
-.art-frame-toolbar .frame-drag-handle:active { cursor: grabbing; }
-.art-frame-toolbar .frame-delete-btn { color: #ffb6ba; border-color: rgba(255,125,134,.42); }
-
-.frame-placeholder-actions {
-    width: 78%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-}
-.frame-placeholder-actions button { min-height: 36px; color: #164e37; background: rgba(238,255,247,.9); border-color: rgba(30,105,74,.34); box-shadow: none; font-weight: 700; }
-.frame-placeholder-actions button:hover { color: #082d20; background: #d9ffeb; }
-.frame-placeholder-actions button span { white-space: nowrap; }
-
-.art-frame-actions {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    z-index: 5;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    max-width: 100%;
-}
-.art-frame-actions .frame-transform-btn { color: #062017; background: var(--green-bright); font-weight: 700; }
-.art-frame-actions .frame-cart-btn { color: var(--green-bright); }
-.art-frame-actions .frame-save-btn.saved { color: #062017; background: #bff8dc; }
-
-/* نوافذ البرومبت والاختيار تظهر عند الحاجة فقط */
-.studio-dialog {
-    position: fixed;
-    inset: 0;
-    z-index: 1200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 18px;
-    background: rgba(0,6,3,.74);
-    backdrop-filter: blur(12px);
-}
-.studio-dialog-card {
-    width: min(570px, 100%);
-    padding: 20px;
-    color: #effff6;
-    background: rgba(4,16,11,.98);
-    border: 1px solid var(--green-line);
-    border-radius: 4px;
-    box-shadow: 0 30px 90px rgba(0,0,0,.62);
-}
-.studio-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 16px; }
-.studio-dialog-heading h3, .compact-dialog h3 { margin: 5px 0 0; color: #fff; }
-.studio-dialog-heading > button { width: 36px; height: 36px; color: var(--green-bright); background: rgba(121,226,173,.08); border: 1px solid var(--green-line); border-radius: 2px; }
-.studio-dialog textarea { width: 100%; margin-bottom: 9px; }
-.studio-dialog .art-primary-btn { width: 100%; margin-top: 8px; padding: 11px; }
-.compact-dialog { max-width: 500px; text-align: center; }
-.compact-dialog p { color: #b8d4c4; line-height: 1.7; }
-.dialog-choice-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 10px; color: var(--green-bright); background: var(--green-soft); border: 1px solid var(--green-line); border-radius: 2px; }
-.replace-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
-.replace-choice-grid button { display: grid; justify-items: center; gap: 5px; padding: 14px 10px; color: #eafff3; background: rgba(121,226,173,.07); border: 1px solid var(--green-line); border-radius: 2px; }
-.replace-choice-grid button:hover { background: rgba(121,226,173,.14); border-color: var(--green); }
-.replace-choice-grid button i { color: var(--green-bright); font-size: 1.1rem; }
-.replace-choice-grid button span { color: #9fc1ae; font-size: .7rem; }
-.dialog-cancel-btn { margin-top: 10px; padding: 7px 12px; color: #bcd8c8; background: transparent; border: 0; }
-
-@media (max-width: 980px) {
-    .art-wall-stage { min-height: 620px; }
-    .art-frame.large { width: 52%; }
-    .art-frame.medium { width: 44%; }
-    .art-frame.small { width: 36%; }
-    .art-frame.orientation-vertical.large { width: 30%; }
-    .art-frame.orientation-vertical.medium { width: 25%; }
-    .art-frame.orientation-vertical.small { width: 21%; }
-}
-
-@media (max-width: 720px) {
-    .home-button { width: 34px; height: 34px; }
-    .brand-navigation { gap: 5px; }
-    .art-wall-stage { min-height: 530px; }
-    .art-frames-layer { inset: 9% 2% 10%; }
-    .art-frame.large { width: 60%; }
-    .art-frame.medium { width: 52%; }
-    .art-frame.small { width: 44%; }
-    .art-frame.orientation-vertical.large { width: 33%; }
-    .art-frame.orientation-vertical.medium { width: 28%; }
-    .art-frame.orientation-vertical.small { width: 24%; }
-    .art-frame-toolbar button, .art-frame-actions button { padding: 4px 5px; font-size: .62rem; }
-    .frame-size-picker { grid-template-columns: repeat(3,1fr); }
-    .replace-choice-grid { grid-template-columns: 1fr; }
-}
+<script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+<script src="app.js"></script>
+</body>
+</html>

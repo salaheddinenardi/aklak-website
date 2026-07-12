@@ -53,12 +53,6 @@
         <button class="tool-button" type="button" data-tool="book_outline">
             <span class="tool-icon"><i class="fas fa-book-open"></i></span><span>إنشاء كتاب</span>
         </button>
-        <button class="tool-button" type="button" data-tool="generate">
-            <span class="tool-icon"><i class="far fa-image"></i></span><span>إنشاء صورة</span>
-        </button>
-        <button class="tool-button" type="button" data-tool="edit">
-            <span class="tool-icon"><i class="fas fa-wand-magic-sparkles"></i></span><span>تعديل صورة</span>
-        </button>
         <button class="tool-button" type="button" data-tool="art_studio">
             <span class="tool-icon"><i class="fas fa-palette"></i></span><span>رسم اللوحات</span>
         </button>
@@ -109,8 +103,8 @@
             <div>
                 <label>المصدر (الكود الوظيفي):</label>
                 <select id="source-select">
-                    <option value="6a3c7a760032067bd275">الكود الأول (الأساسي)</option>
-                    <option value="6a445f680013960a14c6">الكود الثاني (المشتق/الموزع)</option>
+                    <option value="6a3c7a760032067bd275" disabled>الكود الأول (محجوز لوظيفة أخرى)</option>
+                    <option value="6a445f680013960a14c6" selected>الكود الثاني (المحادثة والصور)</option>
                 </select>
             </div>
             <div>
@@ -210,7 +204,7 @@
                     <h3>علّق فكرتك على الحائط قبل أن تشتريها</h3>
                     <p>أضف لوحة، حرّكها داخل الغرفة، ارفع صورتك ثم حوّلها إلى أسلوب فني باستخدام OpenAI.</p>
                 </div>
-                <div class="studio-model-badge"><i class="fas fa-bolt"></i><span>الكود الأول</span><strong>OpenAI Pro</strong></div>
+                <div class="studio-model-badge"><i class="fas fa-bolt"></i><span>الكود الثاني</span><strong>OpenAI Pro</strong></div>
             </div>
 
             <div class="art-stage-column">
@@ -270,21 +264,51 @@
         <div id="chat-stream" class="chat-stream">
             <div id="chat-messages" class="chat-messages" aria-live="polite">
                 <div class="message-row assistant-message">
-                    <div class="message-avatar"><i class="fas fa-sparkles"></i></div>
+                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
                     <div class="message-content">
                         <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
-                        <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الأول</div>
+                        <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الثاني</div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="composer-wrap">
+            <div id="composer-mode-banner" class="composer-mode-banner hidden">
+                <span id="composer-mode-icon"><i class="fas fa-image"></i></span>
+                <div><strong id="composer-mode-title">وضع توليد الصور</strong><small id="composer-mode-description">اكتب وصف الصورة ثم أرسل الطلب</small></div>
+                <button id="composer-mode-close-btn" type="button" aria-label="العودة إلى المحادثة"><i class="fas fa-xmark"></i></button>
+            </div>
+            <div id="composer-attachment-preview" class="composer-attachment-preview hidden">
+                <img id="composer-attachment-image" src="" alt="الصورة المرفقة">
+                <div><strong>صورة مرفقة للتعديل</strong><span id="composer-attachment-name"></span></div>
+                <button id="remove-composer-attachment-btn" type="button" aria-label="إزالة الصورة"><i class="far fa-trash-can"></i></button>
+            </div>
             <div class="composer">
+                <button id="composer-attach-btn" class="composer-side-btn" type="button" aria-label="إرفاق صورة للتعديل" title="إرفاق صورة"><i class="fas fa-plus"></i></button>
                 <textarea id="main-prompt" rows="1" placeholder="اكتب رسالتك هنا..."></textarea>
                 <button id="send-btn" type="button" aria-label="إرسال الطلب"><i class="fas fa-arrow-up"></i></button>
             </div>
-            <div class="composer-note"><span id="active-model-label">الكود الأول • OpenAI • GPT-4o</span><span>Enter للإرسال · Shift + Enter لسطر جديد</span></div>
+            <div class="composer-tools">
+                <button id="composer-model-btn" type="button"><i class="fas fa-microchip"></i><span id="active-model-label">اختيار النموذج</span><i class="fas fa-chevron-up"></i></button>
+                <button id="composer-image-mode-btn" type="button"><i class="far fa-image"></i><span>توليد صورة</span></button>
+                <span class="composer-shortcut">Enter للإرسال · Shift + Enter لسطر جديد</span>
+            </div>
+            <div id="model-chooser-popover" class="model-chooser-popover hidden">
+                <div class="model-chooser-heading">
+                    <div><span class="panel-eyebrow">MODEL ROUTER</span><h3 id="model-chooser-title">اختر النموذج المناسب</h3></div>
+                    <button id="close-model-chooser-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button>
+                </div>
+                <p id="model-chooser-description">سيُستخدم النموذج المختار لهذا الطلب.</p>
+                <div id="model-choices-list" class="model-choices-list"></div>
+                <label class="remember-model-card">
+                    <input id="remember-model-toggle" type="checkbox">
+                    <span class="memory-card-icon"><i class="fas fa-memory"></i></span>
+                    <span><strong>تذكّر اختياري</strong><small>استمر مع هذا النموذج ولا تسألني في كل مرة</small></span>
+                    <i class="fas fa-toggle-off remember-toggle-icon"></i>
+                </label>
+                <button id="confirm-model-choice-btn" class="confirm-model-choice-btn" type="button" disabled><i class="fas fa-check"></i> متابعة وإرسال</button>
+            </div>
         </div>
         </div>
 
