@@ -1,5 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
-body { font-family: 'Tajawal', sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; }
+
+/* إعدادات الخلفية السوداء المتحركة والصورة */
+body { 
+    font-family: 'Tajawal', sans-serif; 
+    background-color: #000000; 
+    background-image: url('1765337248_new_1_ℭ𝔬𝔫𝔱𝔞𝔠𝔱.gif'); 
+    background-repeat: no-repeat; 
+    background-position: top center; 
+    background-attachment: fixed; 
+    background-size: 100% auto; 
+    color: #333; 
+    margin: 0; 
+    padding: 0; 
+}
+
 .nav { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 30px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .logo { font-size: 1.5em; font-weight: bold; color: #14539a; }
 .container { background: white; padding: 30px; max-width: 900px; margin: auto; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e5e7eb; }
@@ -40,3 +54,11 @@ button:disabled { background: #ccc; cursor: not-allowed; }
 .book-toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; padding: 10px; background: #f1f5f9; border-radius: 8px; border: 1px solid #cbd5e1; justify-content: center; align-items: center; width: 100%; max-width: 700px; }
 .toolbar-btn { width: auto; padding: 6px 12px; font-size: 0.9em; border-radius: 4px; border: 1px solid #ccc; background: white; color: #333; cursor: pointer; }
 .toolbar-btn:hover { background: #e2e8f0; }
+
+/* إعدادات الشاشة الذكية للهواتف */
+@media (max-width: 768px) {
+    body {
+        background-size: cover;
+        background-position: top center;
+    }
+}
