@@ -1,489 +1,420 @@
-style.css
+index.html
 
 
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&display=swap');
 
-:root {
-    --bg: #030406;
-    --panel: rgba(12, 15, 20, 0.76);
-    --panel-strong: rgba(15, 18, 24, 0.92);
-    --panel-soft: rgba(255, 255, 255, 0.055);
-    --line: rgba(255, 255, 255, 0.12);
-    --line-strong: rgba(255, 255, 255, 0.2);
-    --text: #f7f8fb;
-    --muted: #a5adba;
-    --accent: #f7f8fb;
-    --accent-dark: #111318;
-    --success: #70e1b4;
-    --danger: #ff7d86;
-    --shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
-}
 
-* { box-sizing: border-box; }
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AKLAKE Studio | مساحة الإبداع بالذكاء الاصطناعي</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- ربط ملف الستايل الجديد -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-html { min-height: 100%; background: #000; }
+<header class="nav">
+    <button class="brand-button" type="button" onclick="window.openWorkspace()" aria-label="فتح أكلاك">
+        <span class="brand-orbit"><i class="fas fa-sparkles"></i></span>
+        <span class="brand-lockup"><span class="logo">AKLAKE</span><small>CREATIVE AI</small></span>
+    </button>
+    <div class="account-actions">
+        <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt"></i> <span id="user-credits">0</span> نقطة</span>
+        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات"><i class="fas fa-bag-shopping"></i><span class="cart-button-text">السلة</span><b id="cart-count">0</b></button>
+        <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i> تسجيل الدخول</button>
+        <button id="logout-btn" class="account-btn danger hidden" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i> خروج</button>
+    </div>
+</header>
 
-body {
-    min-height: 100vh;
-    margin: 0;
-    color: var(--text);
-    font-family: 'Tajawal', sans-serif;
-    background-color: var(--bg);
-    background-image:
-        linear-gradient(180deg, rgba(0,0,0,.08), rgba(0,0,0,.58)),
-        url('1765337248_new_1_ℭ𝔬𝔫𝔱𝔞𝔠𝔱.gif');
-    background-repeat: no-repeat;
-    background-position: top center;
-    background-attachment: fixed;
-    background-size: cover;
-    overflow-x: hidden;
-}
+<section id="welcome-screen" class="welcome-screen">
+    <div class="welcome-copy">
+        <span class="eyebrow">AKLAKE CREATIVE AI</span>
+        <h1>حوّل فكرتك إلى عمل حقيقي</h1>
+        <p>تحدث مع الذكاء الاصطناعي، أنشئ كتابًا طويلًا، اصنع صورة، أو صمّم لوحة فنية داخل غرفتك.</p>
+    </div>
+    <div class="quick-chat-card">
+        <textarea id="quick-chat-prompt" rows="1" placeholder="اكتب ما تريد البدء به..."></textarea>
+        <button id="open-chat-btn" type="button" aria-label="بدء المحادثة"><i class="fas fa-arrow-up"></i></button>
+    </div>
+    <div class="quick-actions">
+        <button type="button" data-welcome-tool="text"><i class="far fa-message"></i> محادثة</button>
+        <button type="button" data-welcome-tool="book_outline"><i class="fas fa-book-open"></i> إنشاء كتاب</button>
+        <button type="button" data-welcome-tool="generate"><i class="far fa-image"></i> إنشاء صورة</button>
+        <button type="button" data-welcome-tool="art_studio"><i class="fas fa-palette"></i> استوديو اللوحات</button>
+    </div>
+</section>
 
-body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background:
-        radial-gradient(circle at 14% 20%, rgba(255,255,255,.09), transparent 24%),
-        radial-gradient(circle at 82% 68%, rgba(92,106,130,.13), transparent 28%);
-}
+<div id="app-shell" class="app-shell is-collapsed" data-action="text">
+    <aside class="tools-sidebar" aria-label="أدوات الذكاء الاصطناعي">
+        <div class="sidebar-title">الأدوات</div>
+        <button class="tool-button active" type="button" data-tool="text">
+            <span class="tool-icon"><i class="far fa-message"></i></span><span>المحادثة</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="book_outline">
+            <span class="tool-icon"><i class="fas fa-book-open"></i></span><span>إنشاء كتاب</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="generate">
+            <span class="tool-icon"><i class="far fa-image"></i></span><span>إنشاء صورة</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="edit">
+            <span class="tool-icon"><i class="fas fa-wand-magic-sparkles"></i></span><span>تعديل صورة</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="art_studio">
+            <span class="tool-icon"><i class="fas fa-palette"></i></span><span>رسم اللوحات</span>
+        </button>
+        <div class="sidebar-spacer"></div>
+        <button id="library-toggle-btn" class="tool-button secondary" type="button">
+            <span class="tool-icon"><i class="fas fa-layer-group"></i></span><span>أعمالي</span>
+        </button>
+    </aside>
 
-button, input, select, textarea { font: inherit; }
-button { cursor: pointer; }
-.hidden { display: none !important; }
+    <main class="workspace-main">
+        <div class="workspace-header">
+            <div>
+                <span id="workspace-kicker" class="workspace-kicker">AKLAKE CHAT</span>
+                <h2 id="workspace-title">محادثة جديدة</h2>
+            </div>
+            <button id="settings-toggle-btn" class="icon-button" type="button" aria-label="إعدادات النموذج" title="إعدادات النموذج"><i class="fas fa-sliders"></i></button>
+        </div>
 
-.nav {
-    position: fixed;
-    inset: 0 0 auto 0;
-    z-index: 100;
-    height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 28px;
-    background: rgba(3, 4, 6, 0.54);
-    border-bottom: 1px solid rgba(255,255,255,.09);
-    backdrop-filter: blur(20px) saturate(135%);
-    -webkit-backdrop-filter: blur(20px) saturate(135%);
-}
+        <div id="my-library-section" class="library-drawer hidden">
+            <div class="panel-heading">
+                <div><span class="panel-eyebrow">MY CREATIONS</span><h3><i class="fas fa-layer-group"></i> أعمالي المحفوظة</h3></div>
+                <button type="button" class="close-panel-btn" data-close-library><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="library-tabs" role="tablist">
+                <button class="library-tab active" type="button" data-library-tab="books"><i class="fas fa-book"></i> الكتب</button>
+                <button class="library-tab" type="button" data-library-tab="artworks"><i class="fas fa-palette"></i> اللوحات</button>
+                <button class="library-tab" type="button" data-library-tab="cart"><i class="fas fa-bag-shopping"></i> السلة <b id="drawer-cart-count">0</b></button>
+            </div>
+            <div class="library-panel" data-library-panel="books">
+                <div id="my-library-list"></div>
+                <button onclick="window.selectAITool('book_outline')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
+            </div>
+            <div class="library-panel hidden" data-library-panel="artworks">
+                <div id="artworks-library-list" class="artworks-library-grid"></div>
+                <button onclick="window.selectAITool('art_studio')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء لوحة جديدة</button>
+            </div>
+            <div class="library-panel hidden" data-library-panel="cart">
+                <div id="cart-list" class="cart-list"></div>
+                <div class="cart-summary"><span>المجموع المؤقت</span><strong id="cart-total">0.00 $</strong></div>
+                <button id="checkout-btn" class="small-primary-btn checkout-btn"><i class="fas fa-lock"></i> إكمال الشراء لاحقًا</button>
+            </div>
+        </div>
 
-.brand-button {
-    width: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0;
-    color: var(--text);
-    background: transparent;
-    border: 0;
-}
+        <div id="main-inputs-wrapper">
+        <div id="advanced-settings" class="advanced-settings hidden">
+            <div class="settings-label"><i class="fas fa-sliders"></i> إعدادات النموذج <span>يمكن تغييرها، والخيارات الاقتصادية محددة افتراضيًا.</span></div>
+            <div class="controls-grid">
+            <div>
+                <label>المصدر (الكود الوظيفي):</label>
+                <select id="source-select">
+                    <option value="6a3c7a760032067bd275">الكود الأول (الأساسي)</option>
+                    <option value="6a445f680013960a14c6">الكود الثاني (المشتق/الموزع)</option>
+                </select>
+            </div>
+            <div>
+                <label>نوع الخدمة:</label>
+                <select id="action-select">
+                    <option value="text">💬 محادثة نصية</option>
+                    <option value="generate">🎨 توليد صور</option>
+                    <option value="edit">🖌️ تعديل صورة</option>
+                    <option value="art_studio">🖼️ استوديو اللوحات الفنية</option>
+                    <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
+                </select>
+            </div>
+            <div>
+                <label>المزود:</label>
+                <select id="provider-select"></select>
+            </div>
+            <div>
+                <label>النموذج (الموديل):</label>
+                <select id="model-select"></select>
+            </div>
+            </div>
+        </div>
 
-.brand-orbit {
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    border: 1px solid var(--line-strong);
-    border-radius: 50%;
-    background: rgba(255,255,255,.08);
-    box-shadow: inset 0 0 18px rgba(255,255,255,.05);
-}
+        <div id="image-upload-section" class="upload-panel hidden">
+            <label><i class="fas fa-cloud-arrow-up"></i> ارفع الصورة التي تريد تعديلها</label>
+            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
+        </div>
 
-.logo { font-size: 1.42rem; font-weight: 700; letter-spacing: .8px; }
-.account-actions { display: flex; align-items: center; gap: 10px; }
-.account-btn, .credit-pill {
-    width: auto;
-    min-height: 38px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    background: rgba(255,255,255,.07);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-}
-.account-btn:hover { background: rgba(255,255,255,.13); }
-.account-btn.danger { color: #ffd8db; }
-.credit-pill { color: var(--success); font-weight: 700; }
+        <div id="book-settings" class="book-fields hidden">
+            <div class="book-form-intro">
+                <span><i class="fas fa-book-open"></i></span>
+                <div><h3>ابنِ كتابك خطوة بخطوة</h3><p>أدخل المعلومات الأساسية، وستبقى آلية التأليف الحالية كما هي.</p></div>
+            </div>
+            <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
+            <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
+            <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
+               
+            <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.classList.remove('hidden'); c.focus(); } else { c.classList.add('hidden'); }">
+                <optgroup label="الأدب الخيالي">
+                    <option value="رواية">رواية</option>
+                    <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
+                    <option value="رواية بوليسية">رواية بوليسية / غموض</option>
+                </optgroup>
+                <optgroup label="الأدب الواقعي والتعليمي">
+                    <option value="تطوير الذات">تطوير الذات</option>
+                    <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
+                    <option value="دليل إرشادي">دليل إرشادي (How-to)</option>
+                </optgroup>
+                <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
+            </select>
+            <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
+                 
+            <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
+            <select id="b-structure">
+                <option value="فصول (Chapters)">فصول (Chapters)</option>
+                <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
+                <option value="دروس (Lessons)">دروس (Lessons)</option>
+                <option value="أيام (Days)">أيام (Days)</option>
+            </select>
+            <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
+                
+            <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
+            <select id="b-audience">
+                <option value="الجمهور العام">الجمهور العام</option>
+                <option value="أطفال">أطفال</option>
+                <option value="مبتدئين">مبتدئين</option>
+                <option value="محترفين وخبراء">محترفين وخبراء</option>
+            </select>
+            <select id="b-tone">
+                <option value="حيادي وواضح">حيادي وواضح</option>
+                <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
+                <option value="فكاهي ومرح">فكاهي ومرح</option>
+            </select>
+            <select id="b-pov">
+                <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
+                <option value="المتكلم (أنا)">المتكلم (أنا)</option>
+            </select>
+            <select id="b-language">
+                <option value="العربية">اللغة العربية</option>
+                <option value="الإنجليزية">اللغة الإنجليزية</option>
+            </select>
 
-.welcome-screen {
-    min-height: 100vh;
-    width: min(760px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 150px 0 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    transition: opacity .35s ease, transform .35s ease;
-}
+            <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
+            <select id="b-images">
+                <option value="بدون صور">بدون صور داخلية</option>
+                <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
+                <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
+            </select>
+            <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اختياري)">
+        </div>
 
-.welcome-screen.is-hidden {
-    position: fixed;
-    opacity: 0;
-    transform: translateY(-16px) scale(.98);
-    pointer-events: none;
-}
+        <section id="art-studio" class="art-studio hidden" aria-label="استوديو اللوحات الفنية">
+            <div class="studio-intro">
+                <div class="studio-intro-icon"><i class="fas fa-palette"></i></div>
+                <div>
+                    <span class="panel-eyebrow">AKLAKE ART ROOM</span>
+                    <h3>علّق فكرتك على الحائط قبل أن تشتريها</h3>
+                    <p>أضف لوحة، حرّكها داخل الغرفة، ارفع صورتك ثم حوّلها إلى أسلوب فني باستخدام OpenAI.</p>
+                </div>
+                <div class="studio-model-badge"><i class="fas fa-bolt"></i><span>الكود الأول</span><strong>OpenAI Pro</strong></div>
+            </div>
 
-.welcome-copy { max-width: 620px; margin-bottom: 28px; }
-.eyebrow, .workspace-kicker {
-    display: inline-block;
-    color: #c9d0da;
-    font-size: .72rem;
-    font-weight: 700;
-    letter-spacing: 1.8px;
-}
-.welcome-copy h1 {
-    margin: 12px 0 10px;
-    font-size: clamp(2.15rem, 6vw, 4.4rem);
-    line-height: 1.08;
-    letter-spacing: -1.5px;
-}
-.welcome-copy p { margin: 0; color: var(--muted); font-size: 1.05rem; line-height: 1.8; }
+            <div class="art-studio-layout">
+                <div class="art-stage-column">
+                    <div id="art-wall-stage" class="art-wall-stage">
+                        <div class="room-light"></div>
+                        <div class="room-floor"></div>
+                        <div id="art-frames-layer" class="art-frames-layer"></div>
+                        <div id="empty-wall-hint" class="empty-wall-hint">
+                            <i class="fas fa-hand-pointer"></i>
+                            <strong>الحائط في انتظار لوحتك</strong>
+                            <span>اختر حجمًا من الأسفل، ثم اسحب اللوحة إلى مكانها.</span>
+                        </div>
+                    </div>
 
-.quick-chat-card {
-    width: min(650px, 100%);
-    display: flex;
-    align-items: flex-end;
-    gap: 12px;
-    padding: 12px 12px 12px 14px;
-    border: 1px solid var(--line-strong);
-    border-radius: 22px;
-    background: rgba(14, 17, 22, .7);
-    box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);
-    backdrop-filter: blur(18px);
-}
+                    <div class="frame-size-picker">
+                        <div><span class="panel-eyebrow">ADD A FRAME</span><strong>إضافة لوحة جديدة</strong></div>
+                        <button type="button" data-add-frame="large"><i class="far fa-square"></i><span>كبيرة</span></button>
+                        <button type="button" data-add-frame="medium"><i class="far fa-square"></i><span>متوسطة</span></button>
+                        <button type="button" data-add-frame="small"><i class="far fa-square"></i><span>صغيرة</span></button>
+                    </div>
+                </div>
 
-.quick-chat-card textarea, .composer textarea {
-    min-height: 48px;
-    max-height: 180px;
-    flex: 1;
-    resize: none;
-    overflow-y: auto;
-    padding: 13px 8px;
-    color: var(--text);
-    caret-color: #fff;
-    background: transparent;
-    border: 0;
-    outline: 0;
-    line-height: 1.55;
-}
-.quick-chat-card textarea::placeholder, .composer textarea::placeholder { color: #838b98; }
+                <aside class="art-editor-panel">
+                    <div id="art-editor-empty" class="art-editor-empty">
+                        <i class="fas fa-arrow-pointer"></i>
+                        <h4>اختر لوحة من الحائط</h4>
+                        <p>بعد اختيارها ستظهر هنا أدوات الصورة والتحويل والحفظ.</p>
+                    </div>
 
-.quick-chat-card button, #send-btn {
-    flex: 0 0 44px;
-    width: 44px;
-    height: 44px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    color: #090a0d;
-    background: #fff;
-    border: 0;
-    border-radius: 14px;
-    transition: transform .18s ease, opacity .18s ease;
-}
-.quick-chat-card button:hover, #send-btn:hover { transform: translateY(-2px); }
-.quick-chat-card button:disabled, #send-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+                    <div id="art-editor-active" class="hidden">
+                        <div class="selected-art-heading">
+                            <div><span class="panel-eyebrow">SELECTED FRAME</span><h4 id="selected-art-title">اللوحة الأولى</h4></div>
+                            <button id="delete-art-frame-btn" type="button" class="danger-icon-btn" aria-label="حذف اللوحة"><i class="far fa-trash-can"></i></button>
+                        </div>
 
-.quick-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
-.quick-actions button {
-    width: auto;
-    padding: 8px 13px;
-    color: #cbd1da;
-    background: rgba(255,255,255,.045);
-    border: 1px solid rgba(255,255,255,.09);
-    border-radius: 999px;
-}
-.quick-actions button:hover { color: #fff; background: rgba(255,255,255,.1); }
+                        <label class="art-upload-box" for="art-image-upload">
+                            <i class="fas fa-cloud-arrow-up"></i>
+                            <strong>ارفع الصورة داخل اللوحة</strong>
+                            <span>PNG أو JPG أو WEBP</span>
+                            <input id="art-image-upload" type="file" accept="image/png,image/jpeg,image/webp">
+                        </label>
 
-.app-shell {
-    width: 100%;
-    min-height: 100vh;
-    padding-top: 72px;
-    display: grid;
-    grid-template-columns: 220px minmax(0, 1fr);
-    direction: rtl;
-    opacity: 1;
-    transition: opacity .35s ease;
-}
-.app-shell.is-collapsed { position: fixed; inset: 0; opacity: 0; pointer-events: none; }
+                        <label for="art-prompt">كيف تريد تحويل الصورة؟</label>
+                        <textarea id="art-prompt" rows="4" placeholder="مثال: حوّل الصورة إلى لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية..."></textarea>
 
-.tools-sidebar {
-    position: sticky;
-    top: 72px;
-    height: calc(100vh - 72px);
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    padding: 20px 14px;
-    background: rgba(5, 7, 10, .7);
-    border-left: 1px solid var(--line);
-    backdrop-filter: blur(20px);
-}
-.sidebar-title { padding: 4px 12px 12px; color: #78818e; font-size: .74rem; font-weight: 700; letter-spacing: 1px; }
-.tool-button {
-    position: relative;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 10px 11px;
-    color: #aeb6c1;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 13px;
-    text-align: right;
-    transition: .2s ease;
-}
-.tool-button:hover { color: #fff; background: rgba(255,255,255,.055); }
-.tool-button.active {
-    color: #fff;
-    background: rgba(255,255,255,.1);
-    border-color: rgba(255,255,255,.13);
-    box-shadow: inset 0 1px rgba(255,255,255,.08), 0 0 24px rgba(255,255,255,.035);
-}
-.tool-button.active::after {
-    content: '';
-    position: absolute;
-    right: -15px;
-    width: 3px;
-    height: 24px;
-    background: #fff;
-    border-radius: 0 4px 4px 0;
-    box-shadow: 0 0 14px rgba(255,255,255,.8);
-}
-.tool-icon {
-    width: 34px;
-    height: 34px;
-    display: grid;
-    place-items: center;
-    flex: 0 0 34px;
-    border-radius: 10px;
-    background: rgba(255,255,255,.06);
-}
-.tool-button.active .tool-icon { background: rgba(255,255,255,.14); }
-.sidebar-spacer { flex: 1; }
-.tool-button.secondary { border-top: 1px solid var(--line); border-radius: 0; padding-top: 17px; }
+                        <div class="art-prompt-chips">
+                            <button type="button" data-art-prompt="لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية">كلاسيكي</button>
+                            <button type="button" data-art-prompt="لوحة انطباعية بألوان هادئة وملمس زيت واضح">انطباعي</button>
+                            <button type="button" data-art-prompt="لوحة مائية راقية بخلفية ورقية ناعمة">ألوان مائية</button>
+                        </div>
 
-.workspace-main {
-    width: 100%;
-    min-width: 0;
-    min-height: calc(100vh - 72px);
-    display: flex;
-    flex-direction: column;
-    padding: 0 clamp(18px, 4vw, 64px) 24px;
-    background: linear-gradient(180deg, rgba(3,4,6,.2), rgba(3,4,6,.54));
-}
-.workspace-header {
-    min-height: 90px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.workspace-header h2 { margin: 5px 0 0; font-size: 1.35rem; }
-.icon-button, .close-panel-btn {
-    width: 42px;
-    height: 42px;
-    display: grid;
-    place-items: center;
-    padding: 0;
-    color: #c8cfd9;
-    background: rgba(255,255,255,.06);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-}
-.icon-button:hover, .close-panel-btn:hover { color: #fff; background: rgba(255,255,255,.12); }
+                        <div class="art-action-grid">
+                            <button id="art-transform-btn" type="button" class="art-primary-btn"><i class="fas fa-wand-magic-sparkles"></i> تحويل الصورة</button>
+                            <button id="art-generate-btn" type="button" class="art-secondary-btn"><i class="fas fa-sparkles"></i> إنشاء من الصفر</button>
+                        </div>
+                        <button id="save-artwork-btn" type="button" class="art-save-btn"><i class="far fa-bookmark"></i> حفظ في لوحاتي المنشأة</button>
+                        <button id="add-art-to-cart-btn" type="button" class="art-cart-btn"><i class="fas fa-bag-shopping"></i> إضافة اللوحة إلى السلة</button>
+                        <div id="art-studio-status" class="art-studio-status" aria-live="polite"></div>
+                    </div>
+                </aside>
+            </div>
+        </section>
 
-#main-inputs-wrapper { width: min(920px, 100%); margin: 0 auto; display: flex; flex: 1; flex-direction: column; }
-.advanced-settings, .glass-panel, .upload-panel, .book-fields, .result-box, #auto-generation-status {
-    margin-top: 18px;
-    padding: 18px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    box-shadow: 0 15px 45px rgba(0,0,0,.22);
-    backdrop-filter: blur(22px) saturate(125%);
-    -webkit-backdrop-filter: blur(22px) saturate(125%);
-}
-.advanced-settings { width: min(920px, 100%); margin-inline: auto; }
-.settings-label { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-weight: 700; }
-.settings-label span { margin-right: auto; color: var(--muted); font-size: .78rem; font-weight: 400; }
-.controls-grid { display: grid; grid-template-columns: repeat(4, minmax(135px, 1fr)); gap: 12px; }
-label { display: block; margin-bottom: 6px; color: #c2c9d3; font-size: .82rem; font-weight: 600; }
+        <div id="chat-stream" class="chat-stream">
+            <div id="chat-messages" class="chat-messages" aria-live="polite">
+                <div class="message-row assistant-message">
+                    <div class="message-avatar"><i class="fas fa-sparkles"></i></div>
+                    <div class="message-content">
+                        <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
+                        <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الأول</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-select, input {
-    width: 100%;
-    padding: 11px 12px;
-    color: var(--text);
-    background: rgba(255,255,255,.065);
-    border: 1px solid var(--line);
-    border-radius: 11px;
-    outline: 0;
-}
-select option { color: #111; background: #fff; }
-select:focus, input:focus { border-color: rgba(255,255,255,.4); box-shadow: 0 0 0 3px rgba(255,255,255,.06); }
+        <div class="composer-wrap">
+            <div class="composer">
+                <textarea id="main-prompt" rows="1" placeholder="اكتب رسالتك هنا..."></textarea>
+                <button id="send-btn" type="button" aria-label="إرسال الطلب"><i class="fas fa-arrow-up"></i></button>
+            </div>
+            <div class="composer-note"><span id="active-model-label">الكود الأول • OpenAI • GPT-4o</span><span>Enter للإرسال · Shift + Enter لسطر جديد</span></div>
+        </div>
+        </div>
 
-.upload-panel { width: min(920px, 100%); margin-inline: auto; border-style: dashed; }
-.upload-panel input { margin-top: 8px; }
+        <div id="loader" class="hidden"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
+    
+    <div class="result-box hidden" id="result-area">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">النتيجة</h3>
+        <div id="result-text" class="hidden"></div>
+        
+        <div id="editable-outline-container" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #f0fdf4; padding: 10px; border-radius: 5px; border: 1px solid #bbf7d0; margin-bottom: 10px;">
+                <label style="font-weight: bold; color: #16a34a; margin: 0;"><i class="fas fa-edit"></i> الخطة أدناه قابلة للتعديل اليدوي</label>
+                <button id="undo-btn" style="width: auto; padding: 6px 15px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 0.9em; cursor: pointer;"><i class="fas fa-undo"></i> تراجع للخلف</button>
+            </div>
+            <div id="book-outline-text" contenteditable="true"></div>
+        </div>
+        
+        <div id="book-actions" class="hidden" style="background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-top: 15px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold;">هل تريد أن يقوم الذكاء الاصطناعي بتعديلها لك؟</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="refine-prompt" placeholder="اكتب طلبك هنا (مثال: أضف فصلاً عن كذا...)">
+                <button id="refine-btn" style="width: 150px; background: #eab308; color: #1f2937;"><i class="fas fa-magic"></i> تعديل ذكي</button>
+            </div>
+            <hr style="border: none; border-top: 1px solid #cbd5e1; margin-bottom: 15px;">
+            
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px; background: white; padding: 10px; border-radius: 5px; border: 1px solid #d1d5db;">
+                <label style="margin: 0; color: #4b5563;">عدد صفحات المقدمة المستهدفة:</label>
+                <input type="number" id="intro-pages-input" value="2" min="1" max="10" style="width: 80px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                <span id="remaining-pages-display" style="font-weight: bold; color: #16a34a; margin-right: auto;"></span>
+            </div>
 
-.book-fields {
-    width: min(920px, 100%);
-    margin-inline: auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 13px;
-    max-height: calc(100vh - 300px);
-    overflow-y: auto;
-}
-.book-form-intro { grid-column: 1 / -1; display: flex; align-items: center; gap: 13px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.book-form-intro > span { width: 44px; height: 44px; display: grid; place-items: center; background: rgba(255,255,255,.09); border-radius: 13px; }
-.book-form-intro h3 { margin: 0 0 4px; }
-.book-form-intro p { margin: 0; color: var(--muted); font-size: .83rem; }
-.book-section-title { grid-column: 1 / -1; margin-top: 9px; padding-bottom: 7px; color: #e6e9ee; border-bottom: 1px solid rgba(255,255,255,.08); font-weight: 700; }
+            <button id="write-intro-btn" style="width: 100%; background: #16a34a; font-size: 1.1em;"><i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة</button>
+        </div>
 
-.chat-stream { flex: 1; min-height: 0; }
-.chat-messages { width: min(820px, 100%); min-height: 320px; margin: 0 auto; padding: 26px 0 130px; }
-.message-row { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 22px; animation: messageIn .24s ease both; }
-.message-row.user-message { flex-direction: row-reverse; }
-.message-avatar { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; color: #0b0c10; background: #fff; border-radius: 11px; }
-.user-message .message-avatar { color: #d7dde5; background: rgba(255,255,255,.08); border: 1px solid var(--line); }
-.message-content { max-width: min(76%, 680px); }
-.message-bubble {
-    padding: 13px 15px;
-    color: #e9ecf1;
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.09);
-    border-radius: 7px 17px 17px 17px;
-    white-space: pre-wrap;
-    line-height: 1.75;
-    overflow-wrap: anywhere;
-}
-.user-message .message-bubble { background: rgba(255,255,255,.13); border-radius: 17px 7px 17px 17px; }
-.message-source { margin-top: 7px; color: #77818e; font-size: .72rem; }
-.message-image { display: block; max-width: min(100%, 620px); max-height: 620px; border-radius: 14px; border: 1px solid var(--line); }
+        <img id="result-image" class="result-image hidden" src="" alt="النتيجة">
+        <br>
+        <div id="source-badge" class="source-badge hidden"></div>
+    </div>
 
-.typing-bubble { min-width: 68px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
-.typing-bubble i { width: 6px; height: 6px; display: block; background: #cfd5dd; border-radius: 50%; animation: typing 1.15s infinite ease-in-out; }
-.typing-bubble i:nth-child(2) { animation-delay: .16s; }
-.typing-bubble i:nth-child(3) { animation-delay: .32s; }
-.typing-bubble i:nth-child(4) { animation-delay: .48s; }
+    <div id="intro-area" class="hidden" style="margin-top: 30px; display: flex; flex-direction: column; align-items: center;">
+        
+        <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
+        <div class="book-toolbar">
+            <div style="display: flex; align-items: center; gap: 5px; margin-left: 15px;">
+                <label style="margin:0; font-size:0.8em;">الخلفية:</label>
+                <button class="toolbar-btn" onclick="changeBookTheme('theme-white')" style="background: white; border: 1px solid #ccc;">أبيض</button>
+                <button class="toolbar-btn" onclick="changeBookTheme('theme-sepia')" style="background: #f4ecd8; border: 1px solid #d4c5b0;">بني</button>
+                <button class="toolbar-btn" onclick="changeBookTheme('theme-dark')" style="background: #1a1a1a; color: white; border: 1px solid #333;">أسود</button>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 5px; margin-left: 15px;">
+                <label style="margin:0; font-size:0.8em;">الخط:</label>
+                <button class="toolbar-btn" onclick="changeFontSize(1)">تكبير <b>+</b></button>
+                <button class="toolbar-btn" onclick="changeFontSize(-1)">تصغير <b>-</b></button>
+            </div>
 
-.composer-wrap {
-    position: sticky;
-    bottom: 0;
-    z-index: 20;
-    width: min(820px, 100%);
-    margin: auto auto 0;
-    padding: 12px 0 0;
-    background: linear-gradient(180deg, transparent, rgba(4,5,8,.94) 28%);
-}
-.composer {
-    display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    padding: 9px 9px 9px 13px;
-    background: rgba(17,20,26,.86);
-    border: 1px solid var(--line-strong);
-    border-radius: 19px;
-    box-shadow: 0 14px 45px rgba(0,0,0,.4), inset 0 1px rgba(255,255,255,.04);
-    backdrop-filter: blur(22px);
-}
-.composer-note { display: flex; justify-content: space-between; gap: 12px; padding: 7px 7px 0; color: #68717d; font-size: .69rem; }
-#active-model-label { color: #8f99a7; }
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <label style="margin:0; font-size:0.8em;">عدد الصفحات:</label>
+                <input type="number" id="target-pages-input" value="5" min="1" max="100" style="width: 60px; padding: 4px; font-size: 0.9em;">
+                <button class="toolbar-btn" onclick="recalculatePages()" style="background: #14539a; color: white; font-weight: bold;">تطبيق التقسيم</button>
+            </div>
+        </div>
 
-.app-shell[data-action="book_outline"] .chat-stream { display: none; }
-.app-shell[data-action="book_outline"] .composer-wrap { margin-top: 16px; }
+        <!-- التعديل: إظهار عنوان الغلاف -->
+        <div id="book-cover-display" class="book-cover-title hidden"></div>
 
-#loader { text-align: center; color: var(--muted); padding: 10px; }
-.result-box { width: min(920px, 100%); margin-inline: auto; }
-.result-box h3 { color: var(--text); }
-#result-text { color: #e1e5eb; white-space: pre-wrap; line-height: 1.75; }
-#book-outline-text { min-height: 430px; padding: 18px; color: #16191f; background: rgba(255,255,255,.94); border-radius: 13px; line-height: 1.8; white-space: pre-wrap; outline: none; }
-.result-image { max-width: 100%; height: auto; border-radius: 14px; }
-.source-badge { display: inline-block; margin-top: 12px; padding: 6px 10px; color: #d8dde5; background: rgba(255,255,255,.08); border: 1px solid var(--line); border-radius: 999px; font-size: .75rem; }
+        <div id="book-container" class="theme-white" style="width: 100%; max-width: 700px; min-height: 600px; padding: 40px; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 20px; transition: background 0.3s, color 0.3s;">
+            <div id="intro-text" style="white-space: pre-wrap; line-height: 2; font-size: 1.15em; text-align: justify; padding-bottom: 30px;">
+            </div>
+            
+            <div id="page-number" class="hidden" style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; opacity: 0.7; font-weight: bold; font-size: 1.1em;">
+                1
+            </div>
+        </div>
 
-.glass-panel { width: min(920px, 100%); margin-inline: auto; }
-.panel-heading { display: flex; align-items: center; justify-content: space-between; }
-.panel-heading h3 { margin: 0; }
-#my-library-list { max-height: 260px; overflow-y: auto; margin: 14px 0; }
-.small-primary-btn { width: auto; padding: 9px 13px; color: #0b0c0e; background: #fff; border: 0; border-radius: 10px; font-weight: 700; }
+        <div style="display: flex; gap: 15px; width: 100%; max-width: 700px; justify-content: center; align-items: center;">
+            <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> السابقة</button>
+            <span id="page-indicator" class="hidden" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
+            <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">التالية <i class="fas fa-arrow-left"></i></button>
+        </div>
 
-button { border: 0; }
-.book-toolbar { display: flex; flex-wrap: wrap; gap: 10px; width: min(700px,100%); margin-bottom: 15px; padding: 10px; color: #1f2937; background: rgba(255,255,255,.9); border-radius: 12px; justify-content: center; }
-.toolbar-btn { width: auto; padding: 6px 11px; color: #333; background: #fff; border: 1px solid #ccc; border-radius: 6px; }
-.book-heading { margin-bottom: 20px; font-size: 1.6em; font-weight: 700; text-align: center; }
-.book-cover-title { margin-bottom: 20px; padding-bottom: 10px; color: #fff; font-size: 2em; font-weight: 700; text-align: center; }
-.theme-white { background-color: #fff; color: #1f2937; }
-.theme-sepia { background-color: #f4ecd8; color: #4a3b2c; }
-.theme-dark { background-color: #1a1a1a; color: #e5e5e5; }
+        <div id="intro-refine-section" style="width: 100%; max-width: 700px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 20px;">
+            <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #b45309;"><i class="fas fa-edit"></i> هل تريد إجراء تعديل على هذه المقدمة؟</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="refine-intro-prompt" placeholder="اكتب طلب التعديل هنا (مثال: اجعل البداية أكثر حماساً...)">
+                <button id="refine-intro-btn" style="width: 180px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة</button>
+            </div>
+        </div>
+        
+        <div style="width: 100%; max-width: 700px; margin-top: 20px; display: flex; gap: 15px;">
+            <button id="continue-writing-btn" style="width: 40%; background: #2563eb; font-size: 1.1em;"><i class="fas fa-pen-fancy"></i> إكمال يدوياً</button>
+            <button id="start-auto-btn" style="width: 60%; background: #7c3aed; font-size: 1.1em;"><i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي في الخلفية</button>
+        </div>
+    </div>
 
-.modal { display: none; position: fixed; inset: 0; z-index: 1000; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.72); backdrop-filter: blur(10px); }
-.modal-content { width: min(360px, 100%); padding: 26px; text-align: center; background: rgba(18,21,27,.95); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
-.modal-content input { margin-bottom: 12px; }
-.modal-content button { width: 100%; padding: 11px; color: #111; background: #fff; border-radius: 10px; font-weight: 700; }
+    <div id="auto-generation-status" class="hidden" style="text-align: center; margin-top: 30px; padding: 40px; background: #eef2ff; border-radius: 12px; border: 2px dashed #818cf8;">
+        <h2 id="status-title" style="color: #4338ca;"><i class='fas fa-cog fa-spin'></i> يتم الآن تأليف الكتاب بالكامل في الخلفية...</h2>
+        <p style="font-size: 1.2em; color: #3730a3; margin-top: 20px;">عدد الصفحات/الأجزاء المنجزة حتى الآن</p>
+        <div style="font-size: 4em; font-weight: bold; color: #312e81; margin: 10px 0;" id="progress-count">0</div>
+        <p style="color: #6b7280;">(يمكنك إغلاق الصفحة والعودة لاحقاً، الذكاء الاصطناعي يعمل نيابة عنك)</p>
+        
+        <button id="new-book-btn" class="hidden" onclick="resetForNewBook()" style="margin-top: 30px; background: #10b981; width: auto; padding: 12px 30px; font-size: 1.1em;"><i class="fas fa-plus"></i> تأليف كتاب جديد</button>
+    </div>
 
-@keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: .38; } 30% { transform: translateY(-5px); opacity: 1; } }
-@keyframes messageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    </main>
+</div>
 
-@media (max-width: 980px) {
-    .controls-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
-    .app-shell { grid-template-columns: 88px minmax(0, 1fr); }
-    .sidebar-title, .tool-button > span:last-child { display: none; }
-    .tool-button { justify-content: center; }
-    .tool-button.active::after { right: -15px; }
-}
+<div class="modal" id="auth-modal">
+    <div class="modal-content">
+        <h3 id="modal-title">تسجيل الدخول</h3>
+        <input type="email" id="email" placeholder="البريد الإلكتروني">
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <input type="text" id="name" placeholder="الاسم" class="hidden">
+        <button id="auth-submit-btn" onclick="handleAuth()">دخول</button>
+        <p style="margin-top: 15px; font-size: 0.9em;"><a href="#" onclick="toggleAuthMode()" id="toggle-auth-text" style="color: #4b5563;">إنشاء حساب جديد</a></p>
+        <button onclick="closeModal()" style="background: transparent; color: #6b7280; text-decoration: underline; margin-top: 5px; border: none; cursor: pointer;">إلغاء</button>
+    </div>
+</div>
 
-@media (max-width: 720px) {
-    .nav { height: 62px; padding: 0 14px; }
-    .logo { font-size: 1.15rem; }
-    .brand-orbit { width: 30px; height: 30px; }
-    .account-btn { width: 38px; height: 38px; justify-content: center; padding: 0; }
-    .account-btn:not(.danger) { font-size: 0; }
-    .account-btn i { font-size: .9rem; }
-    .credit-pill { padding: 7px 10px; font-size: .78rem; }
-    .welcome-screen { padding-top: 110px; }
-    .welcome-copy h1 { font-size: 2.35rem; }
-    .welcome-copy p { font-size: .92rem; }
-    .app-shell { display: block; padding: 62px 0 74px; }
-    .tools-sidebar {
-        position: fixed;
-        inset: auto 0 0;
-        z-index: 90;
-        height: 68px;
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 3px;
-        padding: 7px 8px;
-        background: rgba(6,8,11,.92);
-        border: 1px solid var(--line);
-        backdrop-filter: blur(20px);
-    }
-    .sidebar-title, .sidebar-spacer { display: none; }
-    .tool-button { justify-content: center; padding: 6px; border-radius: 11px; }
-    .tool-button.secondary { padding-top: 6px; border-top: 0; border-radius: 11px; }
-    .tool-button.active::after { right: 50%; bottom: -7px; width: 22px; height: 2px; transform: translateX(50%); }
-    .tool-icon { width: 31px; height: 31px; flex-basis: 31px; }
-    .workspace-main { min-height: calc(100vh - 136px); padding: 0 14px 14px; }
-    .workspace-header { min-height: 76px; }
-    .workspace-header h2 { font-size: 1.15rem; }
-    .advanced-settings, .glass-panel, .upload-panel, .book-fields, .result-box { border-radius: 15px; padding: 14px; }
-    .controls-grid, .book-fields { grid-template-columns: 1fr; }
-    .book-form-intro, .book-section-title { grid-column: 1; }
-    .book-fields { max-height: none; }
-    .chat-messages { padding-top: 18px; }
-    .message-content { max-width: 86%; }
-    .message-avatar { width: 30px; height: 30px; flex-basis: 30px; }
-    .composer-note span:last-child { display: none; }
-    .composer-note { justify-content: center; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
-}
+<script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+<script src="app.js"></script>
+</body>
+</html>

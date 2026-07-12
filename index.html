@@ -8,7 +8,7 @@ index.html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>أكلاك | الواجهة الموحدة الذكية</title>
+    <title>AKLAKE Studio | مساحة الإبداع بالذكاء الاصطناعي</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- ربط ملف الستايل الجديد -->
     <link rel="stylesheet" href="style.css">
@@ -18,10 +18,11 @@ index.html
 <header class="nav">
     <button class="brand-button" type="button" onclick="window.openWorkspace()" aria-label="فتح أكلاك">
         <span class="brand-orbit"><i class="fas fa-sparkles"></i></span>
-        <span class="logo">aklake</span>
+        <span class="brand-lockup"><span class="logo">AKLAKE</span><small>CREATIVE AI</small></span>
     </button>
     <div class="account-actions">
         <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt"></i> <span id="user-credits">0</span> نقطة</span>
+        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات"><i class="fas fa-bag-shopping"></i><span class="cart-button-text">السلة</span><b id="cart-count">0</b></button>
         <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i> تسجيل الدخول</button>
         <button id="logout-btn" class="account-btn danger hidden" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i> خروج</button>
     </div>
@@ -29,9 +30,9 @@ index.html
 
 <section id="welcome-screen" class="welcome-screen">
     <div class="welcome-copy">
-        <span class="eyebrow">مساحة واحدة لكل أدواتك</span>
-        <h1>ماذا تحتاج أيها البشري؟</h1>
-        <p>تحدث مع الذكاء الاصطناعي، أنشئ كتابًا طويلًا، أو اصنع صورة من المكان نفسه.</p>
+        <span class="eyebrow">AKLAKE CREATIVE AI</span>
+        <h1>حوّل فكرتك إلى عمل حقيقي</h1>
+        <p>تحدث مع الذكاء الاصطناعي، أنشئ كتابًا طويلًا، اصنع صورة، أو صمّم لوحة فنية داخل غرفتك.</p>
     </div>
     <div class="quick-chat-card">
         <textarea id="quick-chat-prompt" rows="1" placeholder="اكتب ما تريد البدء به..."></textarea>
@@ -41,6 +42,7 @@ index.html
         <button type="button" data-welcome-tool="text"><i class="far fa-message"></i> محادثة</button>
         <button type="button" data-welcome-tool="book_outline"><i class="fas fa-book-open"></i> إنشاء كتاب</button>
         <button type="button" data-welcome-tool="generate"><i class="far fa-image"></i> إنشاء صورة</button>
+        <button type="button" data-welcome-tool="art_studio"><i class="fas fa-palette"></i> استوديو اللوحات</button>
     </div>
 </section>
 
@@ -59,9 +61,12 @@ index.html
         <button class="tool-button" type="button" data-tool="edit">
             <span class="tool-icon"><i class="fas fa-wand-magic-sparkles"></i></span><span>تعديل صورة</span>
         </button>
+        <button class="tool-button" type="button" data-tool="art_studio">
+            <span class="tool-icon"><i class="fas fa-palette"></i></span><span>رسم اللوحات</span>
+        </button>
         <div class="sidebar-spacer"></div>
         <button id="library-toggle-btn" class="tool-button secondary" type="button">
-            <span class="tool-icon"><i class="fas fa-layer-group"></i></span><span>مكتبتي</span>
+            <span class="tool-icon"><i class="fas fa-layer-group"></i></span><span>أعمالي</span>
         </button>
     </aside>
 
@@ -74,10 +79,29 @@ index.html
             <button id="settings-toggle-btn" class="icon-button" type="button" aria-label="إعدادات النموذج" title="إعدادات النموذج"><i class="fas fa-sliders"></i></button>
         </div>
 
-        <div id="my-library-section" class="glass-panel hidden">
-            <div class="panel-heading"><h3><i class="fas fa-book"></i> مكتبتي</h3><button type="button" class="close-panel-btn" data-close-library><i class="fas fa-xmark"></i></button></div>
-            <div id="my-library-list"></div>
-            <button onclick="window.selectAITool('book_outline')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
+        <div id="my-library-section" class="library-drawer hidden">
+            <div class="panel-heading">
+                <div><span class="panel-eyebrow">MY CREATIONS</span><h3><i class="fas fa-layer-group"></i> أعمالي المحفوظة</h3></div>
+                <button type="button" class="close-panel-btn" data-close-library><i class="fas fa-xmark"></i></button>
+            </div>
+            <div class="library-tabs" role="tablist">
+                <button class="library-tab active" type="button" data-library-tab="books"><i class="fas fa-book"></i> الكتب</button>
+                <button class="library-tab" type="button" data-library-tab="artworks"><i class="fas fa-palette"></i> اللوحات</button>
+                <button class="library-tab" type="button" data-library-tab="cart"><i class="fas fa-bag-shopping"></i> السلة <b id="drawer-cart-count">0</b></button>
+            </div>
+            <div class="library-panel" data-library-panel="books">
+                <div id="my-library-list"></div>
+                <button onclick="window.selectAITool('book_outline')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
+            </div>
+            <div class="library-panel hidden" data-library-panel="artworks">
+                <div id="artworks-library-list" class="artworks-library-grid"></div>
+                <button onclick="window.selectAITool('art_studio')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء لوحة جديدة</button>
+            </div>
+            <div class="library-panel hidden" data-library-panel="cart">
+                <div id="cart-list" class="cart-list"></div>
+                <div class="cart-summary"><span>المجموع المؤقت</span><strong id="cart-total">0.00 $</strong></div>
+                <button id="checkout-btn" class="small-primary-btn checkout-btn"><i class="fas fa-lock"></i> إكمال الشراء لاحقًا</button>
+            </div>
         </div>
 
         <div id="main-inputs-wrapper">
@@ -97,6 +121,7 @@ index.html
                     <option value="text">💬 محادثة نصية</option>
                     <option value="generate">🎨 توليد صور</option>
                     <option value="edit">🖌️ تعديل صورة</option>
+                    <option value="art_studio">🖼️ استوديو اللوحات الفنية</option>
                     <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
                 </select>
             </div>
@@ -178,6 +203,79 @@ index.html
             </select>
             <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اختياري)">
         </div>
+
+        <section id="art-studio" class="art-studio hidden" aria-label="استوديو اللوحات الفنية">
+            <div class="studio-intro">
+                <div class="studio-intro-icon"><i class="fas fa-palette"></i></div>
+                <div>
+                    <span class="panel-eyebrow">AKLAKE ART ROOM</span>
+                    <h3>علّق فكرتك على الحائط قبل أن تشتريها</h3>
+                    <p>أضف لوحة، حرّكها داخل الغرفة، ارفع صورتك ثم حوّلها إلى أسلوب فني باستخدام OpenAI.</p>
+                </div>
+                <div class="studio-model-badge"><i class="fas fa-bolt"></i><span>الكود الأول</span><strong>OpenAI Pro</strong></div>
+            </div>
+
+            <div class="art-studio-layout">
+                <div class="art-stage-column">
+                    <div id="art-wall-stage" class="art-wall-stage">
+                        <div class="room-light"></div>
+                        <div class="room-floor"></div>
+                        <div id="art-frames-layer" class="art-frames-layer"></div>
+                        <div id="empty-wall-hint" class="empty-wall-hint">
+                            <i class="fas fa-hand-pointer"></i>
+                            <strong>الحائط في انتظار لوحتك</strong>
+                            <span>اختر حجمًا من الأسفل، ثم اسحب اللوحة إلى مكانها.</span>
+                        </div>
+                    </div>
+
+                    <div class="frame-size-picker">
+                        <div><span class="panel-eyebrow">ADD A FRAME</span><strong>إضافة لوحة جديدة</strong></div>
+                        <button type="button" data-add-frame="large"><i class="far fa-square"></i><span>كبيرة</span></button>
+                        <button type="button" data-add-frame="medium"><i class="far fa-square"></i><span>متوسطة</span></button>
+                        <button type="button" data-add-frame="small"><i class="far fa-square"></i><span>صغيرة</span></button>
+                    </div>
+                </div>
+
+                <aside class="art-editor-panel">
+                    <div id="art-editor-empty" class="art-editor-empty">
+                        <i class="fas fa-arrow-pointer"></i>
+                        <h4>اختر لوحة من الحائط</h4>
+                        <p>بعد اختيارها ستظهر هنا أدوات الصورة والتحويل والحفظ.</p>
+                    </div>
+
+                    <div id="art-editor-active" class="hidden">
+                        <div class="selected-art-heading">
+                            <div><span class="panel-eyebrow">SELECTED FRAME</span><h4 id="selected-art-title">اللوحة الأولى</h4></div>
+                            <button id="delete-art-frame-btn" type="button" class="danger-icon-btn" aria-label="حذف اللوحة"><i class="far fa-trash-can"></i></button>
+                        </div>
+
+                        <label class="art-upload-box" for="art-image-upload">
+                            <i class="fas fa-cloud-arrow-up"></i>
+                            <strong>ارفع الصورة داخل اللوحة</strong>
+                            <span>PNG أو JPG أو WEBP</span>
+                            <input id="art-image-upload" type="file" accept="image/png,image/jpeg,image/webp">
+                        </label>
+
+                        <label for="art-prompt">كيف تريد تحويل الصورة؟</label>
+                        <textarea id="art-prompt" rows="4" placeholder="مثال: حوّل الصورة إلى لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية..."></textarea>
+
+                        <div class="art-prompt-chips">
+                            <button type="button" data-art-prompt="لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية">كلاسيكي</button>
+                            <button type="button" data-art-prompt="لوحة انطباعية بألوان هادئة وملمس زيت واضح">انطباعي</button>
+                            <button type="button" data-art-prompt="لوحة مائية راقية بخلفية ورقية ناعمة">ألوان مائية</button>
+                        </div>
+
+                        <div class="art-action-grid">
+                            <button id="art-transform-btn" type="button" class="art-primary-btn"><i class="fas fa-wand-magic-sparkles"></i> تحويل الصورة</button>
+                            <button id="art-generate-btn" type="button" class="art-secondary-btn"><i class="fas fa-sparkles"></i> إنشاء من الصفر</button>
+                        </div>
+                        <button id="save-artwork-btn" type="button" class="art-save-btn"><i class="far fa-bookmark"></i> حفظ في لوحاتي المنشأة</button>
+                        <button id="add-art-to-cart-btn" type="button" class="art-cart-btn"><i class="fas fa-bag-shopping"></i> إضافة اللوحة إلى السلة</button>
+                        <div id="art-studio-status" class="art-studio-status" aria-live="polite"></div>
+                    </div>
+                </aside>
+            </div>
+        </section>
 
         <div id="chat-stream" class="chat-stream">
             <div id="chat-messages" class="chat-messages" aria-live="polite">
