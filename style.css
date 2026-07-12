@@ -1247,7 +1247,7 @@ body::after {
 }
 .confirm-model-choice-btn:disabled { opacity: .45; cursor: not-allowed; }
 
-/* الإرفاق أصبح داخل خانة المحادثة، لذلك لا نعرض خانة الرفع القديمة */
+/*** الإرفاق أصبح داخل خانة المحادثة، لذلك لا نعرض خانة الرفع القديمة */
 .app-shell[data-action="edit"] #image-upload-section { display: none !important; }
 .app-shell[data-action="book_outline"] .composer-side-btn,
 .app-shell[data-action="book_outline"] .composer-tools,
