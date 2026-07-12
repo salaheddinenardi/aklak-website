@@ -11,10 +11,13 @@
 <body>
 
 <header class="nav">
-    <button class="brand-button" type="button" onclick="window.openWorkspace()" aria-label="فتح أكلاك">
-        <span class="brand-orbit"><i class="fas fa-sparkles"></i></span>
-        <span class="brand-lockup"><span class="logo">AKLAKE</span><small>CREATIVE AI</small></span>
-    </button>
+    <div class="brand-navigation">
+        <button id="home-btn" class="home-button" type="button" aria-label="العودة إلى الواجهة الرئيسية" title="الواجهة الرئيسية"><i class="fas fa-house"></i></button>
+        <a id="brand-link" class="brand-button" href="./" draggable="true" aria-label="AKLAKE — الواجهة الرئيسية" title="اسحب الرابط إلى نافذة أخرى أو افتحه في تبويب جديد">
+            <span class="brand-orbit"><i class="fas fa-sparkles"></i></span>
+            <span class="brand-lockup"><span class="logo">AKLAKE</span><small>CREATIVE AI</small></span>
+        </a>
+    </div>
     <div class="account-actions">
         <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt"></i> <span id="user-credits">0</span> نقطة</span>
         <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات"><i class="fas fa-bag-shopping"></i><span class="cart-button-text">السلة</span><b id="cart-count">0</b></button>
@@ -210,65 +213,57 @@
                 <div class="studio-model-badge"><i class="fas fa-bolt"></i><span>الكود الأول</span><strong>OpenAI Pro</strong></div>
             </div>
 
-            <div class="art-studio-layout">
-                <div class="art-stage-column">
-                    <div id="art-wall-stage" class="art-wall-stage">
-                        <div class="room-light"></div>
-                        <div class="room-floor"></div>
-                        <div id="art-frames-layer" class="art-frames-layer"></div>
-                        <div id="empty-wall-hint" class="empty-wall-hint">
-                            <i class="fas fa-hand-pointer"></i>
-                            <strong>الحائط في انتظار لوحتك</strong>
-                            <span>اختر حجمًا من الأسفل، ثم اسحب اللوحة إلى مكانها.</span>
-                        </div>
-                    </div>
-
-                    <div class="frame-size-picker">
-                        <div><span class="panel-eyebrow">ADD A FRAME</span><strong>إضافة لوحة جديدة</strong></div>
-                        <button type="button" data-add-frame="large"><i class="far fa-square"></i><span>كبيرة</span></button>
-                        <button type="button" data-add-frame="medium"><i class="far fa-square"></i><span>متوسطة</span></button>
-                        <button type="button" data-add-frame="small"><i class="far fa-square"></i><span>صغيرة</span></button>
+            <div class="art-stage-column">
+                <div id="art-wall-stage" class="art-wall-stage">
+                    <div class="room-light"></div>
+                    <div class="room-floor"></div>
+                    <div id="art-frames-layer" class="art-frames-layer"></div>
+                    <div id="empty-wall-hint" class="empty-wall-hint">
+                        <i class="fas fa-hand-pointer"></i>
+                        <strong>الحائط في انتظار لوحتك</strong>
+                        <span>أضف لوحة كبيرة ثم استخدم مقبض اليد فوقها لتحريكها.</span>
                     </div>
                 </div>
 
-                <aside class="art-editor-panel">
-                    <div id="art-editor-empty" class="art-editor-empty">
-                        <i class="fas fa-arrow-pointer"></i>
-                        <h4>اختر لوحة من الحائط</h4>
-                        <p>بعد اختيارها ستظهر هنا أدوات الصورة والتحويل والحفظ.</p>
+                <div class="frame-size-picker">
+                    <div><span class="panel-eyebrow">ADD A LARGE FRAME</span><strong>إضافة لوحة مستطيلة</strong></div>
+                    <button type="button" data-add-frame="large"><i class="fas fa-expand"></i><span>كبيرة جدًا</span></button>
+                    <button type="button" data-add-frame="medium"><i class="fas fa-up-right-and-down-left-from-center"></i><span>كبيرة</span></button>
+                    <button type="button" data-add-frame="small"><i class="far fa-image"></i><span>متوسطة</span></button>
+                </div>
+                <div id="art-studio-status" class="art-studio-status" aria-live="polite"></div>
+            </div>
+
+            <input id="art-image-upload" class="hidden" type="file" accept="image/png,image/jpeg,image/webp">
+
+            <div id="art-prompt-modal" class="studio-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="art-prompt-modal-title">
+                <div class="studio-dialog-card">
+                    <div class="studio-dialog-heading">
+                        <div><span class="panel-eyebrow">ART DIRECTION</span><h3 id="art-prompt-modal-title">صف اللوحة التي تريدها</h3></div>
+                        <button type="button" data-close-art-dialog aria-label="إغلاق"><i class="fas fa-xmark"></i></button>
                     </div>
-
-                    <div id="art-editor-active" class="hidden">
-                        <div class="selected-art-heading">
-                            <div><span class="panel-eyebrow">SELECTED FRAME</span><h4 id="selected-art-title">اللوحة الأولى</h4></div>
-                            <button id="delete-art-frame-btn" type="button" class="danger-icon-btn" aria-label="حذف اللوحة"><i class="far fa-trash-can"></i></button>
-                        </div>
-
-                        <label class="art-upload-box" for="art-image-upload">
-                            <i class="fas fa-cloud-arrow-up"></i>
-                            <strong>ارفع الصورة داخل اللوحة</strong>
-                            <span>PNG أو JPG أو WEBP</span>
-                            <input id="art-image-upload" type="file" accept="image/png,image/jpeg,image/webp">
-                        </label>
-
-                        <label for="art-prompt">كيف تريد تحويل الصورة؟</label>
-                        <textarea id="art-prompt" rows="4" placeholder="مثال: حوّل الصورة إلى لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية..."></textarea>
-
-                        <div class="art-prompt-chips">
-                            <button type="button" data-art-prompt="لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية">كلاسيكي</button>
-                            <button type="button" data-art-prompt="لوحة انطباعية بألوان هادئة وملمس زيت واضح">انطباعي</button>
-                            <button type="button" data-art-prompt="لوحة مائية راقية بخلفية ورقية ناعمة">ألوان مائية</button>
-                        </div>
-
-                        <div class="art-action-grid">
-                            <button id="art-transform-btn" type="button" class="art-primary-btn"><i class="fas fa-wand-magic-sparkles"></i> تحويل الصورة</button>
-                            <button id="art-generate-btn" type="button" class="art-secondary-btn"><i class="fas fa-sparkles"></i> إنشاء من الصفر</button>
-                        </div>
-                        <button id="save-artwork-btn" type="button" class="art-save-btn"><i class="far fa-bookmark"></i> حفظ في لوحاتي المنشأة</button>
-                        <button id="add-art-to-cart-btn" type="button" class="art-cart-btn"><i class="fas fa-bag-shopping"></i> إضافة اللوحة إلى السلة</button>
-                        <div id="art-studio-status" class="art-studio-status" aria-live="polite"></div>
+                    <label for="art-prompt">اكتب وصفًا واضحًا للأسلوب والنتيجة</label>
+                    <textarea id="art-prompt" rows="5" placeholder="مثال: حوّل الصورة إلى لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية..."></textarea>
+                    <div class="art-prompt-chips">
+                        <button type="button" data-art-prompt="لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية">كلاسيكي</button>
+                        <button type="button" data-art-prompt="لوحة انطباعية بألوان هادئة وملمس زيت واضح">انطباعي</button>
+                        <button type="button" data-art-prompt="لوحة مائية راقية بخلفية ورقية ناعمة">ألوان مائية</button>
                     </div>
-                </aside>
+                    <button id="art-prompt-confirm-btn" type="button" class="art-primary-btn"><i class="fas fa-wand-magic-sparkles"></i> بدء إنجاز اللوحة</button>
+                </div>
+            </div>
+
+            <div id="art-replace-modal" class="studio-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="art-replace-title">
+                <div class="studio-dialog-card compact-dialog">
+                    <span class="dialog-choice-icon"><i class="fas fa-images"></i></span>
+                    <h3 id="art-replace-title">هذه اللوحة تحتوي صورة سابقة</h3>
+                    <p>هل تريد استبدال الصورة القديمة، أم الاحتفاظ بها وإنشاء لوحة جديدة بالمقاس والاتجاه نفسيهما؟</p>
+                    <div class="replace-choice-grid">
+                        <button id="replace-old-art-btn" type="button"><i class="fas fa-rotate"></i><strong>استبدال القديمة</strong><span>تتغير هذه اللوحة نفسها</span></button>
+                        <button id="duplicate-art-btn" type="button"><i class="fas fa-clone"></i><strong>لوحة جديدة</strong><span>تبقى القديمة كما هي</span></button>
+                    </div>
+                    <button type="button" class="dialog-cancel-btn" data-close-art-dialog>إلغاء</button>
+                </div>
             </div>
         </section>
 

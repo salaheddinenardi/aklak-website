@@ -275,6 +275,31 @@ function openWorkspace() {
 }
 window.openWorkspace = openWorkspace;
 
+function showHomeScreen() {
+    if (ui.welcomeScreen) ui.welcomeScreen.classList.remove('is-hidden');
+    if (ui.appShell) ui.appShell.classList.add('is-collapsed');
+    document.body.classList.remove('workspace-open');
+    const libraryDrawer = document.getElementById('my-library-section');
+    if (libraryDrawer) libraryDrawer.classList.add('hidden');
+    if (typeof closeArtDialogs === 'function') closeArtDialogs();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.showHomeScreen = showHomeScreen;
+
+function initHomeNavigation() {
+    const homeButton = document.getElementById('home-btn');
+    const brandLink = document.getElementById('brand-link');
+    if (homeButton) homeButton.addEventListener('click', showHomeScreen);
+    if (brandLink) {
+        brandLink.addEventListener('click', function(event) {
+            if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+                event.preventDefault();
+                showHomeScreen();
+            }
+        });
+    }
+}
+
 function scrollChatToBottom() {
     if (!ui.chatMessages) return;
     requestAnimationFrame(function() {
@@ -449,15 +474,16 @@ function initBackgroundParallax() {
 const ARTWORKS_STORAGE_KEY = 'aklake_artworks_v1';
 const ART_CART_STORAGE_KEY = 'aklake_art_cart_v1';
 const ART_SIZE_INFO = {
-    large: { label: 'لوحة كبيرة', width: 29, height: 40, price: 79 },
-    medium: { label: 'لوحة متوسطة', width: 23, height: 32, price: 59 },
-    small: { label: 'لوحة صغيرة', width: 17, height: 24, price: 39 }
+    large: { label: 'لوحة كبيرة جدًا', width: 44, height: 60, verticalWidth: 21, verticalHeight: 73, price: 79 },
+    medium: { label: 'لوحة كبيرة', width: 36, height: 49, verticalWidth: 18, verticalHeight: 63, price: 59 },
+    small: { label: 'لوحة متوسطة', width: 30, height: 41, verticalWidth: 15, verticalHeight: 52, price: 39 }
 };
 
 let artFrames = [];
 let selectedArtFrameId = null;
 let artFrameCounter = 0;
 let artDragState = null;
+let pendingArtOperation = null;
 
 function safeReadLocalList(key) {
     try {
@@ -481,7 +507,7 @@ function getSelectedArtFrame() {
 }
 
 function artRectsOverlap(a, b, gap) {
-    const space = typeof gap === 'number' ? gap : 2;
+    const space = typeof gap === 'number' ? gap : 0.15;
     return !(
         a.x + a.width + space <= b.x ||
         b.x + b.width + space <= a.x ||
@@ -490,33 +516,80 @@ function artRectsOverlap(a, b, gap) {
     );
 }
 
-function positionCollides(frameId, x, y, size) {
-    const info = ART_SIZE_INFO[size];
-    const candidate = { x: x, y: y, width: info.width, height: info.height };
+function getArtFrameMetrics(frameOrSize, orientation) {
+    const frame = typeof frameOrSize === 'object' ? frameOrSize : null;
+    const size = frame ? frame.size : frameOrSize;
+    const direction = frame ? frame.orientation : (orientation || 'horizontal');
+    const info = ART_SIZE_INFO[size] || ART_SIZE_INFO.medium;
+    const layer = document.getElementById('art-frames-layer');
+
+    if (frame && frame.element && layer && layer.clientWidth > 0 && layer.clientHeight > 0) {
+        const rect = frame.element.querySelector('.art-frame-canvas')
+            ? frame.element.querySelector('.art-frame-canvas').getBoundingClientRect()
+            : frame.element.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+            return {
+                width: (rect.width / layer.clientWidth) * 100,
+                height: (rect.height / layer.clientHeight) * 100
+            };
+        }
+    }
+
+    if (window.innerWidth <= 720) {
+        const mobile = {
+            large: { horizontal: [60, 33], vertical: [33, 44] },
+            medium: { horizontal: [52, 28], vertical: [28, 38] },
+            small: { horizontal: [44, 24], vertical: [24, 33] }
+        }[size];
+        return { width: mobile[direction][0], height: mobile[direction][1] };
+    }
+    if (window.innerWidth <= 980) {
+        const tablet = {
+            large: { horizontal: [52, 55], vertical: [30, 82] },
+            medium: { horizontal: [44, 47], vertical: [25, 69] },
+            small: { horizontal: [36, 38], vertical: [21, 58] }
+        }[size];
+        return { width: tablet[direction][0], height: tablet[direction][1] };
+    }
+
+    return direction === 'vertical'
+        ? { width: info.verticalWidth, height: info.verticalHeight }
+        : { width: info.width, height: info.height };
+}
+
+function positionCollides(frameId, x, y, size, orientation) {
+    const candidateFrame = getArtFrame(frameId);
+    const metrics = getArtFrameMetrics(candidateFrame || size, candidateFrame ? candidateFrame.orientation : (orientation || 'horizontal'));
+    const candidate = { x: x, y: y, width: metrics.width, height: metrics.height };
     return artFrames.some(function(other) {
         if (other.id === frameId) return false;
-        const otherInfo = ART_SIZE_INFO[other.size];
+        const otherInfo = getArtFrameMetrics(other);
         return artRectsOverlap(candidate, {
             x: other.x,
             y: other.y,
             width: otherInfo.width,
             height: otherInfo.height
-        }, 2);
+        }, 0.15);
     });
 }
 
-function findAvailableArtPosition(size) {
-    const info = ART_SIZE_INFO[size];
-    const candidates = [
-        [5, 8], [38, 8], [70, 8],
-        [8, 52], [40, 52], [72, 52],
-        [23, 28], [55, 30]
-    ];
+function findAvailableArtPosition(size, orientation, preferredFrame) {
+    const info = getArtFrameMetrics(size, orientation || 'horizontal');
+    const preferred = preferredFrame ? getArtFrameMetrics(preferredFrame) : null;
+    const candidates = preferredFrame ? [
+        [preferredFrame.x + preferred.width + .25, preferredFrame.y],
+        [preferredFrame.x - info.width - .25, preferredFrame.y],
+        [preferredFrame.x, preferredFrame.y + preferred.height + .25]
+    ] : [];
+
+    for (let y = 2; y <= 100 - info.height; y += 1) {
+        for (let x = 1; x <= 100 - info.width; x += .25) candidates.push([x, y]);
+    }
 
     for (let i = 0; i < candidates.length; i++) {
-        const x = Math.min(candidates[i][0], 100 - info.width);
-        const y = Math.min(candidates[i][1], 100 - info.height);
-        if (!positionCollides('', x, y, size)) return { x: x, y: y };
+        const x = Math.max(0, Math.min(candidates[i][0], 100 - info.width));
+        const y = Math.max(0, Math.min(candidates[i][1], 100 - info.height));
+        if (!positionCollides('', x, y, size, orientation)) return { x: x, y: y };
     }
     return null;
 }
@@ -529,18 +602,42 @@ function setArtStudioStatus(message, type) {
 }
 
 function renderArtFrame(frame) {
-    const canvas = frame.element.querySelector('.art-frame-canvas');
-    canvas.innerHTML = '';
+    frame.element.className = [
+        'art-frame', frame.size,
+        'orientation-' + frame.orientation,
+        'frame-style-' + frame.frameStyle,
+        frame.id === selectedArtFrameId ? 'selected' : '',
+        frame.processing ? 'processing' : ''
+    ].filter(Boolean).join(' ');
 
+    frame.element.innerHTML = `
+        <div class="art-frame-toolbar">
+            <button type="button" class="frame-drag-handle" data-frame-action="drag" title="أمسك واسحب اللوحة"><i class="fas fa-hand"></i></button>
+            <button type="button" data-frame-action="rotate" title="تدوير أفقي أو عمودي"><i class="fas fa-rotate"></i></button>
+            <button type="button" data-frame-action="style" title="تغيير شكل الحواف"><i class="fas fa-border-all"></i></button>
+            <button type="button" class="frame-delete-btn" data-frame-action="delete" title="حذف اللوحة"><i class="far fa-trash-can"></i></button>
+        </div>
+        <div class="art-frame-canvas"></div>
+        <div class="art-frame-actions"></div>`;
+
+    const canvas = frame.element.querySelector('.art-frame-canvas');
+    const actions = frame.element.querySelector('.art-frame-actions');
     if (frame.imageData) {
         const image = document.createElement('img');
         image.src = frame.imageData;
         image.alt = frame.title;
         canvas.appendChild(image);
+        actions.innerHTML = `
+            <button type="button" class="frame-transform-btn" data-frame-action="edit"><i class="fas fa-wand-magic-sparkles"></i><span>تحويل</span></button>
+            <button type="button" data-frame-action="generate"><i class="fas fa-sparkles"></i><span>إنشاء جديد</span></button>
+            <button type="button" class="frame-save-btn ${frame.saved ? 'saved' : ''}" data-frame-action="save"><i class="far fa-bookmark"></i><span>${frame.saved ? 'محفوظة' : 'حفظ'}</span></button>
+            <button type="button" class="frame-cart-btn" data-frame-action="cart"><i class="fas fa-bag-shopping"></i><span>السلة</span></button>`;
     } else {
         const placeholder = document.createElement('div');
-        placeholder.className = 'art-frame-placeholder';
-        placeholder.innerHTML = '<i class="far fa-image"></i><span>ارفع صورة</span>';
+        placeholder.className = 'frame-placeholder-actions';
+        placeholder.innerHTML = `
+            <button type="button" data-frame-action="upload"><i class="fas fa-cloud-arrow-up"></i><span>رفع صورة</span></button>
+            <button type="button" data-frame-action="generate"><i class="fas fa-sparkles"></i><span>إنشاء من الصفر</span></button>`;
         canvas.appendChild(placeholder);
     }
 
@@ -556,11 +653,14 @@ function updateEmptyWallHint() {
     if (hint) hint.classList.toggle('hidden', artFrames.length > 0);
 }
 
-function createArtFrame(size) {
+function createArtFrame(size, options) {
     const layer = document.getElementById('art-frames-layer');
     if (!layer || !ART_SIZE_INFO[size]) return null;
 
-    const position = findAvailableArtPosition(size);
+    const settings = options || {};
+    const orientation = settings.orientation || 'horizontal';
+
+    const position = findAvailableArtPosition(size, orientation, settings.preferredNear || null);
     if (!position) {
         setArtStudioStatus('لا توجد مساحة كافية للوحة جديدة. حرّك اللوحات الحالية أو احذف واحدة.', 'error');
         return null;
@@ -571,30 +671,32 @@ function createArtFrame(size) {
         id: 'art-frame-' + Date.now() + '-' + artFrameCounter,
         title: 'اللوحة ' + artFrameCounter,
         size: size,
+        orientation: orientation,
+        frameStyle: settings.frameStyle || 'classic',
         x: position.x,
         y: position.y,
-        imageData: '',
-        prompt: '',
+        imageData: settings.imageData || '',
+        hasGenerated: Boolean(settings.hasGenerated),
+        prompt: settings.prompt || '',
+        saved: false,
+        processing: false,
         element: document.createElement('div')
     };
 
-    frame.element.className = 'art-frame ' + size;
     frame.element.dataset.frameId = frame.id;
     frame.element.style.left = frame.x + '%';
     frame.element.style.top = frame.y + '%';
-    frame.element.innerHTML = '<div class="art-frame-canvas"></div>';
-    frame.element.addEventListener('pointerdown', beginArtFrameDrag);
-    frame.element.addEventListener('click', function(event) {
-        event.stopPropagation();
-        selectArtFrame(frame.id);
+    frame.element.addEventListener('pointerdown', function(event) {
+        if (event.target.closest('.frame-drag-handle')) beginArtFrameDrag(event);
     });
+    frame.element.addEventListener('click', handleArtFrameClick);
 
     artFrames.push(frame);
     layer.appendChild(frame.element);
     renderArtFrame(frame);
     selectArtFrame(frame.id);
     updateEmptyWallHint();
-    setArtStudioStatus('أضيفت ' + ART_SIZE_INFO[size].label + '. اسحبها لاختيار مكانها.', 'success');
+    setArtStudioStatus('أضيفت ' + ART_SIZE_INFO[size].label + '. استخدم مقبض اليد فوقها لتحريكها.', 'success');
     return frame;
 }
 
@@ -603,19 +705,34 @@ function selectArtFrame(frameId) {
     artFrames.forEach(function(frame) {
         frame.element.classList.toggle('selected', frame.id === frameId);
     });
+}
 
-    const selected = getSelectedArtFrame();
-    const empty = document.getElementById('art-editor-empty');
-    const active = document.getElementById('art-editor-active');
-    if (!empty || !active) return;
-
-    empty.classList.toggle('hidden', Boolean(selected));
-    active.classList.toggle('hidden', !selected);
-    if (selected) {
-        const title = document.getElementById('selected-art-title');
-        const prompt = document.getElementById('art-prompt');
-        if (title) title.textContent = selected.title + ' • ' + ART_SIZE_INFO[selected.size].label;
-        if (prompt) prompt.value = selected.prompt || '';
+function handleArtFrameClick(event) {
+    event.stopPropagation();
+    const frame = getArtFrame(event.currentTarget.dataset.frameId);
+    if (!frame) return;
+    selectArtFrame(frame.id);
+    const actionButton = event.target.closest('[data-frame-action]');
+    if (!actionButton) return;
+    const action = actionButton.dataset.frameAction;
+    if (action === 'drag') return;
+    if (action === 'upload') {
+        const upload = document.getElementById('art-image-upload');
+        if (upload) upload.click();
+    } else if (action === 'generate') {
+        openArtPromptDialog(frame, 'generate');
+    } else if (action === 'edit') {
+        openArtPromptDialog(frame, 'edit');
+    } else if (action === 'rotate') {
+        rotateArtFrame(frame);
+    } else if (action === 'style') {
+        cycleArtFrameStyle(frame);
+    } else if (action === 'delete') {
+        deleteArtFrame(frame);
+    } else if (action === 'save') {
+        saveSelectedArtwork(frame);
+    } else if (action === 'cart') {
+        addSelectedArtworkToCart(frame);
     }
 }
 
@@ -644,7 +761,7 @@ function beginArtFrameDrag(event) {
 function moveArtFrame(event) {
     if (!artDragState) return;
     const state = artDragState;
-    const info = ART_SIZE_INFO[state.frame.size];
+    const info = getArtFrameMetrics(state.frame);
     const width = Math.max(state.layerRect.width, 1);
     const height = Math.max(state.layerRect.height, 1);
     let x = ((event.clientX - state.layerRect.left - state.offsetX) / width) * 100;
@@ -676,15 +793,57 @@ function endArtFrameDrag() {
     artDragState = null;
 }
 
-function deleteSelectedArtFrame() {
-    const selected = getSelectedArtFrame();
-    if (!selected) return;
-    selected.element.remove();
-    artFrames = artFrames.filter(function(frame) { return frame.id !== selected.id; });
-    selectedArtFrameId = null;
+function rotateArtFrame(frame) {
+    if (!frame || frame.processing) return;
+    const previousOrientation = frame.orientation;
+    const previousX = frame.x;
+    const previousY = frame.y;
+    frame.orientation = frame.orientation === 'horizontal' ? 'vertical' : 'horizontal';
+    renderArtFrame(frame);
+
+    requestAnimationFrame(function() {
+        const metrics = getArtFrameMetrics(frame);
+        frame.x = Math.max(0, Math.min(100 - metrics.width, frame.x));
+        frame.y = Math.max(0, Math.min(100 - metrics.height, frame.y));
+        frame.element.style.left = frame.x + '%';
+        frame.element.style.top = frame.y + '%';
+        if (positionCollides(frame.id, frame.x, frame.y, frame.size, frame.orientation)) {
+            frame.orientation = previousOrientation;
+            frame.x = previousX;
+            frame.y = previousY;
+            frame.element.style.left = frame.x + '%';
+            frame.element.style.top = frame.y + '%';
+            renderArtFrame(frame);
+            setArtStudioStatus('لا توجد مساحة كافية لتدوير اللوحة هنا. حرّكها قليلًا ثم حاول مجددًا.', 'error');
+        } else {
+            setArtStudioStatus(frame.orientation === 'vertical' ? 'أصبحت اللوحة عمودية.' : 'أصبحت اللوحة أفقية.', 'success');
+        }
+    });
+}
+
+function cycleArtFrameStyle(frame) {
+    if (!frame) return;
+    const styles = ['classic', 'thin', 'frameless'];
+    const index = styles.indexOf(frame.frameStyle);
+    frame.frameStyle = styles[(index + 1) % styles.length];
+    renderArtFrame(frame);
+    const labels = { classic: 'إطار كلاسيكي حاد', thin: 'حافة رفيعة', frameless: 'بدون حواف' };
+    setArtStudioStatus('شكل اللوحة الآن: ' + labels[frame.frameStyle] + '.', 'success');
+}
+
+function deleteArtFrame(frame) {
+    if (!frame) return;
+    frame.element.remove();
+    artFrames = artFrames.filter(function(item) { return item.id !== frame.id; });
+    if (selectedArtFrameId === frame.id) selectedArtFrameId = null;
     selectArtFrame(null);
     updateEmptyWallHint();
     setArtStudioStatus('حُذفت اللوحة من الحائط.', 'success');
+}
+
+function deleteSelectedArtFrame() {
+    const selected = getSelectedArtFrame();
+    deleteArtFrame(selected);
 }
 
 function fileToOptimizedDataURL(file) {
@@ -723,29 +882,53 @@ async function loadImageIntoSelectedFrame(file) {
     }
     try {
         selected.imageData = await fileToOptimizedDataURL(file);
+        selected.hasGenerated = false;
+        selected.saved = false;
         renderArtFrame(selected);
-        setArtStudioStatus('ظهرت الصورة داخل اللوحة. اكتب الآن أسلوب التحويل المطلوب.', 'success');
+        setArtStudioStatus('ظهرت الصورة داخل اللوحة. اضغط «تحويل» أسفلها عندما تصبح جاهزًا.', 'success');
     } catch (error) {
         setArtStudioStatus('تعذر قراءة الصورة. جرّب ملفًا آخر.', 'error');
     }
 }
 
-function setSelectedFrameProcessing(processing) {
-    const selected = getSelectedArtFrame();
-    if (!selected) return;
-    selected.element.classList.toggle('processing', processing);
-    ['art-transform-btn', 'art-generate-btn'].forEach(function(id) {
-        const button = document.getElementById(id);
-        if (button) button.disabled = processing;
-    });
+function setArtFrameProcessing(frame, processing) {
+    if (!frame) return;
+    frame.processing = processing;
+    renderArtFrame(frame);
 }
 
-async function runArtAI(mode) {
-    const selected = getSelectedArtFrame();
+function closeArtDialogs(clearPending) {
+    const promptModal = document.getElementById('art-prompt-modal');
+    const replaceModal = document.getElementById('art-replace-modal');
+    if (promptModal) promptModal.classList.add('hidden');
+    if (replaceModal) replaceModal.classList.add('hidden');
+    if (clearPending !== false) pendingArtOperation = null;
+}
+
+function openArtPromptDialog(frame, mode) {
+    if (!frame) return;
+    if (mode === 'edit' && !frame.imageData) {
+        setArtStudioStatus('ارفع صورة داخل اللوحة أولًا.', 'error');
+        return;
+    }
+    selectArtFrame(frame.id);
+    pendingArtOperation = { frameId: frame.id, mode: mode, prompt: '' };
+    const promptInput = document.getElementById('art-prompt');
+    const title = document.getElementById('art-prompt-modal-title');
+    if (promptInput) promptInput.value = frame.prompt || '';
+    if (title) title.textContent = mode === 'edit' ? 'كيف تريد تحويل هذه الصورة؟' : 'صف اللوحة التي تريد إنشاءها';
+    const modal = document.getElementById('art-prompt-modal');
+    if (modal) modal.classList.remove('hidden');
+    if (promptInput) setTimeout(function() { promptInput.focus(); }, 30);
+}
+
+function confirmArtPrompt() {
+    if (!pendingArtOperation) return;
+    const frame = getArtFrame(pendingArtOperation.frameId);
     const promptInput = document.getElementById('art-prompt');
     const prompt = promptInput ? promptInput.value.trim() : '';
-    if (!selected) {
-        setArtStudioStatus('أضف لوحة وحددها أولًا.', 'error');
+    if (!frame) {
+        closeArtDialogs();
         return;
     }
     if (!prompt) {
@@ -753,19 +936,63 @@ async function runArtAI(mode) {
         if (promptInput) promptInput.focus();
         return;
     }
-    if (mode === 'edit' && !selected.imageData) {
-        setArtStudioStatus('ارفع صورة داخل اللوحة قبل طلب تحويلها.', 'error');
+    frame.prompt = prompt;
+    pendingArtOperation.prompt = prompt;
+    const promptModal = document.getElementById('art-prompt-modal');
+    if (promptModal) promptModal.classList.add('hidden');
+
+    if (frame.hasGenerated && frame.imageData) {
+        const replaceModal = document.getElementById('art-replace-modal');
+        if (replaceModal) replaceModal.classList.remove('hidden');
+    } else {
+        const operation = pendingArtOperation;
+        pendingArtOperation = null;
+        runArtAI(operation.mode, frame);
+    }
+}
+
+function continueArtOperation(replaceOld) {
+    if (!pendingArtOperation) return;
+    const sourceFrame = getArtFrame(pendingArtOperation.frameId);
+    if (!sourceFrame) {
+        closeArtDialogs();
         return;
     }
+    const operation = pendingArtOperation;
+    pendingArtOperation = null;
+    closeArtDialogs(false);
+
+    if (replaceOld) {
+        runArtAI(operation.mode, sourceFrame);
+        return;
+    }
+
+    const duplicate = createArtFrame(sourceFrame.size, {
+        orientation: sourceFrame.orientation,
+        frameStyle: sourceFrame.frameStyle,
+        imageData: operation.mode === 'edit' ? sourceFrame.imageData : '',
+        hasGenerated: false,
+        prompt: operation.prompt,
+        preferredNear: sourceFrame
+    });
+    if (!duplicate) return;
+    duplicate.prompt = operation.prompt;
+    runArtAI(operation.mode, duplicate);
+}
+
+async function runArtAI(mode, targetFrame) {
+    const selected = targetFrame || getSelectedArtFrame();
+    const prompt = selected ? (selected.prompt || '').trim() : '';
+    if (!selected) return;
     if (!currentUser) {
         setArtStudioStatus('سجّل الدخول أولًا لتجربة نموذج OpenAI.', 'error');
         openModal();
         return;
     }
 
-    selected.prompt = prompt;
     ui.source.value = '6a3c7a760032067bd275';
-    setSelectedFrameProcessing(true);
+    selected.saved = false;
+    setArtFrameProcessing(selected, true);
     setArtStudioStatus(mode === 'edit' ? 'الفرشاة تعمل الآن على تحويل صورتك...' : 'يتم الآن رسم لوحة جديدة من وصفك...');
 
     const payloadObj = {
@@ -779,9 +1006,10 @@ async function runArtAI(mode) {
     if (mode === 'edit') payloadObj.imageBase64 = selected.imageData;
 
     const responseData = await executeRequest(payloadObj);
-    setSelectedFrameProcessing(false);
+    setArtFrameProcessing(selected, false);
     if (responseData && responseData.success && responseData.resultType === 'image' && responseData.data) {
         selected.imageData = responseData.data;
+        selected.hasGenerated = true;
         renderArtFrame(selected);
         const credits = document.getElementById('user-credits');
         if (credits && responseData.remainingTokens !== undefined) credits.textContent = responseData.remainingTokens;
@@ -800,6 +1028,8 @@ function buildArtworkRecord(frame) {
         title: frame.title,
         size: frame.size,
         sizeLabel: info.label,
+        orientation: frame.orientation,
+        frameStyle: frame.frameStyle,
         price: info.price,
         imageData: frame.imageData,
         prompt: frame.prompt || '',
@@ -807,8 +1037,8 @@ function buildArtworkRecord(frame) {
     };
 }
 
-function saveSelectedArtwork() {
-    const selected = getSelectedArtFrame();
+function saveSelectedArtwork(targetFrame) {
+    const selected = targetFrame || getSelectedArtFrame();
     if (!selected || !selected.imageData) {
         setArtStudioStatus('أضف صورة أو أنشئ لوحة قبل الحفظ.', 'error');
         return;
@@ -817,6 +1047,8 @@ function saveSelectedArtwork() {
         const artworks = safeReadLocalList(ARTWORKS_STORAGE_KEY);
         artworks.unshift(buildArtworkRecord(selected));
         safeWriteLocalList(ARTWORKS_STORAGE_KEY, artworks.slice(0, 20));
+        selected.saved = true;
+        renderArtFrame(selected);
         renderArtworksLibrary();
         setArtStudioStatus('حُفظت اللوحة محليًا في قسم «اللوحات».', 'success');
     } catch (error) {
@@ -824,8 +1056,8 @@ function saveSelectedArtwork() {
     }
 }
 
-function addSelectedArtworkToCart() {
-    const selected = getSelectedArtFrame();
+function addSelectedArtworkToCart(targetFrame) {
+    const selected = targetFrame || getSelectedArtFrame();
     if (!selected || !selected.imageData) {
         setArtStudioStatus('أنشئ اللوحة أولًا قبل إضافتها إلى السلة.', 'error');
         return;
@@ -989,34 +1221,28 @@ function initArtStudio() {
     }
 
     const promptInput = document.getElementById('art-prompt');
-    if (promptInput) {
-        promptInput.addEventListener('input', function() {
-            const selected = getSelectedArtFrame();
-            if (selected) selected.prompt = promptInput.value;
-        });
-    }
     document.querySelectorAll('[data-art-prompt]').forEach(function(button) {
         button.addEventListener('click', function() {
             if (!promptInput) return;
             promptInput.value = button.dataset.artPrompt;
-            const selected = getSelectedArtFrame();
-            if (selected) selected.prompt = promptInput.value;
         });
     });
 
-    const transform = document.getElementById('art-transform-btn');
-    const generate = document.getElementById('art-generate-btn');
-    const save = document.getElementById('save-artwork-btn');
-    const cart = document.getElementById('add-art-to-cart-btn');
-    const remove = document.getElementById('delete-art-frame-btn');
-    if (transform) transform.addEventListener('click', function() { runArtAI('edit'); });
-    if (generate) generate.addEventListener('click', function() { runArtAI('generate'); });
-    if (save) save.addEventListener('click', saveSelectedArtwork);
-    if (cart) cart.addEventListener('click', addSelectedArtworkToCart);
-    if (remove) remove.addEventListener('click', deleteSelectedArtFrame);
+    const confirmPrompt = document.getElementById('art-prompt-confirm-btn');
+    const replaceOld = document.getElementById('replace-old-art-btn');
+    const duplicate = document.getElementById('duplicate-art-btn');
+    if (confirmPrompt) confirmPrompt.addEventListener('click', confirmArtPrompt);
+    if (replaceOld) replaceOld.addEventListener('click', function() { continueArtOperation(true); });
+    if (duplicate) duplicate.addEventListener('click', function() { continueArtOperation(false); });
+    document.querySelectorAll('[data-close-art-dialog]').forEach(function(button) {
+        button.addEventListener('click', function() { closeArtDialogs(); });
+    });
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') closeArtDialogs();
+    });
 
-    // بداية بسيطة تجعل المستخدم يفهم الأداة مباشرة، ويمكن حذفها لاحقًا إن رغبت.
-    createArtFrame('medium');
+    // لوحة كبيرة أفقية عند فتح الأداة لأول مرة.
+    createArtFrame('large');
 }
 
 function updateUI() {
@@ -1100,6 +1326,7 @@ if (ui.model) ui.model.addEventListener('change', syncWorkspaceFromSelections);
 window.addEventListener('DOMContentLoaded', function() {
     updateUI();
     initBackgroundParallax();
+    initHomeNavigation();
     initArtStudio();
     initCreationLibrary();
 
