@@ -661,7 +661,7 @@ input[type="file"]::file-selector-button { color: #062017; background: var(--gre
     border-color: var(--green-line) !important;
     border-radius: 6px !important;
 }
-
+/* نافذة الأعمال الجانبية */
 /* نافذة الأعمال الجانبية */
 .library-drawer {
     position: fixed;

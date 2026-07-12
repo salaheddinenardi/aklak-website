@@ -1,11 +1,12 @@
 // ==========================================
 // 1. تهيئة Appwrite
 // ==========================================
+// ==========================================
 const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
 const client = new Client()
     .setEndpoint('https://fra.cloud.appwrite.io/v1') 
     .setProject('6a36cda70021ceb1f3d0'); 
-
+  
 const account = new Account(client);
 const databases = new Databases(client);
 const appwriteFunctions = new Functions(client);
@@ -40,6 +41,7 @@ function handleUndo() {
 
 // ==========================================
 // متغيرات ودوال نظام صفحات الكتاب والتعديلات الجديدة
+// ==========================================
 // ==========================================
 let bookPagesData = []; 
 let currentViewedPageIndex = 0; 
