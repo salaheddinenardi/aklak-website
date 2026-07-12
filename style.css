@@ -13,6 +13,8 @@
     --accent-dark: #111318;
     --success: #70e1b4;
     --danger: #ff7d86;
+    --token-orange: #ffae62;
+    --token-orange-soft: rgba(255, 174, 98, .14);
     --shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
@@ -1261,4 +1263,129 @@ body::after {
     .composer-tools { flex-wrap: wrap; }
     .composer-tools > button { flex: 1; justify-content: center; }
     .composer-mode-banner small { display: none; }
+}
+
+/* =========================================================
+   FINAL UI FIXES — الخلفية، نقاط الاستخدام، صورة الوكيل، ونماذج اللوحات
+   ========================================================= */
+
+/* أرقام النقاط ورمزها وتكلفة كل نموذج بلون برتقالي مريح وواضح. */
+.credit-pill { color: #d9e6de; }
+.credit-pill .token-mark,
+.credit-pill .token-value,
+.credit-pill .token-unit,
+.model-choice-cost,
+.token-cost,
+.studio-model-badge .token-mark {
+    color: var(--token-orange) !important;
+    text-shadow: 0 0 10px rgba(255, 174, 98, .24);
+}
+.credit-pill .token-value { font-size: 1.02rem; font-weight: 800; }
+.token-cost { margin-inline-start: 3px; font-weight: 800; white-space: nowrap; }
+
+/* تكبير صورة وكيل المحادثة قليلًا مع الحفاظ على حجم صورة المستخدم. */
+.message-avatar.agent-avatar {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 12px;
+}
+
+/* الخلفية المتحركة ثابتة على الحاسوب فقط ولا تتفاعل مع المؤشر أو التمرير. */
+body::after { content: none !important; }
+@media (min-width: 721px) {
+    body {
+        background-color: #010503 !important;
+        background-image: url('https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2F0a4c679d-d98e-4e0c-98d7-3e62f8f42fe0.gif') !important;
+        background-repeat: no-repeat !important;
+        background-position: center center !important;
+        background-size: cover !important;
+        background-attachment: fixed !important;
+    }
+}
+@media (max-width: 720px) {
+    body {
+        background-color: #010503 !important;
+        background-image: none !important;
+        background-attachment: scroll !important;
+    }
+}
+
+/* زر واحد يضيف لوحة متوسطة؛ المقاس يتغير بعد إنشائها من S / M / L. */
+.frame-size-picker { grid-template-columns: 1fr auto; }
+.frame-size-picker .add-art-frame-btn {
+    min-width: 150px;
+    grid-template-columns: auto auto;
+    align-items: center;
+    justify-content: center;
+    color: #08281c;
+    background: var(--green-bright);
+    border-color: var(--green-bright);
+    font-weight: 800;
+}
+.frame-size-picker .add-art-frame-btn:hover { color: #04140e; background: #c1f9dd; }
+.art-frame-toolbar .frame-size-btn { min-width: 27px; padding-inline: 6px; font-weight: 800; }
+.art-frame-toolbar .frame-size-btn.active {
+    color: #08281c;
+    background: var(--token-orange);
+    border-color: var(--token-orange);
+}
+
+/* اختيار نموذج OpenAI داخل نافذة إنشاء/تعديل اللوحة. */
+.art-model-selector {
+    margin: 10px 0 12px;
+    padding: 11px;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(121,226,173,.2);
+    border-radius: 5px;
+}
+.art-model-selector-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: #effff6;
+    font-size: .78rem;
+    font-weight: 700;
+}
+.art-model-selector-heading small { color: #8fb5a0; font-size: .66rem; font-weight: 500; }
+.art-model-choices { display: grid; gap: 7px; }
+.art-model-choice {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    padding: 9px;
+    color: #def7e9;
+    background: rgba(121,226,173,.04);
+    border: 1px solid rgba(121,226,173,.18);
+    border-radius: 4px;
+    text-align: right;
+}
+.art-model-choice:hover { background: rgba(121,226,173,.09); }
+.art-model-choice.selected {
+    background: rgba(255,174,98,.09);
+    border-color: rgba(255,174,98,.72);
+    box-shadow: inset 0 0 0 1px rgba(255,174,98,.1);
+}
+.art-model-choice-icon {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    color: var(--green-bright);
+    background: rgba(121,226,173,.1);
+    border-radius: 4px;
+}
+.art-model-choice-copy { min-width: 0; display: grid; gap: 2px; }
+.art-model-choice-copy small { color: #92b7a2; font-size: .68rem; line-height: 1.4; }
+
+@media (max-width: 720px) {
+    .frame-size-picker { grid-template-columns: 1fr; }
+    .frame-size-picker > div { grid-column: auto; }
+    .frame-size-picker .add-art-frame-btn { width: 100%; min-width: 0; }
+    .message-avatar.agent-avatar { width: 39px; height: 39px; flex-basis: 39px; }
+    .art-model-choice { grid-template-columns: 34px minmax(0, 1fr) auto; padding: 8px; }
 }

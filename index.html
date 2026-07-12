@@ -19,7 +19,7 @@
         </a>
     </div>
     <div class="account-actions">
-        <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt"></i> <span id="user-credits">0</span> نقطة</span>
+        <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt token-mark"></i> <span id="user-credits" class="token-value">0</span> <span class="token-unit">نقطة</span></span>
         <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات"><i class="fas fa-bag-shopping"></i><span class="cart-button-text">السلة</span><b id="cart-count">0</b></button>
         <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i> تسجيل الدخول</button>
         <button id="logout-btn" class="account-btn danger hidden" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i> خروج</button>
@@ -204,7 +204,7 @@
                     <h3>علّق فكرتك على الحائط قبل أن تشتريها</h3>
                     <p>أضف لوحة، حرّكها داخل الغرفة، ارفع صورتك ثم حوّلها إلى أسلوب فني باستخدام OpenAI.</p>
                 </div>
-                <div class="studio-model-badge"><i class="fas fa-bolt"></i><span>الكود الثاني</span><strong>OpenAI Pro</strong></div>
+                <div class="studio-model-badge"><i class="fas fa-bolt token-mark"></i><span>الكود الثاني فقط</span><strong>OpenAI Images</strong></div>
             </div>
 
             <div class="art-stage-column">
@@ -215,15 +215,13 @@
                     <div id="empty-wall-hint" class="empty-wall-hint">
                         <i class="fas fa-hand-pointer"></i>
                         <strong>الحائط في انتظار لوحتك</strong>
-                        <span>أضف لوحة كبيرة ثم استخدم مقبض اليد فوقها لتحريكها.</span>
+                        <span>اضغط «إضافة لوحة»، ثم غيّر مقاسها من أزرار S وM وL التي ستظهر فوقها.</span>
                     </div>
                 </div>
 
                 <div class="frame-size-picker">
-                    <div><span class="panel-eyebrow">ADD A LARGE FRAME</span><strong>إضافة لوحة مستطيلة</strong></div>
-                    <button type="button" data-add-frame="large"><i class="fas fa-expand"></i><span>كبيرة جدًا</span></button>
-                    <button type="button" data-add-frame="medium"><i class="fas fa-up-right-and-down-left-from-center"></i><span>كبيرة</span></button>
-                    <button type="button" data-add-frame="small"><i class="far fa-image"></i><span>متوسطة</span></button>
+                    <div><span class="panel-eyebrow">ADD A FRAME</span><strong>أضف لوحة فارغة ثم اختر مقاسها</strong></div>
+                    <button type="button" class="add-art-frame-btn" data-add-frame="medium"><i class="fas fa-plus"></i><span>إضافة لوحة</span></button>
                 </div>
                 <div id="art-studio-status" class="art-studio-status" aria-live="polite"></div>
             </div>
@@ -238,6 +236,13 @@
                     </div>
                     <label for="art-prompt">اكتب وصفًا واضحًا للأسلوب والنتيجة</label>
                     <textarea id="art-prompt" rows="5" placeholder="مثال: حوّل الصورة إلى لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية..."></textarea>
+                    <div class="art-model-selector">
+                        <div class="art-model-selector-heading">
+                            <span id="art-model-choice-label">اختر النموذج</span>
+                            <small>OpenAI • الكود الوظيفي الثاني</small>
+                        </div>
+                        <div id="art-model-choices" class="art-model-choices"></div>
+                    </div>
                     <div class="art-prompt-chips">
                         <button type="button" data-art-prompt="لوحة كلاسيكية بضربات فرشاة ناعمة وإضاءة متحفية">كلاسيكي</button>
                         <button type="button" data-art-prompt="لوحة انطباعية بألوان هادئة وملمس زيت واضح">انطباعي</button>
@@ -350,6 +355,7 @@
 
     <div id="intro-area" class="hidden" style="margin-top: 30px; display: flex; flex-direction: column; align-items: center;">
         
+        <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
         <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
         <div class="book-toolbar">
             <div style="display: flex; align-items: center; gap: 5px; margin-left: 15px;">

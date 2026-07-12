@@ -1,4 +1,3 @@
-
 // 1. تهيئة Appwrite
 // ==========================================
 const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
@@ -25,15 +24,38 @@ const MODEL_CATALOG = {
         { provider: 'openai', model: 'gpt-5.5', name: 'GPT-5.5', description: 'أعلى جودة ضمن الإعدادات الحالية', cost: '15 نقطة', icon: 'fa-gem' }
     ],
     generate: [
-        { provider: 'cloudflare', model: 'flux', name: 'Cloudflare Flux', description: 'توليد صور اقتصادي وسريع', cost: '5 نقاط', icon: 'fa-image' },
-        { provider: 'openai', model: 'light', name: 'OpenAI Light', description: 'صورة عادية بتكلفة أقل', cost: '10 نقاط', icon: 'fa-wand-magic-sparkles' },
-        { provider: 'openai', model: 'mid', name: 'OpenAI Medium', description: 'جودة وتفاصيل أعلى', cost: '15 نقطة', icon: 'fa-wand-magic-sparkles' },
-        { provider: 'openai', model: 'pro', name: 'OpenAI Pro', description: 'أعلى جودة متاحة حاليًا', cost: '20 نقطة', icon: 'fa-crown' }
+        {
+            provider: 'openai',
+            model: 'gpt-image-2',
+            modelTier: 'pro',
+            quality: 'high',
+            name: 'OpenAI Image — توليد',
+            description: 'إنشاء صورة جديدة من الصفر بأعلى جودة',
+            cost: '20 نقطة',
+            icon: 'fa-wand-magic-sparkles'
+        }
     ],
     edit: [
-        { provider: 'openai', model: 'light', name: 'OpenAI Edit Light', description: 'تعديل بسيط واقتصادي', cost: '10 نقاط', icon: 'fa-pen' },
-        { provider: 'openai', model: 'mid', name: 'OpenAI Edit Medium', description: 'تعديل أدق للصورة', cost: '15 نقطة', icon: 'fa-wand-magic-sparkles' },
-        { provider: 'openai', model: 'pro', name: 'OpenAI Edit Pro', description: 'أقوى تعديل متاح حاليًا', cost: '20 نقطة', icon: 'fa-crown' }
+        {
+            provider: 'openai',
+            model: 'gpt-image-1-mini',
+            modelTier: 'light',
+            quality: 'low',
+            name: 'تعديل بسيط',
+            description: 'تعديل سريع واقتصادي للصورة',
+            cost: '10 نقاط',
+            icon: 'fa-pen'
+        },
+        {
+            provider: 'openai',
+            model: 'gpt-image-2',
+            modelTier: 'pro',
+            quality: 'high',
+            name: 'تعديل احترافي',
+            description: 'أعلى دقة في الحفاظ على تفاصيل الصورة',
+            cost: '20 نقطة',
+            icon: 'fa-crown'
+        }
     ]
 };
 
@@ -452,6 +474,11 @@ function findCatalogChoice(action, provider, model) {
     }) || null;
 }
 
+function getSelectedCatalogChoice(action) {
+    if (!ui.provider || !ui.model) return null;
+    return findCatalogChoice(action, ui.provider.value, ui.model.value);
+}
+
 function applyModelChoice(action, choice) {
     if (!choice || !getComposerModeKey(action)) return;
     activeComposerChoices[action] = choice;
@@ -475,7 +502,11 @@ function refreshComposerModelLabel() {
     const remembered = readRememberedModels()[action];
     const choice = activeComposerChoices[action]
         || (remembered ? findCatalogChoice(action, remembered.provider, remembered.model) : null);
-    ui.activeModelLabel.textContent = choice ? choice.name + ' • ' + choice.cost : 'اختيار النموذج';
+    if (choice) {
+        ui.activeModelLabel.innerHTML = '<span class="active-model-name">' + choice.name + '</span> <span class="token-cost">• ' + choice.cost + '</span>';
+    } else {
+        ui.activeModelLabel.textContent = 'اختيار النموذج';
+    }
 }
 
 function renderModelChoices(action) {
@@ -514,8 +545,8 @@ function openModelChooser(action, sendAfterChoice) {
     modelChooserState = { action: mode, sendAfterChoice: Boolean(sendAfterChoice), selected: null };
     const titles = {
         text: ['اختر نموذج المحادثة', 'جميع هذه النماذج تُستدعى من الكود الوظيفي الثاني.'],
-        generate: ['اختر نموذج توليد الصور', 'اختر بين Flux الاقتصادي أو مستويات OpenAI.'],
-        edit: ['اختر نموذج تعديل الصور', 'الصورة المرفقة والبرومبت سيُرسلان إلى الكود الوظيفي الثاني.']
+        generate: ['توليد صورة من الصفر', 'يُستخدم GPT Image 2 من OpenAI عبر الكود الوظيفي الثاني فقط.'],
+        edit: ['اختر قوة تعديل الصورة', 'اختر تعديلًا بسيطًا أو احترافيًا؛ كلاهما من OpenAI وعبر الكود الوظيفي الثاني فقط.']
     };
     if (ui.modelChooserTitle) ui.modelChooserTitle.textContent = titles[mode][0];
     if (ui.modelChooserDescription) ui.modelChooserDescription.textContent = titles[mode][1];
@@ -676,47 +707,14 @@ window.selectAITool = function(action) {
 };
 
 // ==========================================
-// الخلفية التفاعلية مع حركة الماوس والتمرير
-// ==========================================
-function initBackgroundParallax() {
-    let pointerX = 0;
-    let pointerY = 0;
-    let scrollY = 0;
-    let scheduled = false;
-
-    function paintBackgroundPosition() {
-        scheduled = false;
-        document.body.style.setProperty('--parallax-x', pointerX.toFixed(1) + 'px');
-        document.body.style.setProperty('--parallax-y', (pointerY + scrollY).toFixed(1) + 'px');
-    }
-
-    function schedulePaint() {
-        if (scheduled) return;
-        scheduled = true;
-        requestAnimationFrame(paintBackgroundPosition);
-    }
-
-    window.addEventListener('pointermove', function(event) {
-        pointerX = ((event.clientX / Math.max(window.innerWidth, 1)) - 0.5) * 22;
-        pointerY = ((event.clientY / Math.max(window.innerHeight, 1)) - 0.5) * 14;
-        schedulePaint();
-    }, { passive: true });
-
-    window.addEventListener('scroll', function() {
-        scrollY = Math.max(-55, Math.min(55, window.scrollY * -0.045));
-        schedulePaint();
-    }, { passive: true });
-}
-
-// ==========================================
 // استوديو اللوحات — Front-end + نفس مسار الصور القديم
 // ==========================================
 const ARTWORKS_STORAGE_KEY = 'aklake_artworks_v1';
 const ART_CART_STORAGE_KEY = 'aklake_art_cart_v1';
 const ART_SIZE_INFO = {
-    large: { label: 'لوحة كبيرة جدًا', width: 44, height: 60, verticalWidth: 21, verticalHeight: 73, price: 79 },
-    medium: { label: 'لوحة كبيرة', width: 36, height: 49, verticalWidth: 18, verticalHeight: 63, price: 59 },
-    small: { label: 'لوحة متوسطة', width: 30, height: 41, verticalWidth: 15, verticalHeight: 52, price: 39 }
+    large: { label: 'لوحة كبيرة', width: 44, height: 60, verticalWidth: 21, verticalHeight: 73, price: 79 },
+    medium: { label: 'لوحة متوسطة', width: 36, height: 49, verticalWidth: 18, verticalHeight: 63, price: 59 },
+    small: { label: 'لوحة صغيرة', width: 30, height: 41, verticalWidth: 15, verticalHeight: 52, price: 39 }
 };
 
 let artFrames = [];
@@ -853,6 +851,9 @@ function renderArtFrame(frame) {
     frame.element.innerHTML = `
         <div class="art-frame-toolbar">
             <button type="button" class="frame-drag-handle" data-frame-action="drag" title="أمسك واسحب اللوحة"><i class="fas fa-hand"></i></button>
+            <button type="button" class="frame-size-btn ${frame.size === 'small' ? 'active' : ''}" data-frame-action="resize" data-frame-size="small" title="لوحة صغيرة"><span>S</span></button>
+            <button type="button" class="frame-size-btn ${frame.size === 'medium' ? 'active' : ''}" data-frame-action="resize" data-frame-size="medium" title="لوحة متوسطة"><span>M</span></button>
+            <button type="button" class="frame-size-btn ${frame.size === 'large' ? 'active' : ''}" data-frame-action="resize" data-frame-size="large" title="لوحة كبيرة"><span>L</span></button>
             <button type="button" data-frame-action="rotate" title="تدوير أفقي أو عمودي"><i class="fas fa-rotate"></i></button>
             <button type="button" data-frame-action="style" title="تغيير شكل الحواف"><i class="fas fa-border-all"></i></button>
             <button type="button" class="frame-delete-btn" data-frame-action="delete" title="حذف اللوحة"><i class="far fa-trash-can"></i></button>
@@ -963,6 +964,8 @@ function handleArtFrameClick(event) {
         openArtPromptDialog(frame, 'generate');
     } else if (action === 'edit') {
         openArtPromptDialog(frame, 'edit');
+    } else if (action === 'resize') {
+        resizeArtFrame(frame, actionButton.dataset.frameSize);
     } else if (action === 'rotate') {
         rotateArtFrame(frame);
     } else if (action === 'style') {
@@ -974,6 +977,34 @@ function handleArtFrameClick(event) {
     } else if (action === 'cart') {
         addSelectedArtworkToCart(frame);
     }
+}
+
+function resizeArtFrame(frame, nextSize) {
+    if (!frame || !ART_SIZE_INFO[nextSize] || frame.size === nextSize) return;
+    const previousSize = frame.size;
+    const previousX = frame.x;
+    const previousY = frame.y;
+
+    frame.size = nextSize;
+    renderArtFrame(frame);
+
+    const metrics = getArtFrameMetrics(frame);
+    frame.x = Math.max(0, Math.min(frame.x, 100 - metrics.width));
+    frame.y = Math.max(0, Math.min(frame.y, 100 - metrics.height));
+
+    if (positionCollides(frame.id, frame.x, frame.y, frame.size, frame.orientation)) {
+        frame.size = previousSize;
+        frame.x = previousX;
+        frame.y = previousY;
+        renderArtFrame(frame);
+        setArtStudioStatus('لا توجد مساحة كافية لهذا المقاس. حرّك اللوحة ثم جرّب مجددًا.', 'error');
+        return;
+    }
+
+    frame.element.style.left = frame.x + '%';
+    frame.element.style.top = frame.y + '%';
+    renderArtFrame(frame);
+    setArtStudioStatus('تم تغيير المقاس إلى ' + ART_SIZE_INFO[nextSize].label + '.', 'success');
 }
 
 function beginArtFrameDrag(event) {
@@ -1145,6 +1176,40 @@ function closeArtDialogs(clearPending) {
     if (clearPending !== false) pendingArtOperation = null;
 }
 
+function getArtModelChoices(mode) {
+    return MODEL_CATALOG[mode === 'edit' ? 'edit' : 'generate'] || [];
+}
+
+function renderArtModelChoices(mode) {
+    const list = document.getElementById('art-model-choices');
+    const label = document.getElementById('art-model-choice-label');
+    if (!list || !pendingArtOperation) return;
+
+    const choices = getArtModelChoices(mode);
+    if (!pendingArtOperation.modelChoice && choices.length) pendingArtOperation.modelChoice = choices[0];
+    if (label) label.textContent = mode === 'edit' ? 'اختر قوة التعديل' : 'نموذج التوليد';
+    list.innerHTML = '';
+
+    choices.forEach(function(choice) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'art-model-choice';
+        if (pendingArtOperation.modelChoice && pendingArtOperation.modelChoice.model === choice.model) {
+            button.classList.add('selected');
+        }
+        button.innerHTML = `
+            <span class="art-model-choice-icon"><i class="fas ${choice.icon}"></i></span>
+            <span class="art-model-choice-copy"><strong>${choice.name}</strong><small>${choice.description}</small></span>
+            <span class="model-choice-cost">${choice.cost}</span>`;
+        button.addEventListener('click', function() {
+            pendingArtOperation.modelChoice = choice;
+            list.querySelectorAll('.art-model-choice').forEach(function(card) { card.classList.remove('selected'); });
+            button.classList.add('selected');
+        });
+        list.appendChild(button);
+    });
+}
+
 function openArtPromptDialog(frame, mode) {
     if (!frame) return;
     if (mode === 'edit' && !frame.imageData) {
@@ -1152,11 +1217,17 @@ function openArtPromptDialog(frame, mode) {
         return;
     }
     selectArtFrame(frame.id);
-    pendingArtOperation = { frameId: frame.id, mode: mode, prompt: '' };
+    pendingArtOperation = {
+        frameId: frame.id,
+        mode: mode,
+        prompt: '',
+        modelChoice: getArtModelChoices(mode)[0] || null
+    };
     const promptInput = document.getElementById('art-prompt');
     const title = document.getElementById('art-prompt-modal-title');
     if (promptInput) promptInput.value = frame.prompt || '';
     if (title) title.textContent = mode === 'edit' ? 'كيف تريد تحويل هذه الصورة؟' : 'صف اللوحة التي تريد إنشاءها';
+    renderArtModelChoices(mode);
     const modal = document.getElementById('art-prompt-modal');
     if (modal) modal.classList.remove('hidden');
     if (promptInput) setTimeout(function() { promptInput.focus(); }, 30);
@@ -1176,6 +1247,10 @@ function confirmArtPrompt() {
         if (promptInput) promptInput.focus();
         return;
     }
+    if (!pendingArtOperation.modelChoice) {
+        setArtStudioStatus('اختر نموذج الصورة أولًا.', 'error');
+        return;
+    }
     frame.prompt = prompt;
     pendingArtOperation.prompt = prompt;
     const promptModal = document.getElementById('art-prompt-modal');
@@ -1187,7 +1262,7 @@ function confirmArtPrompt() {
     } else {
         const operation = pendingArtOperation;
         pendingArtOperation = null;
-        runArtAI(operation.mode, frame);
+        runArtAI(operation, frame);
     }
 }
 
@@ -1203,7 +1278,7 @@ function continueArtOperation(replaceOld) {
     closeArtDialogs(false);
 
     if (replaceOld) {
-        runArtAI(operation.mode, sourceFrame);
+        runArtAI(operation, sourceFrame);
         return;
     }
 
@@ -1217,10 +1292,14 @@ function continueArtOperation(replaceOld) {
     });
     if (!duplicate) return;
     duplicate.prompt = operation.prompt;
-    runArtAI(operation.mode, duplicate);
+    runArtAI(operation, duplicate);
 }
 
-async function runArtAI(mode, targetFrame) {
+async function runArtAI(operation, targetFrame) {
+    const mode = typeof operation === 'string' ? operation : operation.mode;
+    const modelChoice = (operation && operation.modelChoice)
+        || getArtModelChoices(mode)[0]
+        || null;
     const selected = targetFrame || getSelectedArtFrame();
     const prompt = selected ? (selected.prompt || '').trim() : '';
     if (!selected) return;
@@ -1241,14 +1320,20 @@ async function runArtAI(mode, targetFrame) {
         mode: mode === 'edit' ? 'edit' : 'generate',
         prompt: prompt,
         provider: 'openai',
-        modelTier: 'pro'
+        model: modelChoice ? modelChoice.model : 'gpt-image-2',
+        imageModel: modelChoice ? modelChoice.model : 'gpt-image-2',
+        modelTier: modelChoice ? modelChoice.modelTier : 'pro',
+        quality: modelChoice ? modelChoice.quality : 'high',
+        clientFeature: 'art_studio'
     };
+    if (modelChoice && modelChoice.inputFidelity) payloadObj.inputFidelity = modelChoice.inputFidelity;
     if (mode === 'edit') payloadObj.imageBase64 = selected.imageData;
 
     const responseData = await executeRequest(payloadObj);
     setArtFrameProcessing(selected, false);
-    if (responseData && responseData.success && responseData.resultType === 'image' && responseData.data) {
-        selected.imageData = responseData.data;
+    const imageResult = normalizeImageResult(responseData);
+    if (responseData && responseData.success && imageResult) {
+        selected.imageData = imageResult;
         selected.hasGenerated = true;
         renderArtFrame(selected);
         const credits = document.getElementById('user-credits');
@@ -1481,8 +1566,8 @@ function initArtStudio() {
         if (event.key === 'Escape') closeArtDialogs();
     });
 
-    // لوحة كبيرة أفقية عند فتح الأداة لأول مرة.
-    createArtFrame('large');
+    // يبدأ الحائط فارغًا؛ زر «إضافة لوحة» ينشئ لوحة متوسطة يمكن تغيير مقاسها من أزرار S / M / L.
+    updateEmptyWallHint();
 }
 
 function updateUI() {
@@ -1525,9 +1610,9 @@ function updateUI() {
     } else if (currentAction === 'text') {
         ui.provider.innerHTML = '<option value="openai">OpenAI (متقدم)</option><option value="cloudflare">Cloudflare (اقتصادي)</option>';
     } else if (currentAction === 'generate') {
-        ui.provider.innerHTML = '<option value="cloudflare">Cloudflare (Flux)</option><option value="openai">OpenAI (DALL-E)</option>';
+        ui.provider.innerHTML = '<option value="openai">OpenAI (توليد الصور)</option>';
     } else if (currentAction === 'edit') {
-        ui.provider.innerHTML = '<option value="openai">OpenAI (تعديل صور)</option>';
+        ui.provider.innerHTML = '<option value="openai">OpenAI (تعديل الصور)</option>';
     }
     
     updateModels();
@@ -1539,7 +1624,7 @@ function updateModels() {
     const action = ui.action.value;
     const provider = ui.provider.value;
     if (action === 'art_studio') {
-        ui.model.innerHTML = '<option value="pro">OpenAI Pro (أعلى جودة)</option>';
+        ui.model.innerHTML = '<option value="gpt-image-2">GPT Image 2</option>';
     } else if (action === 'text' || action === 'book_outline') {
         if (provider === 'gemini') {
             ui.model.innerHTML = '<option value="gemini-3.5-flash">Gemini 3.5 Flash</option>';
@@ -1548,12 +1633,10 @@ function updateModels() {
         } else {
             ui.model.innerHTML = '<option value="llama">LLaMA 3.3 (5 نقاط)</option>';
         }
-    } else {
-        if (provider === 'openai') {
-            ui.model.innerHTML = '<option value="light">عادي (10 نقاط)</option><option value="mid">متوسط (15 نقطة)</option><option value="pro">Pro (20 نقطة)</option>';
-        } else {
-            ui.model.innerHTML = '<option value="flux">Flux (5 نقاط)</option>';
-        }
+    } else if (action === 'generate') {
+        ui.model.innerHTML = '<option value="gpt-image-2">GPT Image 2 — توليد من الصفر (20 نقطة)</option>';
+    } else if (action === 'edit') {
+        ui.model.innerHTML = '<option value="gpt-image-1-mini">GPT Image 1 mini — تعديل بسيط (10 نقاط)</option><option value="gpt-image-2">GPT Image 2 — تعديل احترافي (20 نقطة)</option>';
     }
     syncWorkspaceFromSelections();
 }
@@ -1566,7 +1649,6 @@ if (ui.model) ui.model.addEventListener('change', syncWorkspaceFromSelections);
 window.addEventListener('DOMContentLoaded', function() {
     ui.source.value = SECOND_FUNCTION_ID;
     updateUI();
-    initBackgroundParallax();
     initHomeNavigation();
     initArtStudio();
     initCreationLibrary();
@@ -1667,6 +1749,19 @@ window.addEventListener('DOMContentLoaded', function() {
 // ==========================================
 // 3. التفاعل مع الخادم (Appwrite Functions)
 // ==========================================
+function normalizeImageResult(responseData) {
+    if (!responseData) return '';
+    const candidate = responseData.data || responseData.image || responseData.imageBase64 || responseData.url || '';
+    if (typeof candidate !== 'string' || !candidate.trim()) return '';
+    const value = candidate.trim();
+    if (/^(data:image\/|https?:\/\/|blob:)/i.test(value)) return value;
+    const looksLikeBase64Image = value.length > 200 && /^[A-Za-z0-9+/=\r\n]+$/.test(value);
+    if (responseData.resultType === 'image' || responseData.image || responseData.imageBase64 || looksLikeBase64Image) {
+        return 'data:image/png;base64,' + value.replace(/\s+/g, '');
+    }
+    return '';
+}
+
 async function executeRequest(payloadObj) {
     if (!currentUser) { 
         alert("يرجى تسجيل الدخول أولاً.");
@@ -1674,7 +1769,11 @@ async function executeRequest(payloadObj) {
         return null; 
     }
 
-    const targetFunctionId = ui.source.value;
+    // أي طلب صورة يمر حصريًا عبر الكود الوظيفي الثاني.
+    const isImageRequest = payloadObj
+        && payloadObj.action === 'legacy_chat'
+        && (payloadObj.mode === 'generate' || payloadObj.mode === 'edit');
+    const targetFunctionId = isImageRequest ? SECOND_FUNCTION_ID : ui.source.value;
     ui.loader.classList.remove('hidden');
     try {
         const execution = await appwriteFunctions.createExecution(
@@ -1685,8 +1784,17 @@ async function executeRequest(payloadObj) {
             'POST',
             { 'Content-Type': 'application/json' }
         );
-        if (execution.status === 'failed') throw new Error("حدث خطأ داخلي في السيرفر.");
-        return JSON.parse(execution.responseBody);
+        let parsedBody = null;
+        try {
+            parsedBody = execution.responseBody ? JSON.parse(execution.responseBody) : null;
+        } catch (parseError) {
+            throw new Error('ردّ السيرفر ليس JSON صالحًا. راجع سجل الكود الوظيفي الثاني.');
+        }
+        if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400) {
+            const serverMessage = parsedBody && (parsedBody.error || parsedBody.message);
+            throw new Error(serverMessage || execution.errors || 'حدث خطأ داخلي في السيرفر.');
+        }
+        return parsedBody;
     } catch (error) {
         alert("خطأ في الاتصال بالسيرفر: " + error.message);
         return null;
@@ -1717,12 +1825,21 @@ if (ui.sendBtn) {
             return;
         }
 
+        const selectedCatalogChoice = getSelectedCatalogChoice(actionType);
         let payloadObj = {
             userId: currentUser ? currentUser.$id : null,
             prompt: promptSnapshot,
             provider: ui.provider.value,
-            modelTier: ui.model.value
+            modelTier: selectedCatalogChoice && selectedCatalogChoice.modelTier
+                ? selectedCatalogChoice.modelTier
+                : ui.model.value
         };
+        if (selectedCatalogChoice && (actionType === 'generate' || actionType === 'edit')) {
+            payloadObj.model = selectedCatalogChoice.model;
+            payloadObj.imageModel = selectedCatalogChoice.model;
+            payloadObj.quality = selectedCatalogChoice.quality || 'auto';
+            if (selectedCatalogChoice.inputFidelity) payloadObj.inputFidelity = selectedCatalogChoice.inputFidelity;
+        }
 
         if (actionType === 'book_outline') {
             const bGenreSelect = document.getElementById('b-genre');
@@ -1802,8 +1919,8 @@ if (ui.sendBtn) {
                 calculateRemainingPages();
             } else if (responseData.resultType === 'text') {
                 appendChatMessage('assistant', responseData.data, getSourceMetadata(responseData), 'text');
-            } else if (responseData.resultType === 'image') {
-                appendChatMessage('assistant', responseData.data, getSourceMetadata(responseData), 'image');
+            } else if (responseData.resultType === 'image' || normalizeImageResult(responseData)) {
+                appendChatMessage('assistant', normalizeImageResult(responseData), getSourceMetadata(responseData), 'image');
                 if (actionType === 'edit') clearComposerAttachment(true);
             }
             
