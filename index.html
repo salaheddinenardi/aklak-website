@@ -1,3 +1,8 @@
+index.html
+
+
+
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -10,29 +15,75 @@
 </head>
 <body>
 
-<div class="nav">
-    <div class="logo">aklake</div>
-    <div>
-        <span id="user-info" class="hidden" style="font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 8px 15px; border-radius: 20px; border: 1px solid #bbf7d0; margin-left: 10px;">
-            الرصيد: <span id="user-credits">0</span>
-        </span>
-        <button id="login-btn" onclick="openModal()" style="width: auto; padding: 8px 20px; border-radius: 20px;">تسجيل الدخول</button>
-        <button id="logout-btn" class="hidden" onclick="logout()" style="width: auto; padding: 8px 20px; border-radius: 20px; background: #dc2626;">خروج</button>
+<header class="nav">
+    <button class="brand-button" type="button" onclick="window.openWorkspace()" aria-label="فتح أكلاك">
+        <span class="brand-orbit"><i class="fas fa-sparkles"></i></span>
+        <span class="logo">aklake</span>
+    </button>
+    <div class="account-actions">
+        <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt"></i> <span id="user-credits">0</span> نقطة</span>
+        <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i> تسجيل الدخول</button>
+        <button id="logout-btn" class="account-btn danger hidden" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i> خروج</button>
     </div>
-</div>
+</header>
 
-<div class="container">
-    <h2 style="text-align: center; color: #1f2937; margin-top: 0;">ساحة الذكاء الاصطناعي ⚡</h2>
-    
-    <div id="my-library-section" class="hidden" style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-        <h3 style="margin-top: 0; color: #14539a; border-bottom: 1px solid #e5e7eb; padding-bottom: 10px;"><i class="fas fa-book"></i> مكتبتي 📚</h3>
-        <div id="my-library-list" style="max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
-        <button onclick="window.toggleMainInputs()" style="margin-top: 15px; background: #10b981; width: auto; padding: 8px 15px; font-size: 0.9em; border-radius: 6px;"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
+<section id="welcome-screen" class="welcome-screen">
+    <div class="welcome-copy">
+        <span class="eyebrow">مساحة واحدة لكل أدواتك</span>
+        <h1>ماذا تحتاج أيها البشري؟</h1>
+        <p>تحدث مع الذكاء الاصطناعي، أنشئ كتابًا طويلًا، أو اصنع صورة من المكان نفسه.</p>
     </div>
-    
-    <div id="main-inputs-wrapper">
-        <!-- نفس الحقول القديمة بدون تغيير -->
-        <div class="controls-grid">
+    <div class="quick-chat-card">
+        <textarea id="quick-chat-prompt" rows="1" placeholder="اكتب ما تريد البدء به..."></textarea>
+        <button id="open-chat-btn" type="button" aria-label="بدء المحادثة"><i class="fas fa-arrow-up"></i></button>
+    </div>
+    <div class="quick-actions">
+        <button type="button" data-welcome-tool="text"><i class="far fa-message"></i> محادثة</button>
+        <button type="button" data-welcome-tool="book_outline"><i class="fas fa-book-open"></i> إنشاء كتاب</button>
+        <button type="button" data-welcome-tool="generate"><i class="far fa-image"></i> إنشاء صورة</button>
+    </div>
+</section>
+
+<div id="app-shell" class="app-shell is-collapsed" data-action="text">
+    <aside class="tools-sidebar" aria-label="أدوات الذكاء الاصطناعي">
+        <div class="sidebar-title">الأدوات</div>
+        <button class="tool-button active" type="button" data-tool="text">
+            <span class="tool-icon"><i class="far fa-message"></i></span><span>المحادثة</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="book_outline">
+            <span class="tool-icon"><i class="fas fa-book-open"></i></span><span>إنشاء كتاب</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="generate">
+            <span class="tool-icon"><i class="far fa-image"></i></span><span>إنشاء صورة</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="edit">
+            <span class="tool-icon"><i class="fas fa-wand-magic-sparkles"></i></span><span>تعديل صورة</span>
+        </button>
+        <div class="sidebar-spacer"></div>
+        <button id="library-toggle-btn" class="tool-button secondary" type="button">
+            <span class="tool-icon"><i class="fas fa-layer-group"></i></span><span>مكتبتي</span>
+        </button>
+    </aside>
+
+    <main class="workspace-main">
+        <div class="workspace-header">
+            <div>
+                <span id="workspace-kicker" class="workspace-kicker">AKLAKE CHAT</span>
+                <h2 id="workspace-title">محادثة جديدة</h2>
+            </div>
+            <button id="settings-toggle-btn" class="icon-button" type="button" aria-label="إعدادات النموذج" title="إعدادات النموذج"><i class="fas fa-sliders"></i></button>
+        </div>
+
+        <div id="my-library-section" class="glass-panel hidden">
+            <div class="panel-heading"><h3><i class="fas fa-book"></i> مكتبتي</h3><button type="button" class="close-panel-btn" data-close-library><i class="fas fa-xmark"></i></button></div>
+            <div id="my-library-list"></div>
+            <button onclick="window.selectAITool('book_outline')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
+        </div>
+
+        <div id="main-inputs-wrapper">
+        <div id="advanced-settings" class="advanced-settings hidden">
+            <div class="settings-label"><i class="fas fa-sliders"></i> إعدادات النموذج <span>يمكن تغييرها، والخيارات الاقتصادية محددة افتراضيًا.</span></div>
+            <div class="controls-grid">
             <div>
                 <label>المصدر (الكود الوظيفي):</label>
                 <select id="source-select">
@@ -57,14 +108,19 @@
                 <label>النموذج (الموديل):</label>
                 <select id="model-select"></select>
             </div>
+            </div>
         </div>
 
-        <div id="image-upload-section" class="hidden" style="margin-bottom: 20px; text-align: right; background: #f9fafb; padding: 15px; border-radius: 8px; border: 1px dashed #cbd5e1;">
-            <label>ارفع الصورة للتعديل:</label>
-            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp" style="background: white;">
+        <div id="image-upload-section" class="upload-panel hidden">
+            <label><i class="fas fa-cloud-arrow-up"></i> ارفع الصورة التي تريد تعديلها</label>
+            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
         </div>
 
         <div id="book-settings" class="book-fields hidden">
+            <div class="book-form-intro">
+                <span><i class="fas fa-book-open"></i></span>
+                <div><h3>ابنِ كتابك خطوة بخطوة</h3><p>أدخل المعلومات الأساسية، وستبقى آلية التأليف الحالية كما هي.</p></div>
+            </div>
             <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
             <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
             <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
@@ -123,11 +179,28 @@
             <input type="text" id="b-cover" placeholder="وصف غلاف الكتاب (اختياري)">
         </div>
 
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-            <input type="text" id="main-prompt" placeholder="اكتب سؤالك، أو ملاحظات إضافية هنا...">
-            <button id="send-btn" style="width: 180px;"><i class="fas fa-paper-plane"></i> إرسال الطلب</button>
+        <div id="chat-stream" class="chat-stream">
+            <div id="chat-messages" class="chat-messages" aria-live="polite">
+                <div class="message-row assistant-message">
+                    <div class="message-avatar"><i class="fas fa-sparkles"></i></div>
+                    <div class="message-content">
+                        <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
+                        <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الأول</div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div> <div id="loader" class="hidden" style="margin-top: 20px; color: #14539a; text-align: center; font-weight: bold;"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
+
+        <div class="composer-wrap">
+            <div class="composer">
+                <textarea id="main-prompt" rows="1" placeholder="اكتب رسالتك هنا..."></textarea>
+                <button id="send-btn" type="button" aria-label="إرسال الطلب"><i class="fas fa-arrow-up"></i></button>
+            </div>
+            <div class="composer-note"><span id="active-model-label">الكود الأول • OpenAI • GPT-4o</span><span>Enter للإرسال · Shift + Enter لسطر جديد</span></div>
+        </div>
+        </div>
+
+        <div id="loader" class="hidden"><i class="fas fa-spinner fa-spin"></i> جاري المعالجة...</div>
     
     <div class="result-box hidden" id="result-area">
         <h3 style="margin-top: 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">النتيجة</h3>
@@ -228,6 +301,7 @@
         <button id="new-book-btn" class="hidden" onclick="resetForNewBook()" style="margin-top: 30px; background: #10b981; width: auto; padding: 12px 30px; font-size: 1.1em;"><i class="fas fa-plus"></i> تأليف كتاب جديد</button>
     </div>
 
+    </main>
 </div>
 
 <div class="modal" id="auth-modal">

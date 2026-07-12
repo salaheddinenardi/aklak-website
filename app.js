@@ -1,3 +1,4 @@
+
 // ==========================================
 // 1. تهيئة Appwrite
 // ==========================================
@@ -167,7 +168,18 @@ const ui = {
     introPagesInput: document.getElementById('intro-pages-input'),
     remainingPagesDisplay: document.getElementById('remaining-pages-display'),
     refineIntroPrompt: document.getElementById('refine-intro-prompt'),
-    refineIntroBtn: document.getElementById('refine-intro-btn')
+    refineIntroBtn: document.getElementById('refine-intro-btn'),
+
+    appShell: document.getElementById('app-shell'),
+    welcomeScreen: document.getElementById('welcome-screen'),
+    quickPrompt: document.getElementById('quick-chat-prompt'),
+    openChatBtn: document.getElementById('open-chat-btn'),
+    chatMessages: document.getElementById('chat-messages'),
+    advancedSettings: document.getElementById('advanced-settings'),
+    settingsToggle: document.getElementById('settings-toggle-btn'),
+    workspaceTitle: document.getElementById('workspace-title'),
+    workspaceKicker: document.getElementById('workspace-kicker'),
+    activeModelLabel: document.getElementById('active-model-label')
 };
 const pageUI = {
     prevBtn: document.getElementById('prev-page-btn'),
@@ -254,6 +266,139 @@ if (pageUI.continueBtn) {
     });
 }
 
+// ==========================================
+// واجهة المحادثة الاحترافية والتنقل بين الأدوات
+// ==========================================
+function openWorkspace() {
+    if (ui.welcomeScreen) ui.welcomeScreen.classList.add('is-hidden');
+    if (ui.appShell) ui.appShell.classList.remove('is-collapsed');
+    document.body.classList.add('workspace-open');
+}
+window.openWorkspace = openWorkspace;
+
+function scrollChatToBottom() {
+    if (!ui.chatMessages) return;
+    requestAnimationFrame(function() {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+    });
+}
+
+function appendChatMessage(role, content, metadata, resultType) {
+    if (!ui.chatMessages) return null;
+
+    const row = document.createElement('div');
+    row.className = `message-row ${role === 'user' ? 'user-message' : 'assistant-message'}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.innerHTML = role === 'user' ? '<i class="far fa-user"></i>' : '<i class="fas fa-sparkles"></i>';
+
+    const contentWrap = document.createElement('div');
+    contentWrap.className = 'message-content';
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+
+    if (resultType === 'image') {
+        const image = document.createElement('img');
+        image.className = 'message-image';
+        image.src = content;
+        image.alt = 'صورة مولدة بالذكاء الاصطناعي';
+        bubble.appendChild(image);
+    } else {
+        bubble.textContent = content || '';
+    }
+
+    contentWrap.appendChild(bubble);
+    if (metadata) {
+        const source = document.createElement('div');
+        source.className = 'message-source';
+        source.textContent = metadata;
+        contentWrap.appendChild(source);
+    }
+
+    row.appendChild(avatar);
+    row.appendChild(contentWrap);
+    ui.chatMessages.appendChild(row);
+    scrollChatToBottom();
+    return row;
+}
+
+function appendTypingIndicator() {
+    if (!ui.chatMessages) return null;
+    const row = document.createElement('div');
+    row.className = 'message-row assistant-message typing-row';
+    row.innerHTML = `
+        <div class="message-avatar"><i class="fas fa-sparkles"></i></div>
+        <div class="message-content">
+            <div class="message-bubble typing-bubble" aria-label="النموذج يكتب">
+                <i></i><i></i><i></i><i></i>
+            </div>
+            <div class="message-source">يفكر ويكتب الآن...</div>
+        </div>`;
+    ui.chatMessages.appendChild(row);
+    scrollChatToBottom();
+    return row;
+}
+
+function getSourceMetadata(responseData) {
+    const sourceName = responseData && responseData.sourceFunction
+        ? responseData.sourceFunction
+        : (ui.source.value === '6a3c7a760032067bd275' ? 'الكود الوظيفي الأول' : 'الكود الوظيفي الثاني');
+    const providerName = ui.provider.options[ui.provider.selectedIndex]
+        ? ui.provider.options[ui.provider.selectedIndex].text
+        : ui.provider.value;
+    const modelName = ui.model.options[ui.model.selectedIndex]
+        ? ui.model.options[ui.model.selectedIndex].text
+        : ui.model.value;
+    return `المصدر: ${sourceName} • ${providerName} • ${modelName}`;
+}
+
+function autoResizeTextarea(textarea) {
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px';
+}
+
+function syncWorkspaceFromSelections() {
+    if (!ui.action) return;
+    const action = ui.action.value;
+    if (ui.appShell) ui.appShell.dataset.action = action;
+
+    document.querySelectorAll('[data-tool]').forEach(function(button) {
+        button.classList.toggle('active', button.dataset.tool === action);
+    });
+
+    const workspaceData = {
+        text: { kicker: 'AKLAKE CHAT', title: 'محادثة جديدة', placeholder: 'اكتب رسالتك هنا...' },
+        generate: { kicker: 'IMAGE STUDIO', title: 'إنشاء صورة', placeholder: 'صف الصورة التي تريد إنشاءها...' },
+        edit: { kicker: 'IMAGE EDITOR', title: 'تعديل صورة', placeholder: 'اشرح التعديل المطلوب على الصورة...' },
+        book_outline: { kicker: 'BOOK BUILDER', title: 'إنشاء كتاب طويل', placeholder: 'ملاحظات إضافية عن الكتاب (اختياري)...' }
+    };
+    const data = workspaceData[action] || workspaceData.text;
+    if (ui.workspaceKicker) ui.workspaceKicker.textContent = data.kicker;
+    if (ui.workspaceTitle) ui.workspaceTitle.textContent = data.title;
+    if (ui.prompt) ui.prompt.placeholder = data.placeholder;
+
+    if (ui.activeModelLabel && ui.source && ui.provider && ui.model) {
+        const sourceShort = ui.source.value === '6a3c7a760032067bd275' ? 'الكود الأول' : 'الكود الثاني';
+        const providerShort = ui.provider.options[ui.provider.selectedIndex] ? ui.provider.options[ui.provider.selectedIndex].text : '';
+        const modelShort = ui.model.options[ui.model.selectedIndex] ? ui.model.options[ui.model.selectedIndex].text : '';
+        ui.activeModelLabel.textContent = `${sourceShort} • ${providerShort} • ${modelShort}`;
+    }
+}
+
+window.selectAITool = function(action) {
+    openWorkspace();
+    if (!ui.action || !ui.source) return;
+
+    // تأليف الكتاب يحتاج إلى الكود الثاني كما كان في المشروع الأصلي.
+    // المحادثة والصور تبدأ اقتصاديًا من الكود الأول، ويمكن تغيير المصدر من الإعدادات.
+    ui.source.value = action === 'book_outline' ? '6a445f680013960a14c6' : '6a3c7a760032067bd275';
+    ui.action.value = action;
+    updateUI();
+    if (action === 'text' && ui.prompt) ui.prompt.focus();
+};
+
 function updateUI() {
     const source = ui.source.value;
     const action = ui.action.value;
@@ -294,6 +439,7 @@ function updateUI() {
     
     updateModels();
     calculateRemainingPages();
+    syncWorkspaceFromSelections();
 }
 
 function updateModels() {
@@ -314,12 +460,66 @@ function updateModels() {
             ui.model.innerHTML = '<option value="flux">Flux (5 نقاط)</option>';
         }
     }
+    syncWorkspaceFromSelections();
 }
 
 if (ui.source) ui.source.addEventListener('change', updateUI);
 if (ui.action) ui.action.addEventListener('change', updateUI);
 if (ui.provider) ui.provider.addEventListener('change', updateModels);
-window.addEventListener('DOMContentLoaded', updateUI);
+if (ui.model) ui.model.addEventListener('change', syncWorkspaceFromSelections);
+
+window.addEventListener('DOMContentLoaded', function() {
+    updateUI();
+
+    document.querySelectorAll('[data-tool]').forEach(function(button) {
+        button.addEventListener('click', function() { window.selectAITool(button.dataset.tool); });
+    });
+    document.querySelectorAll('[data-welcome-tool]').forEach(function(button) {
+        button.addEventListener('click', function() { window.selectAITool(button.dataset.welcomeTool); });
+    });
+
+    if (ui.settingsToggle) {
+        ui.settingsToggle.addEventListener('click', function() {
+            ui.advancedSettings.classList.toggle('hidden');
+        });
+    }
+
+    const libraryToggle = document.getElementById('library-toggle-btn');
+    const librarySection = document.getElementById('my-library-section');
+    if (libraryToggle && librarySection) {
+        libraryToggle.addEventListener('click', function() {
+            openWorkspace();
+            librarySection.classList.toggle('hidden');
+        });
+    }
+    document.querySelectorAll('[data-close-library]').forEach(function(button) {
+        button.addEventListener('click', function() { librarySection.classList.add('hidden'); });
+    });
+
+    if (ui.openChatBtn) {
+        ui.openChatBtn.addEventListener('click', function() {
+            const firstPrompt = ui.quickPrompt ? ui.quickPrompt.value.trim() : '';
+            window.selectAITool('text');
+            if (firstPrompt) {
+                ui.prompt.value = firstPrompt;
+                autoResizeTextarea(ui.prompt);
+                ui.sendBtn.click();
+            }
+        });
+    }
+
+    [ui.quickPrompt, ui.prompt].forEach(function(textarea) {
+        if (!textarea) return;
+        textarea.addEventListener('input', function() { autoResizeTextarea(textarea); });
+        textarea.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                if (textarea === ui.quickPrompt) ui.openChatBtn.click();
+                else ui.sendBtn.click();
+            }
+        });
+    });
+});
 
 // ==========================================
 // 3. التفاعل مع الخادم (Appwrite Functions)
@@ -355,15 +555,23 @@ async function executeRequest(payloadObj) {
 if (ui.sendBtn) {
     ui.sendBtn.addEventListener('click', async function() {
         const actionType = ui.action.value;
+        const promptSnapshot = ui.prompt.value.trim();
         
-        if (!ui.prompt.value.trim() && actionType !== 'book_outline') { 
+        if (!promptSnapshot && actionType !== 'book_outline') { 
             alert("يرجى إدخال نص الطلب!"); 
             return; 
         }
 
+        // لا نفرغ الرسالة من الواجهة قبل تسجيل الدخول، حتى لا يضطر المستخدم لكتابتها من جديد.
+        if (!currentUser) {
+            alert("يرجى تسجيل الدخول أولاً.");
+            openModal();
+            return;
+        }
+
         let payloadObj = {
             userId: currentUser ? currentUser.$id : null,
-            prompt: ui.prompt.value,
+            prompt: promptSnapshot,
             provider: ui.provider.value,
             modelTier: ui.model.value
         };
@@ -417,7 +625,17 @@ if (ui.sendBtn) {
         ui.sourceBadge.classList.add('hidden');
         ui.sendBtn.disabled = true;
 
+        let typingIndicator = null;
+        if (actionType !== 'book_outline') {
+            openWorkspace();
+            appendChatMessage('user', promptSnapshot, '', 'text');
+            typingIndicator = appendTypingIndicator();
+            ui.prompt.value = '';
+            autoResizeTextarea(ui.prompt);
+        }
+
         const responseData = await executeRequest(payloadObj);
+        if (typingIndicator) typingIndicator.remove();
         ui.sendBtn.disabled = false;
         if (responseData && responseData.success) {
             const creditsElem = document.getElementById('user-credits');
@@ -432,19 +650,20 @@ if (ui.sendBtn) {
                 ui.bookActions.classList.remove('hidden');
                 calculateRemainingPages();
             } else if (responseData.resultType === 'text') {
-                ui.resultText.innerText = responseData.data;
-                ui.resultText.classList.remove('hidden');
+                appendChatMessage('assistant', responseData.data, getSourceMetadata(responseData), 'text');
             } else if (responseData.resultType === 'image') {
-                ui.resultImage.src = responseData.data;
-                ui.resultImage.classList.remove('hidden');
+                appendChatMessage('assistant', responseData.data, getSourceMetadata(responseData), 'image');
             }
             
-            if (responseData.sourceFunction) {
+            if (actionType === 'book_outline' && responseData.sourceFunction) {
                 ui.sourceBadge.innerHTML = '<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ' + responseData.sourceFunction;
                 ui.sourceBadge.classList.remove('hidden');
             }
-            ui.resultArea.classList.remove('hidden');
+            if (actionType === 'book_outline') ui.resultArea.classList.remove('hidden');
         } else if (responseData) {
+            if (actionType !== 'book_outline') {
+                appendChatMessage('assistant', 'تعذر تنفيذ الطلب: ' + (responseData.error || 'خطأ غير معروف'), getSourceMetadata(responseData), 'text');
+            }
             alert("❌ فشل: " + responseData.error);
         }
     });
