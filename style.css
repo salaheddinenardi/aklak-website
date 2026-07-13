@@ -486,7 +486,7 @@ button { border: 0; }
 }
 
 /* =========================================================
-   AKLAKE GREEN SYSTEM — وضوح أعلى فوق خلفية النجوم
+   AKLAKE GREEN SYSTEM â€” ÙˆØ¶ÙˆØ­ Ø£Ø¹Ù„Ù‰ ÙÙˆÙ‚ Ø®Ù„ÙÙŠØ© Ø§Ù„Ù†Ø¬ÙˆÙ…
    ========================================================= */
 :root {
     --green: #79e2ad;
@@ -656,13 +656,40 @@ input[type="file"]::file-selector-button { color: #062017; background: var(--gre
 }
 .small-primary-btn:hover, .art-primary-btn:hover { background: #c1f9dd !important; }
 .library-book-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    text-align: right;
     color: #eafff3 !important;
     background: rgba(5,18,13,.88) !important;
-    border-color: var(--green-line) !important;
+    border: 1px solid var(--green-line) !important;
     border-radius: 6px !important;
 }
-/* نافذة الأعمال الجانبية */
-/* نافذة الأعمال الجانبية */
+.library-book-btn:hover { background: rgba(121,226,173,.12) !important; }
+.library-book-card {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: rgba(121,226,173,.045);
+    border: 1px solid rgba(121,226,173,.12);
+    border-radius: 7px;
+}
+.book-to-landing-btn {
+    width: 100%;
+    padding: 9px 11px;
+    color: #062017;
+    background: var(--green-bright);
+    border: 1px solid var(--green-bright);
+    border-radius: 6px;
+    font-weight: 800;
+}
+.book-to-landing-btn:hover { background: #c1f9dd; }
+/* Ù†Ø§ÙØ°Ø© Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ© */
+/* Ù†Ø§ÙØ°Ø© Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ Ø§Ù„Ø¬Ø§Ù†Ø¨ÙŠØ© */
 .library-drawer {
     position: fixed;
     z-index: 80;
@@ -698,7 +725,7 @@ input[type="file"]::file-selector-button { color: #062017; background: var(--gre
 .cart-summary strong { color: var(--green-bright); }
 .checkout-btn { width: 100%; padding: 11px; }
 
-/* استوديو اللوحات */
+/* Ø§Ø³ØªÙˆØ¯ÙŠÙˆ Ø§Ù„Ù„ÙˆØ­Ø§Øª */
 .art-studio { width: min(1180px, 100%); margin: 18px auto 40px; }
 .studio-intro { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin-bottom: 14px; padding: 16px; background: rgba(5,16,12,.92); border: 1px solid var(--green-line); border-radius: 8px; }
 .studio-intro-icon { width: 48px; height: 48px; display: grid; place-items: center; color: var(--green-bright); background: var(--green-soft); border: 1px solid var(--green-line); border-radius: 7px; font-size: 1.25rem; }
@@ -824,7 +851,7 @@ input[type="file"]::file-selector-button { color: #062017; background: var(--gre
 }
 
 /* =========================================================
-   ART GALLERY V2 — معرض كبير، مستطيلات حادة وأدوات لكل لوحة
+   ART GALLERY V2 â€” Ù…Ø¹Ø±Ø¶ ÙƒØ¨ÙŠØ±ØŒ Ù…Ø³ØªØ·ÙŠÙ„Ø§Øª Ø­Ø§Ø¯Ø© ÙˆØ£Ø¯ÙˆØ§Øª Ù„ÙƒÙ„ Ù„ÙˆØ­Ø©
    ========================================================= */
 .brand-navigation { display: flex; align-items: center; gap: 8px; }
 .brand-button { text-decoration: none; cursor: grab; }
@@ -842,7 +869,7 @@ input[type="file"]::file-selector-button { color: #062017; background: var(--gre
 }
 .home-button:hover { color: #fff; background: rgba(121,226,173,.16); border-color: var(--green); }
 
-/* الخلفية في طبقة واحدة ثابتة ومن دون تكرار؛ تتحرك بهدوء بواسطة transform فقط */
+/* Ø§Ù„Ø®Ù„ÙÙŠØ© ÙÙŠ Ø·Ø¨Ù‚Ø© ÙˆØ§Ø­Ø¯Ø© Ø«Ø§Ø¨ØªØ© ÙˆÙ…Ù† Ø¯ÙˆÙ† ØªÙƒØ±Ø§Ø±Ø› ØªØªØ­Ø±Ùƒ Ø¨Ù‡Ø¯ÙˆØ¡ Ø¨ÙˆØ§Ø³Ø·Ø© transform ÙÙ‚Ø· */
 body {
     background-color: #010503;
     background-image: none !important;
@@ -891,7 +918,7 @@ body::after {
 .frame-size-picker button { border-radius: 3px; min-width: 104px; }
 .art-studio-status { min-height: 24px; padding: 8px 4px; }
 
-/* اللوحة نفسها بلا خلفية أو حواف دائرية؛ الإطار يطبّق فقط على القماش */
+/* Ø§Ù„Ù„ÙˆØ­Ø© Ù†ÙØ³Ù‡Ø§ Ø¨Ù„Ø§ Ø®Ù„ÙÙŠØ© Ø£Ùˆ Ø­ÙˆØ§Ù Ø¯Ø§Ø¦Ø±ÙŠØ©Ø› Ø§Ù„Ø¥Ø·Ø§Ø± ÙŠØ·Ø¨Ù‘Ù‚ ÙÙ‚Ø· Ø¹Ù„Ù‰ Ø§Ù„Ù‚Ù…Ø§Ø´ */
 .art-frame {
     padding: 0;
     background: transparent;
@@ -991,7 +1018,7 @@ body::after {
 .art-frame-actions .frame-cart-btn { color: var(--green-bright); }
 .art-frame-actions .frame-save-btn.saved { color: #062017; background: #bff8dc; }
 
-/* نوافذ البرومبت والاختيار تظهر عند الحاجة فقط */
+/* Ù†ÙˆØ§ÙØ° Ø§Ù„Ø¨Ø±ÙˆÙ…Ø¨Øª ÙˆØ§Ù„Ø§Ø®ØªÙŠØ§Ø± ØªØ¸Ù‡Ø± Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø© ÙÙ‚Ø· */
 .studio-dialog {
     position: fixed;
     inset: 0;
@@ -1054,7 +1081,7 @@ body::after {
 }
 
 /* =========================================================
-   UNIFIED CHAT — الشات والصور واختيار النموذج في مكان واحد
+   UNIFIED CHAT â€” Ø§Ù„Ø´Ø§Øª ÙˆØ§Ù„ØµÙˆØ± ÙˆØ§Ø®ØªÙŠØ§Ø± Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯
    ========================================================= */
 body::after {
     background-image: url('https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2F0a4c679d-d98e-4e0c-98d7-3e62f8f42fe0.gif') !important;
@@ -1249,12 +1276,14 @@ body::after {
 }
 .confirm-model-choice-btn:disabled { opacity: .45; cursor: not-allowed; }
 
-/*** الإرفاق أصبح داخل خانة المحادثة، لذلك لا نعرض خانة الرفع القديمة */
+/*** Ø§Ù„Ø¥Ø±ÙØ§Ù‚ Ø£ØµØ¨Ø­ Ø¯Ø§Ø®Ù„ Ø®Ø§Ù†Ø© Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©ØŒ Ù„Ø°Ù„Ùƒ Ù„Ø§ Ù†Ø¹Ø±Ø¶ Ø®Ø§Ù†Ø© Ø§Ù„Ø±ÙØ¹ Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© */
 .app-shell[data-action="edit"] #image-upload-section { display: none !important; }
 .app-shell[data-action="book_outline"] .composer-side-btn,
-.app-shell[data-action="book_outline"] .composer-tools,
 .app-shell[data-action="book_outline"] .composer-mode-banner,
 .app-shell[data-action="book_outline"] .composer-attachment-preview { display: none !important; }
+.app-shell[data-action="book_outline"] .composer-tools { display: flex !important; }
+.app-shell[data-action="book_outline"] #composer-image-mode-btn,
+.app-shell[data-action="book_outline"] .composer-shortcut { display: none !important; }
 
 @media (max-width: 720px) {
     .tools-sidebar { grid-template-columns: repeat(4,1fr); }
@@ -1266,10 +1295,10 @@ body::after {
 }
 
 /* =========================================================
-   FINAL UI FIXES — الخلفية، نقاط الاستخدام، صورة الوكيل، ونماذج اللوحات
+   FINAL UI FIXES â€” Ø§Ù„Ø®Ù„ÙÙŠØ©ØŒ Ù†Ù‚Ø§Ø· Ø§Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù…ØŒ ØµÙˆØ±Ø© Ø§Ù„ÙˆÙƒÙŠÙ„ØŒ ÙˆÙ†Ù…Ø§Ø°Ø¬ Ø§Ù„Ù„ÙˆØ­Ø§Øª
    ========================================================= */
 
-/* أرقام النقاط ورمزها وتكلفة كل نموذج بلون برتقالي مريح وواضح. */
+/* Ø£Ø±Ù‚Ø§Ù… Ø§Ù„Ù†Ù‚Ø§Ø· ÙˆØ±Ù…Ø²Ù‡Ø§ ÙˆØªÙƒÙ„ÙØ© ÙƒÙ„ Ù†Ù…ÙˆØ°Ø¬ Ø¨Ù„ÙˆÙ† Ø¨Ø±ØªÙ‚Ø§Ù„ÙŠ Ù…Ø±ÙŠØ­ ÙˆÙˆØ§Ø¶Ø­. */
 .credit-pill { color: #d9e6de; }
 .credit-pill .token-mark,
 .credit-pill .token-value,
@@ -1283,7 +1312,7 @@ body::after {
 .credit-pill .token-value { font-size: 1.02rem; font-weight: 800; }
 .token-cost { margin-inline-start: 3px; font-weight: 800; white-space: nowrap; }
 
-/* تكبير صورة وكيل المحادثة قليلًا مع الحفاظ على حجم صورة المستخدم. */
+/* ØªÙƒØ¨ÙŠØ± ØµÙˆØ±Ø© ÙˆÙƒÙŠÙ„ Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø© Ù‚Ù„ÙŠÙ„Ù‹Ø§ Ù…Ø¹ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø­Ø¬Ù… ØµÙˆØ±Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…. */
 .message-avatar.agent-avatar {
     width: 42px;
     height: 42px;
@@ -1291,7 +1320,7 @@ body::after {
     border-radius: 12px;
 }
 
-/* الخلفية المتحركة ثابتة على الحاسوب فقط ولا تتفاعل مع المؤشر أو التمرير. */
+/* Ø§Ù„Ø®Ù„ÙÙŠØ© Ø§Ù„Ù…ØªØ­Ø±ÙƒØ© Ø«Ø§Ø¨ØªØ© Ø¹Ù„Ù‰ Ø§Ù„Ø­Ø§Ø³ÙˆØ¨ ÙÙ‚Ø· ÙˆÙ„Ø§ ØªØªÙØ§Ø¹Ù„ Ù…Ø¹ Ø§Ù„Ù…Ø¤Ø´Ø± Ø£Ùˆ Ø§Ù„ØªÙ…Ø±ÙŠØ±. */
 body::after { content: none !important; }
 @media (min-width: 721px) {
     body {
@@ -1311,7 +1340,7 @@ body::after { content: none !important; }
     }
 }
 
-/* زر واحد يضيف لوحة متوسطة؛ المقاس يتغير بعد إنشائها من S / M / L. */
+/* Ø²Ø± ÙˆØ§Ø­Ø¯ ÙŠØ¶ÙŠÙ Ù„ÙˆØ­Ø© Ù…ØªÙˆØ³Ø·Ø©Ø› Ø§Ù„Ù…Ù‚Ø§Ø³ ÙŠØªØºÙŠØ± Ø¨Ø¹Ø¯ Ø¥Ù†Ø´Ø§Ø¦Ù‡Ø§ Ù…Ù† S / M / L. */
 .frame-size-picker { grid-template-columns: 1fr auto; }
 .frame-size-picker .add-art-frame-btn {
     min-width: 150px;
@@ -1331,7 +1360,7 @@ body::after { content: none !important; }
     border-color: var(--token-orange);
 }
 
-/* اختيار نموذج OpenAI داخل نافذة إنشاء/تعديل اللوحة. */
+/* Ø§Ø®ØªÙŠØ§Ø± Ù†Ù…ÙˆØ°Ø¬ OpenAI Ø¯Ø§Ø®Ù„ Ù†Ø§ÙØ°Ø© Ø¥Ù†Ø´Ø§Ø¡/ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù„ÙˆØ­Ø©. */
 .art-model-selector {
     margin: 10px 0 12px;
     padding: 11px;
@@ -1391,7 +1420,7 @@ body::after { content: none !important; }
 }
 
 /* =========================================================
-   LANDING LAB — مولد صفحات الهبوط
+   LANDING LAB â€” Ù…ÙˆÙ„Ø¯ ØµÙØ­Ø§Øª Ø§Ù„Ù‡Ø¨ÙˆØ·
    ========================================================= */
 .app-shell[data-action="landing_page"] #main-inputs-wrapper { width: min(1580px, 100%); }
 .app-shell[data-action="landing_page"] #chat-stream,
@@ -1589,6 +1618,7 @@ body::after { content: none !important; }
 .landing-status.success { color: var(--green-bright, #79e2ad); }
 .landing-status.error { color: #ff9da5; }
 .landing-status.loading { color: #ffd0a7; }
+.landing-status.info { color: #a9cbbb; }
 
 .landing-output-panel { direction: rtl; background: rgba(2,8,5,.58); overflow: hidden; }
 .landing-output-toolbar { min-height: 42px; padding-bottom: 11px; border-bottom: 1px solid rgba(121,226,173,.1); }
@@ -1646,13 +1676,8 @@ body::after { content: none !important; }
 .landing-revision-composer button { min-width: 112px; padding: 9px 12px; color: #062016; background: var(--green-bright, #79e2ad); border-radius: 9px; font-weight: 800; }
 .landing-revision-note { margin: 8px 0 0; color: #668173; font-size: .62rem; }
 
-/* صورة وكيل الشات أكبر قليلًا كما طُلب. */
+/* ØµÙˆØ±Ø© ÙˆÙƒÙŠÙ„ Ø§Ù„Ø´Ø§Øª Ø£ÙƒØ¨Ø± Ù‚Ù„ÙŠÙ„Ù‹Ø§ ÙƒÙ…Ø§ Ø·ÙÙ„Ø¨. */
 .message-avatar.agent-avatar { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 13px; }
-
-/* عناصر داخلية للموجّه فقط؛ لا توجد لوحة إعدادات قديمة في الواجهة. */
-#advanced-settings { display: none !important; }
-.landing-field-note { display: block; margin-top: 6px; color: #668173; font-size: .61rem; line-height: 1.5; }
-#landing-book-select { width: 100%; }
 
 @media (max-width: 1250px) {
     .landing-workbench { grid-template-columns: 190px minmax(315px, 360px) minmax(380px,1fr); }

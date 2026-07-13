@@ -215,8 +215,8 @@ function openModelChooser(action, sendAfterChoice) {
     const titles = {
         text: ['اختر نموذج المحادثة', 'جميع هذه النماذج تُستدعى من الكود الوظيفي الثاني.'],
         generate: ['توليد صورة من الصفر', 'يُستخدم GPT Image 2 من OpenAI عبر الكود الوظيفي الثاني فقط.'],
-        edit: ['اختر قوة تعديل الصورة', 'اختر تعديلًا بسيطًا أو احترافيًا؛ كلاهما من OpenAI وعبر الكود الوظيفي الثاني فقط.'],
-        book_outline: ['اختر محرر الكتاب', 'يُستخدم الاختيار في الخطة والمقدمة ومراحل التأليف التالية.']
+        edit: ['اختر قوة تعديل الصورة', 'اختر مستوى الجودة المناسب؛ جميع الخيارات تمر عبر الكود الوظيفي الثاني.'],
+        book_outline: ['اختر نموذج تأليف الكتاب', 'سيُستخدم الاختيار للخطة والمقدمة واستكمال الكتاب مع الحفاظ على السياق.']
     };
     if (ui.modelChooserTitle) ui.modelChooserTitle.textContent = titles[mode][0];
     if (ui.modelChooserDescription) ui.modelChooserDescription.textContent = titles[mode][1];
@@ -994,7 +994,6 @@ async function runArtAI(operation, targetFrame) {
         model: modelChoice ? modelChoice.model : 'gpt-image-2',
         imageModel: modelChoice ? modelChoice.model : 'gpt-image-2',
         modelTier: modelChoice ? modelChoice.modelTier : 'pro',
-        imageTier: modelChoice ? (modelChoice.imageTier || modelChoice.modelTier) : 'pro',
         quality: modelChoice ? modelChoice.quality : 'high',
         clientFeature: 'art_studio'
     };
@@ -1246,25 +1245,20 @@ function initArtStudio() {
 // مولد صفحات الهبوط — مساحة مستقلة + الكود الوظيفي الثاني
 // ==========================================
 const LANDING_STORAGE_KEY = 'aklake_landing_projects_v1';
-const LANDING_MAX_PROJECTS = 50;
-const LANDING_MAX_VERSIONS = 100;
-const LANDING_LOCAL_MAX_PROJECTS = 10;
-const LANDING_LOCAL_MAX_VERSIONS = 5;
+const LANDING_MAX_PROJECTS = 20;
+const LANDING_MAX_VERSIONS = 15;
 
 const landingState = {
     projects: [],
     activeProjectId: null,
     currentVersionIndex: -1,
-    selectedTier: 'professional',
-    selectedModel: 'gpt-5.5',
+    sourceBookId: '',
+    selectedModel: 'gpt-5.6-terra',
     selectedPoints: 40,
-    syncedFromServer: false,
     busy: false
 };
 
 const landingUI = {};
-const landingBooksById = new Map();
-let pendingLandingBookId = '';
 
 function landingElement(id) {
     return document.getElementById(id);
@@ -1279,7 +1273,6 @@ function cacheLandingUI() {
         productName: landingElement('landing-product-name'),
         audience: landingElement('landing-audience'),
         productDetails: landingElement('landing-product-details'),
-        bookSelect: landingElement('landing-book-select'),
         phone: landingElement('landing-phone'),
         whatsapp: landingElement('landing-whatsapp'),
         ctaUrl: landingElement('landing-cta-url'),
@@ -1325,19 +1318,74 @@ function loadLandingProjects() {
 
 function persistLandingProjects() {
     try {
-        const backup = landingState.projects
+        const sorted = landingState.projects
             .slice()
             .sort(function(a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); })
-            .slice(0, LANDING_LOCAL_MAX_PROJECTS)
+            .slice(0, LANDING_MAX_PROJECTS)
             .map(function(project) {
                 return Object.assign({}, project, {
-                    versions: (project.versions || []).slice(-LANDING_LOCAL_MAX_VERSIONS)
+                    versions: (project.versions || []).slice(-LANDING_MAX_VERSIONS)
                 });
             });
-        localStorage.setItem(LANDING_STORAGE_KEY, JSON.stringify(backup));
+        landingState.projects = sorted;
+        localStorage.setItem(LANDING_STORAGE_KEY, JSON.stringify(sorted));
     } catch (error) {
         setLandingStatus('تعذر حفظ المشروع محليًا. قد تكون مساحة المتصفح ممتلئة.', 'error');
     }
+}
+
+function replaceLandingProject(project) {
+    if (!project || !project.id) return null;
+    const index = landingState.projects.findIndex(function(item) { return item.id === project.id; });
+    if (index >= 0) landingState.projects[index] = project;
+    else landingState.projects.unshift(project);
+    return project;
+}
+
+async function syncLandingProjectsFromServer() {
+    if (!currentUser || typeof executeRequest !== 'function') return;
+    try {
+        const response = await executeRequest({
+            action: 'landing_list',
+            userId: currentUser.$id
+        });
+        if (!response || !response.success || !Array.isArray(response.projects)) return;
+
+        const localById = new Map(landingState.projects.map(function(project) { return [project.id, project]; }));
+        const serverProjects = response.projects.map(function(summary) {
+            const cached = localById.get(summary.id);
+            return Object.assign({}, summary, {
+                versions: cached && Array.isArray(cached.versions) ? cached.versions : [],
+                loadedFromServer: Boolean(cached && cached.loadedFromServer)
+            });
+        });
+        const localOnly = landingState.projects.filter(function(project) {
+            return project.id.startsWith('landing-') &&
+                !serverProjects.some(function(serverProject) { return serverProject.id === project.id; });
+        });
+        landingState.projects = serverProjects.concat(localOnly).slice(0, LANDING_MAX_PROJECTS);
+        persistLandingProjects();
+        renderLandingProjects();
+    } catch (error) {
+        console.warn('تعذر مزامنة صفحات الهبوط:', error);
+    }
+}
+window.syncLandingProjectsFromServer = syncLandingProjectsFromServer;
+
+async function ensureLandingProjectLoaded(project) {
+    if (!project || project.loadedFromServer || project.id.startsWith('landing-')) return project;
+    const response = await executeRequest({
+        action: 'landing_get',
+        userId: currentUser.$id,
+        projectId: project.id
+    });
+    if (!response || !response.success || !response.project) {
+        throw new Error(response?.error || 'تعذر تحميل نسخ صفحة الهبوط.');
+    }
+    const loaded = Object.assign({}, response.project, { loadedFromServer: true });
+    replaceLandingProject(loaded);
+    persistLandingProjects();
+    return loaded;
 }
 
 function getActiveLandingProject() {
@@ -1347,8 +1395,6 @@ function getActiveLandingProject() {
 }
 
 function collectLandingForm() {
-    const selectedBookId = landingUI.bookSelect ? landingUI.bookSelect.value : '';
-    const selectedBook = selectedBookId ? landingBooksById.get(selectedBookId) : null;
     return {
         prompt: landingUI.prompt ? landingUI.prompt.value.trim() : '',
         productName: landingUI.productName ? landingUI.productName.value.trim() : '',
@@ -1358,13 +1404,7 @@ function collectLandingForm() {
         whatsapp: landingUI.whatsapp ? landingUI.whatsapp.value.trim() : '',
         ctaUrl: landingUI.ctaUrl ? landingUI.ctaUrl.value.trim() : '',
         language: landingUI.language ? landingUI.language.value : 'العربية',
-        bookId: selectedBookId,
-        book: selectedBook ? {
-            id: selectedBook.$id,
-            title: selectedBook.title || 'كتاب بدون عنوان',
-            outline: String(selectedBook.outline || '').slice(0, 8000),
-            status: selectedBook.status || ''
-        } : null
+        sourceBookId: landingState.sourceBookId || ''
     };
 }
 
@@ -1378,29 +1418,8 @@ function fillLandingForm(form) {
     if (landingUI.whatsapp) landingUI.whatsapp.value = data.whatsapp || '';
     if (landingUI.ctaUrl) landingUI.ctaUrl.value = data.ctaUrl || '';
     if (landingUI.language) landingUI.language.value = data.language || 'العربية';
-    pendingLandingBookId = data.bookId || data.book?.id || '';
-    if (landingUI.bookSelect && Array.from(landingUI.bookSelect.options).some(option => option.value === pendingLandingBookId)) {
-        landingUI.bookSelect.value = pendingLandingBookId;
-    }
+    landingState.sourceBookId = data.sourceBookId || '';
 }
-
-window.setLandingBookOptions = function(books) {
-    cacheLandingUI();
-    if (!landingUI.bookSelect) return;
-    const previousValue = pendingLandingBookId || landingUI.bookSelect.value;
-    landingBooksById.clear();
-    landingUI.bookSelect.innerHTML = '<option value="">بدون كتاب مرتبط — صفحة لمنتج عام</option>';
-    (Array.isArray(books) ? books : [])
-        .filter(function(book) { return book && book.status === 'completed'; })
-        .forEach(function(book) {
-            landingBooksById.set(book.$id, book);
-            const option = document.createElement('option');
-            option.value = book.$id;
-            option.textContent = book.title || 'كتاب بدون عنوان';
-            landingUI.bookSelect.appendChild(option);
-        });
-    if (previousValue && landingBooksById.has(previousValue)) landingUI.bookSelect.value = previousValue;
-};
 
 function setLandingStatus(message, type) {
     if (!landingUI.status) return;
@@ -1436,7 +1455,7 @@ function renderLandingProjects() {
         button.className = 'landing-project-card';
         if (project.id === landingState.activeProjectId) button.classList.add('active');
         const title = project.title || 'صفحة هبوط بدون اسم';
-        const versionCount = (project.versions || []).length;
+        const versionCount = Number(project.versionCount || (project.versions || []).length);
         const date = new Date(project.updatedAt || Date.now()).toLocaleDateString('ar-MA', { month: 'short', day: 'numeric' });
         button.innerHTML = '<span class="landing-project-thumb"><i class="fas fa-window-maximize"></i></span>' +
             '<span class="landing-project-copy"><strong></strong><small>' + versionCount + ' نسخة • ' + date + '</small></span>' +
@@ -1466,20 +1485,27 @@ function renderLandingProjects() {
 function startNewLandingProject() {
     landingState.activeProjectId = null;
     landingState.currentVersionIndex = -1;
+    landingState.sourceBookId = '';
     fillLandingForm({ language: 'العربية' });
-    setLandingModel('gpt-5.5', 40, 'professional');
+    setLandingModel('gpt-5.6-terra', 40);
     showLandingVersion(null);
     setLandingStatus('مشروع جديد جاهز. اكتب وصف الصفحة للبدء.', 'info');
     renderLandingProjects();
     if (landingUI.prompt) landingUI.prompt.focus();
 }
 
-function openLandingProject(projectId) {
-    const project = landingState.projects.find(function(item) { return item.id === projectId; });
+async function openLandingProject(projectId) {
+    let project = landingState.projects.find(function(item) { return item.id === projectId; });
     if (!project) return;
+    try {
+        project = await ensureLandingProjectLoaded(project);
+    } catch (error) {
+        setLandingStatus(error.message || 'تعذر فتح المشروع.', 'error');
+        return;
+    }
     landingState.activeProjectId = project.id;
     fillLandingForm(project.form || {});
-    setLandingModel(project.model || 'gpt-5.5', Number(project.points || 40), project.landingTier || 'professional');
+    setLandingModel(project.model || 'gpt-5.6-terra', Number(project.points || 40));
     const versions = project.versions || [];
     landingState.currentVersionIndex = Math.max(0, versions.length - 1);
     showLandingVersion(versions[landingState.currentVersionIndex] || null);
@@ -1492,15 +1518,14 @@ async function deleteLandingProject(projectId) {
     if (!project) return;
     const approved = window.confirm('هل تريد حذف «' + (project.title || 'صفحة الهبوط') + '» وكل نسخها؟');
     if (!approved) return;
-    if (currentUser) {
-        setLandingStatus('يتم حذف المشروع ونسخه...', 'loading');
+    if (currentUser && !projectId.startsWith('landing-')) {
         const response = await executeRequest({
             action: 'landing_delete',
             userId: currentUser.$id,
             projectId: projectId
         });
         if (!response || !response.success) {
-            setLandingStatus((response && response.error) || 'تعذر حذف المشروع من الحساب.', 'error');
+            setLandingStatus(response?.error || 'تعذر حذف المشروع من قاعدة البيانات.', 'error');
             return;
         }
     }
@@ -1508,14 +1533,11 @@ async function deleteLandingProject(projectId) {
     persistLandingProjects();
     if (landingState.activeProjectId === projectId) startNewLandingProject();
     else renderLandingProjects();
-    setLandingStatus('تم حذف المشروع وكل نسخه.', 'success');
 }
 
-function setLandingModel(model, points, tier) {
-    landingState.selectedModel = model || 'gpt-5.5';
+function setLandingModel(model, points) {
+    landingState.selectedModel = model || 'gpt-5.6-terra';
     landingState.selectedPoints = Number(points || 40);
-    landingState.selectedTier = tier
-        || (landingState.selectedPoints >= 60 ? 'ultimate' : landingState.selectedPoints <= 20 ? 'starter' : 'professional');
     if (landingUI.modelCards) {
         landingUI.modelCards.querySelectorAll('[data-landing-model]').forEach(function(card) {
             const selected = card.dataset.landingModel === landingState.selectedModel;
@@ -1532,11 +1554,30 @@ function setLandingModel(model, points, tier) {
 }
 
 function buildLandingGenerationPrompt(form) {
-    return form.prompt || '';
+    return [
+        form.prompt,
+        '',
+        'Product/project name: ' + (form.productName || 'Not provided'),
+        'Target audience: ' + (form.audience || 'Not provided'),
+        'Product details and offer: ' + (form.productDetails || 'Not provided'),
+        'Phone: ' + (form.phone || 'Not provided'),
+        'WhatsApp: ' + (form.whatsapp || 'Not provided'),
+        'Primary CTA URL: ' + (form.ctaUrl || '#'),
+        'Page language: ' + form.language,
+        '',
+        'Create a complete, polished, responsive HTML5 landing page. Return one self-contained index.html file with all CSS and JavaScript inline. Use semantic sections, persuasive copy, clear calls to action, accessible contrast, mobile-first responsive design, and professional visual hierarchy. Do not return Markdown, explanations, or code fences; return HTML only.'
+    ].join('\n');
 }
 
-function buildLandingRevisionPrompt(instruction) {
-    return instruction || '';
+function buildLandingRevisionPrompt(instruction, currentHtml) {
+    return [
+        instruction,
+        '',
+        'CURRENT HTML:',
+        currentHtml,
+        '',
+        'Do not break or remove anything unrelated. Change only what the user requested, preserve the rest of the page, and return the complete updated HTML exactly as one self-contained index.html file. Return HTML only, without Markdown or code fences.'
+    ].join('\n');
 }
 
 function cleanLandingHtml(value) {
@@ -1567,8 +1608,12 @@ async function requestLandingPage(mode, form, instruction, currentHtml) {
     }
     ui.source.value = SECOND_FUNCTION_ID;
     const finalPrompt = mode === 'revise'
-        ? buildLandingRevisionPrompt(instruction)
+        ? buildLandingRevisionPrompt(instruction, currentHtml)
         : buildLandingGenerationPrompt(form);
+    const activeProject = getActiveLandingProject();
+    const activeVersion = activeProject && activeProject.versions
+        ? activeProject.versions[landingState.currentVersionIndex]
+        : null;
     const payload = {
         action: 'landing_page',
         mode: mode,
@@ -1576,11 +1621,12 @@ async function requestLandingPage(mode, form, instruction, currentHtml) {
         provider: 'openai',
         model: landingState.selectedModel,
         modelTier: landingState.selectedModel,
-        landingTier: landingState.selectedTier,
+        estimatedPoints: landingState.selectedPoints,
         prompt: finalPrompt,
-        landingPageDetails: form,
-        projectId: landingState.activeProjectId || ''
+        landingPageDetails: form
     };
+    if (activeProject && !activeProject.id.startsWith('landing-')) payload.projectId = activeProject.id;
+    if (activeVersion?.id) payload.baseVersionId = activeVersion.id;
     if (mode === 'revise') {
         payload.instruction = instruction;
         payload.currentHtml = currentHtml;
@@ -1588,19 +1634,16 @@ async function requestLandingPage(mode, form, instruction, currentHtml) {
     return executeRequest(payload);
 }
 
-function saveLandingVersion(html, label, form, serverData) {
+function saveLandingVersion(html, label, form) {
     let project = getActiveLandingProject();
     const now = Date.now();
-    const saved = serverData || {};
-    const savedVersion = saved.version || {};
     if (!project) {
         project = {
-            id: saved.projectId || createLandingId('landing'),
-            title: saved.projectTitle || form.productName || 'صفحة هبوط جديدة',
+            id: createLandingId('landing'),
+            title: form.productName || 'صفحة هبوط جديدة',
             createdAt: now,
             updatedAt: now,
             form: form,
-            landingTier: landingState.selectedTier,
             model: landingState.selectedModel,
             points: landingState.selectedPoints,
             versions: []
@@ -1608,26 +1651,38 @@ function saveLandingVersion(html, label, form, serverData) {
         landingState.projects.unshift(project);
         landingState.activeProjectId = project.id;
     }
-    project.title = saved.projectTitle || form.productName || project.title || 'صفحة هبوط جديدة';
+    project.title = form.productName || project.title || 'صفحة هبوط جديدة';
     project.form = form;
-    project.landingTier = landingState.selectedTier;
     project.model = landingState.selectedModel;
     project.points = landingState.selectedPoints;
     project.updatedAt = now;
     project.versions = project.versions || [];
     project.versions.push({
-        id: savedVersion.id || createLandingId('version'),
-        versionNumber: Number(savedVersion.versionNumber || project.versions.length + 1),
-        html: savedVersion.html || html,
-        label: savedVersion.label || label || 'نسخة جديدة',
-        instruction: savedVersion.instruction || '',
-        createdAt: Number(savedVersion.createdAt || now)
+        id: createLandingId('version'),
+        html: html,
+        label: label || 'نسخة جديدة',
+        createdAt: now
     });
     if (project.versions.length > LANDING_MAX_VERSIONS) project.versions = project.versions.slice(-LANDING_MAX_VERSIONS);
     landingState.currentVersionIndex = project.versions.length - 1;
     persistLandingProjects();
     renderLandingProjects();
     showLandingVersion(project.versions[landingState.currentVersionIndex]);
+}
+
+function acceptLandingProjectFromServer(serverProject, previousProjectId) {
+    if (!serverProject || !serverProject.id) return false;
+    const project = Object.assign({}, serverProject, { loadedFromServer: true });
+    if (previousProjectId && previousProjectId !== project.id) {
+        landingState.projects = landingState.projects.filter(function(item) { return item.id !== previousProjectId; });
+    }
+    replaceLandingProject(project);
+    landingState.activeProjectId = project.id;
+    landingState.currentVersionIndex = Math.max(0, (project.versions || []).length - 1);
+    persistLandingProjects();
+    renderLandingProjects();
+    showLandingVersion(project.versions[landingState.currentVersionIndex] || null);
+    return true;
 }
 
 function showLandingVersion(version) {
@@ -1687,18 +1742,21 @@ async function generateLandingPage() {
     setLandingBusy(true, 'النموذج يبني الصفحة...');
     setLandingStatus('يتم الآن إرسال التفاصيل إلى النموذج عبر الكود الوظيفي الثاني.', 'loading');
     try {
+        const previousProjectId = landingState.activeProjectId;
         const responseData = await requestLandingPage('generate', form, '', '');
         if (!responseData) return;
         if (!responseData.success) throw new Error(responseData.error || 'لم ينجح إنشاء الصفحة.');
         const html = extractLandingHtml(responseData);
         if (!html) throw new Error('وصل رد من الخادم لكنه لا يحتوي على كود HTML صالح.');
-        saveLandingVersion(html, 'النسخة الأولى', form, responseData);
+        if (!acceptLandingProjectFromServer(responseData.project, previousProjectId)) {
+            saveLandingVersion(html, 'النسخة الأولى', form);
+        }
         if (responseData.remainingTokens !== undefined) {
             const credits = landingElement('user-credits');
             if (credits) credits.textContent = responseData.remainingTokens;
         }
         showLandingView('preview');
-        setLandingStatus('تم إنشاء الصفحة وحفظ النسخة الأولى بنجاح.', 'success');
+        setLandingStatus(responseData.storageWarning || 'تم إنشاء الصفحة وحفظ النسخة الأولى بنجاح.', responseData.storageWarning ? 'info' : 'success');
     } catch (error) {
         setLandingStatus(error.message || 'تعذر إنشاء الصفحة.', 'error');
     } finally {
@@ -1724,19 +1782,22 @@ async function reviseLandingPage() {
     setLandingBusy(true, 'يتم تعديل الصفحة...');
     setLandingStatus('يعدّل النموذج المطلوب فقط مع الحفاظ على بقية الصفحة.', 'loading');
     try {
+        const previousProjectId = landingState.activeProjectId;
         const responseData = await requestLandingPage('revise', form, instruction, version.html);
         if (!responseData) return;
         if (!responseData.success) throw new Error(responseData.error || 'لم ينجح تعديل الصفحة.');
         const html = extractLandingHtml(responseData);
         if (!html) throw new Error('لم يُرجع الخادم كود HTML صالحًا بعد التعديل.');
-        saveLandingVersion(html, 'تعديل: ' + instruction.slice(0, 55), form, responseData);
+        if (!acceptLandingProjectFromServer(responseData.project, previousProjectId)) {
+            saveLandingVersion(html, 'تعديل: ' + instruction.slice(0, 55), form);
+        }
         if (landingUI.revisionPrompt) landingUI.revisionPrompt.value = '';
         if (responseData.remainingTokens !== undefined) {
             const credits = landingElement('user-credits');
             if (credits) credits.textContent = responseData.remainingTokens;
         }
         showLandingView('preview');
-        setLandingStatus('تم حفظ التعديل كنسخة جديدة، والنسخة القديمة ما زالت متاحة.', 'success');
+        setLandingStatus(responseData.storageWarning || 'تم حفظ التعديل كنسخة جديدة، والنسخة القديمة ما زالت متاحة.', responseData.storageWarning ? 'info' : 'success');
     } catch (error) {
         setLandingStatus(error.message || 'تعذر تعديل الصفحة.', 'error');
     } finally {
@@ -1746,39 +1807,36 @@ async function reviseLandingPage() {
 
 async function applyLandingCodeManually() {
     const html = cleanLandingHtml(landingUI.codeEditor ? landingUI.codeEditor.value : '');
-    if (!html || !/^<!doctype\s+html/i.test(html) || !/<html[\s>]/i.test(html) || !/<\/html>/i.test(html)) {
+    if (!html || !/<html[\s>]/i.test(html)) {
         setLandingStatus('المحرر لا يحتوي على وثيقة HTML كاملة صالحة للمعاينة.', 'error');
         return;
     }
     const form = collectLandingForm();
-    if (!currentUser) {
-        alert('يرجى تسجيل الدخول أولاً لحفظ النسخة في حسابك.');
-        openModal();
-        return;
-    }
-    setLandingBusy(true, 'يتم حفظ النسخة...');
-    setLandingStatus('يتم حفظ تعديل الكود كنسخة جديدة في حسابك.', 'loading');
-    try {
-        const responseData = await executeRequest({
+    const project = getActiveLandingProject();
+    const baseVersion = project && project.versions ? project.versions[landingState.currentVersionIndex] : null;
+    if (currentUser) {
+        setLandingBusy(true, 'جاري حفظ الكود...');
+        const payload = {
             action: 'landing_save_manual',
             userId: currentUser.$id,
-            projectId: landingState.activeProjectId || '',
-            title: form.productName || 'صفحة هبوط جديدة',
-            html: html,
+            html,
+            label: 'تعديل يدوي على الكود',
             landingPageDetails: form,
-            landingTier: landingState.selectedTier,
-            modelTier: landingState.selectedModel,
-            versionLabel: 'تعديل يدوي على الكود'
-        });
-        if (!responseData || !responseData.success) throw new Error((responseData && responseData.error) || 'تعذر حفظ النسخة.');
-        saveLandingVersion(html, 'تعديل يدوي على الكود', form, responseData);
-        showLandingView('preview');
-        setLandingStatus('تم تطبيق الكود وحفظه كنسخة جديدة في حسابك.', 'success');
-    } catch (error) {
-        setLandingStatus(error.message || 'تعذر حفظ تعديل الكود.', 'error');
-    } finally {
+            modelTier: landingState.selectedModel
+        };
+        if (project && !project.id.startsWith('landing-')) payload.projectId = project.id;
+        if (baseVersion?.id) payload.baseVersionId = baseVersion.id;
+        const response = await executeRequest(payload);
         setLandingBusy(false);
+        if (response && response.success && acceptLandingProjectFromServer(response.project, project?.id)) {
+            showLandingView('preview');
+            setLandingStatus('تم تطبيق الكود وحفظه كنسخة جديدة في حسابك.', 'success');
+            return;
+        }
     }
+    saveLandingVersion(html, 'تعديل يدوي على الكود', form);
+    showLandingView('preview');
+    setLandingStatus('تم تطبيق الكود وحفظه محليًا كنسخة جديدة.', 'info');
 }
 
 async function copyLandingCode() {
@@ -1819,62 +1877,42 @@ function downloadLandingCode() {
     setLandingStatus('تم تجهيز ملف HTML للتنزيل.', 'success');
 }
 
-window.syncLandingProjectsFromServer = async function() {
-    cacheLandingUI();
-    if (!currentUser || landingState.busy) return;
-    if (!landingState.projects.length) loadLandingProjects();
-    const activeBeforeSync = landingState.activeProjectId;
-    setLandingStatus('تتم مزامنة صفحاتك ونسخها من الحساب...', 'loading');
-    const responseData = await executeRequest({
-        action: 'landing_list',
-        userId: currentUser.$id
+window.prefillLandingFromBook = function(book) {
+    startNewLandingProject();
+    const title = book?.title || 'الكتاب';
+    landingState.sourceBookId = book?.$id || book?.id || '';
+    fillLandingForm({
+        sourceBookId: landingState.sourceBookId,
+        productName: title,
+        prompt: 'أنشئ صفحة هبوط احترافية ومقنعة لتسويق هذا الكتاب، مع إبراز فائدته للقارئ، نبذة جذابة، ما الذي سيتعلمه، أقسام الثقة، وأسئلة شائعة وزر شراء واضح.',
+        audience: 'القراء المهتمون بموضوع الكتاب',
+        productDetails: safeLandingBookDetails(book),
+        language: 'العربية'
     });
-    if (!responseData || !responseData.success || !Array.isArray(responseData.data)) {
-        setLandingStatus('تعذرت المزامنة؛ ستبقى النسخة المحلية متاحة.', 'error');
-        return;
-    }
-
-    const serverProjects = responseData.data.map(function(project) {
-        return {
-            id: project.id,
-            title: project.title || 'صفحة هبوط',
-            form: project.form || {},
-            landingTier: project.landingTier || 'professional',
-            model: project.model || 'gpt-5.5',
-            points: Number(project.points || 40),
-            createdAt: Number(project.createdAt || Date.now()),
-            updatedAt: Number(project.updatedAt || Date.now()),
-            versions: Array.isArray(project.versions) ? project.versions : []
-        };
-    });
-    const serverIds = new Set(serverProjects.map(project => project.id));
-    const localOnlyProjects = landingState.projects.filter(project => !serverIds.has(project.id));
-    landingState.projects = serverProjects.concat(localOnlyProjects)
-        .sort(function(a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); })
-        .slice(0, LANDING_MAX_PROJECTS);
-    landingState.syncedFromServer = true;
-    persistLandingProjects();
-    renderLandingProjects();
-
-    const targetId = activeBeforeSync && landingState.projects.some(project => project.id === activeBeforeSync)
-        ? activeBeforeSync
-        : (serverProjects[0] && serverProjects[0].id);
-    if (targetId) openLandingProject(targetId);
-    else startNewLandingProject();
-    setLandingStatus('تمت مزامنة صفحات الهبوط ونسخها بنجاح.', 'success');
+    setLandingStatus('تم جلب معلومات «' + title + '». أضف السعر ورابط الشراء ثم أنشئ الصفحة.', 'success');
+    landingUI.prompt?.focus();
 };
+
+function safeLandingBookDetails(book) {
+    const outline = typeof book?.outline === 'string' ? book.outline.trim() : '';
+    return [
+        'عنوان الكتاب: ' + (book?.title || 'غير محدد'),
+        outline ? 'خطة أو ملخص الكتاب:\n' + outline.slice(0, 6000) : ''
+    ].filter(Boolean).join('\n\n');
+}
 
 function initLandingPageStudio() {
     cacheLandingUI();
     if (!landingUI.studio || landingUI.studio.dataset.initialized === 'true') return;
     landingUI.studio.dataset.initialized = 'true';
-    if (!landingState.syncedFromServer) loadLandingProjects();
+    loadLandingProjects();
+    if (currentUser) syncLandingProjectsFromServer();
 
     if (landingUI.newProjectBtn) landingUI.newProjectBtn.addEventListener('click', startNewLandingProject);
     if (landingUI.modelCards) {
         landingUI.modelCards.querySelectorAll('[data-landing-model]').forEach(function(card) {
             card.addEventListener('click', function() {
-                setLandingModel(card.dataset.landingModel, Number(card.dataset.points), card.dataset.landingTier);
+                setLandingModel(card.dataset.landingModel, Number(card.dataset.points));
             });
         });
     }
@@ -1901,7 +1939,7 @@ function initLandingPageStudio() {
         });
     }
 
-    setLandingModel('gpt-5.5', 40, 'professional');
+    setLandingModel('gpt-5.6-terra', 40);
     renderLandingProjects();
     if (landingState.projects.length) openLandingProject(landingState.projects[0].id);
     else startNewLandingProject();
