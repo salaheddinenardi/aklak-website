@@ -1649,6 +1649,11 @@ body::after { content: none !important; }
 /* صورة وكيل الشات أكبر قليلًا كما طُلب. */
 .message-avatar.agent-avatar { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 13px; }
 
+/* عناصر داخلية للموجّه فقط؛ لا توجد لوحة إعدادات قديمة في الواجهة. */
+#advanced-settings { display: none !important; }
+.landing-field-note { display: block; margin-top: 6px; color: #668173; font-size: .61rem; line-height: 1.5; }
+#landing-book-select { width: 100%; }
+
 @media (max-width: 1250px) {
     .landing-workbench { grid-template-columns: 190px minmax(315px, 360px) minmax(380px,1fr); }
     .landing-projects-panel, .landing-builder-panel, .landing-output-panel { padding: 14px; }

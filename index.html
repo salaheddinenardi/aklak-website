@@ -72,7 +72,7 @@
                 <span id="workspace-kicker" class="workspace-kicker">AKLAKE CHAT</span>
                 <h2 id="workspace-title">محادثة جديدة</h2>
             </div>
-            <button id="settings-toggle-btn" class="icon-button" type="button" aria-label="إعدادات النموذج" title="إعدادات النموذج"><i class="fas fa-sliders"></i></button>
+            <button id="settings-toggle-btn" class="icon-button" type="button" aria-label="اختيار نموذج الأداة" title="اختيار نموذج الأداة"><i class="fas fa-microchip"></i></button>
         </div>
 
         <div id="my-library-section" class="library-drawer hidden">
@@ -101,36 +101,20 @@
         </div>
 
         <div id="main-inputs-wrapper">
-        <div id="advanced-settings" class="advanced-settings hidden">
-            <div class="settings-label"><i class="fas fa-sliders"></i> إعدادات النموذج <span>يمكن تغييرها، والخيارات الاقتصادية محددة افتراضيًا.</span></div>
-            <div class="controls-grid">
-            <div>
-                <label>المصدر (الكود الوظيفي):</label>
-                <select id="source-select">
-                    <option value="6a3c7a760032067bd275" disabled>الكود الأول (محجوز لوظيفة أخرى)</option>
-                    <option value="6a445f680013960a14c6" selected>الكود الثاني (المحادثة والصور)</option>
-                </select>
-            </div>
-            <div>
-                <label>نوع الخدمة:</label>
-                <select id="action-select">
-                    <option value="text">💬 محادثة نصية</option>
-                    <option value="generate">🎨 توليد صور</option>
-                    <option value="edit">🖌️ تعديل صورة</option>
-                    <option value="art_studio">🖼️ استوديو اللوحات الفنية</option>
-                    <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
-                    <option value="landing_page">🚀 مولد صفحات الهبوط (الكود الثاني)</option>
-                </select>
-            </div>
-            <div>
-                <label>المزود:</label>
-                <select id="provider-select"></select>
-            </div>
-            <div>
-                <label>النموذج (الموديل):</label>
-                <select id="model-select"></select>
-            </div>
-            </div>
+        <div id="advanced-settings" class="hidden" aria-hidden="true">
+            <select id="source-select" tabindex="-1">
+                <option value="6a445f680013960a14c6" selected>الكود الوظيفي الثاني</option>
+            </select>
+            <select id="action-select" tabindex="-1">
+                <option value="text">محادثة نصية</option>
+                <option value="generate">توليد صور</option>
+                <option value="edit">تعديل صورة</option>
+                <option value="art_studio">استوديو اللوحات الفنية</option>
+                <option value="book_outline">تأليف كتاب</option>
+                <option value="landing_page">مولد صفحات الهبوط</option>
+            </select>
+            <select id="provider-select" tabindex="-1"></select>
+            <select id="model-select" tabindex="-1"></select>
         </div>
 
         <div id="image-upload-section" class="upload-panel hidden">
@@ -141,7 +125,7 @@
         <div id="book-settings" class="book-fields hidden">
             <div class="book-form-intro">
                 <span><i class="fas fa-book-open"></i></span>
-                <div><h3>ابنِ كتابك خطوة بخطوة</h3><p>أدخل المعلومات الأساسية، وستبقى آلية التأليف الحالية كما هي.</p></div>
+                <div><h3>ابنِ كتابًا متماسكًا خطوة بخطوة</h3><p>ابدأ بخطة تحريرية، راجعها، ثم اكتب المقدمة وأكمل الكتاب في الخلفية مع ذاكرة تحفظ السياق.</p></div>
             </div>
             <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
             <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
@@ -163,12 +147,13 @@
             <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
                  
             <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
-            <select id="b-structure">
-                <option value="فصول (Chapters)">فصول (Chapters)</option>
-                <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
-                <option value="دروس (Lessons)">دروس (Lessons)</option>
-                <option value="أيام (Days)">أيام (Days)</option>
-            </select>
+            <input id="b-structure" type="text" list="book-structure-suggestions" placeholder="اكتب الهيكل الذي تريده، أو اتركه للنموذج ليختار الأنسب">
+            <datalist id="book-structure-suggestions">
+                <option value="فصول مترابطة"></option>
+                <option value="أجزاء كبرى، تحت كل جزء فصول"></option>
+                <option value="دروس عملية متدرجة"></option>
+                <option value="مراحل وخطوات تنفيذية"></option>
+            </datalist>
             <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
                 
             <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
@@ -291,7 +276,7 @@
                         <button id="landing-new-project-btn" type="button" aria-label="صفحة جديدة" title="صفحة جديدة"><i class="fas fa-plus"></i></button>
                     </div>
                     <div id="landing-projects-list" class="landing-projects-list"></div>
-                    <div class="landing-storage-note"><i class="fas fa-shield-halved"></i><span>تُحفظ المسودات محليًا في المتصفح حاليًا.</span></div>
+                    <div class="landing-storage-note"><i class="fas fa-shield-halved"></i><span>تُحفظ الصفحات ونسخها في حسابك، مع نسخة محلية احتياطية.</span></div>
                 </aside>
 
                 <div class="landing-builder-panel">
@@ -317,6 +302,13 @@
                             <span>وصف المنتج ومميزاته</span>
                             <textarea id="landing-product-details" rows="3" placeholder="اكتب المميزات، السعر، العرض، والنتيجة التي يحصل عليها العميل..."></textarea>
                         </label>
+                        <label class="landing-field landing-field-wide">
+                            <span><i class="fas fa-book-open"></i> كتاب من مكتبتك (اختياري)</span>
+                            <select id="landing-book-select">
+                                <option value="">بدون كتاب مرتبط — صفحة لمنتج عام</option>
+                            </select>
+                            <small class="landing-field-note">اختر كتابًا مكتملًا ليستخدم النموذج عنوانه وخطته عند كتابة الصفحة التسويقية.</small>
+                        </label>
                         <label class="landing-field">
                             <span>رقم الهاتف</span>
                             <input id="landing-phone" type="tel" dir="ltr" placeholder="+212 ...">
@@ -341,23 +333,23 @@
 
                     <div class="landing-step-heading model-step-heading">
                         <span>02</span>
-                        <div><h4>اختر نموذج التوليد</h4><p>النقاط المعروضة تقديرية في الواجهة، وسيؤكدها الباك إند لاحقًا.</p></div>
+                        <div><h4>اختر مستوى التوليد</h4><p>التكلفة ثابتة ويؤكدها الكود الوظيفي الثاني قبل الخصم.</p></div>
                     </div>
                     <div id="landing-model-cards" class="landing-model-cards" role="radiogroup" aria-label="نموذج إنشاء صفحة الهبوط">
-                        <button class="landing-model-card" type="button" data-landing-model="gpt-4o-mini" data-points="8" role="radio" aria-checked="false">
-                            <span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-4 اقتصادي</strong><small>للمسودات والصفحات البسيطة</small></span><b>8 نقاط</b>
+                        <button class="landing-model-card" type="button" data-landing-tier="starter" data-landing-model="gpt-5.4-mini" data-points="20" role="radio" aria-checked="false">
+                            <span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-5 Starter</strong><small>صفحة نظيفة وسريعة للمنتجات البسيطة</small></span><b>20 نقطة</b>
                         </button>
-                        <button class="landing-model-card selected" type="button" data-landing-model="gpt-4o" data-points="14" role="radio" aria-checked="true">
-                            <span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-4 متوازن</strong><small>أفضل توازن بين الجودة والتكلفة</small></span><b>14 نقطة</b>
+                        <button class="landing-model-card selected" type="button" data-landing-tier="professional" data-landing-model="gpt-5.5" data-points="40" role="radio" aria-checked="true">
+                            <span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-5 Professional</strong><small>تصميم ونسخة تسويقية أقوى لمعظم المشاريع</small></span><b>40 نقطة</b>
                         </button>
-                        <button class="landing-model-card premium" type="button" data-landing-model="gpt-5" data-points="24" role="radio" aria-checked="false">
-                            <span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5 الأفضل</strong><small>للتصميم والنسخة التسويقية الأقوى</small></span><b>24 نقطة</b>
+                        <button class="landing-model-card premium" type="button" data-landing-tier="ultimate" data-landing-model="gpt-5.6" data-points="60" role="radio" aria-checked="false">
+                            <span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5 Ultimate</strong><small>أقوى جودة للتصميم والكتابة التسويقية الدقيقة</small></span><b>60 نقطة</b>
                         </button>
                     </div>
 
                     <button id="landing-generate-btn" class="landing-generate-btn" type="button">
                         <span><i class="fas fa-wand-magic-sparkles"></i> إنشاء صفحة الهبوط</span>
-                        <small id="landing-generate-cost">سيتم خصم 14 نقطة</small>
+                        <small id="landing-generate-cost">سيتم خصم 40 نقطة</small>
                     </button>
                     <div id="landing-status" class="landing-status" aria-live="polite"></div>
                 </div>
