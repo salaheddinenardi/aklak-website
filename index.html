@@ -39,6 +39,7 @@
     <div class="quick-actions">
         <button type="button" data-welcome-tool="text"><i class="far fa-message"></i> محادثة</button>
         <button type="button" data-welcome-tool="book_outline"><i class="fas fa-book-open"></i> إنشاء كتاب</button>
+        <button type="button" data-welcome-tool="landing_page"><i class="fas fa-window-maximize"></i> صفحة هبوط</button>
         <button type="button" data-welcome-tool="generate"><i class="far fa-image"></i> إنشاء صورة</button>
         <button type="button" data-welcome-tool="art_studio"><i class="fas fa-palette"></i> استوديو اللوحات</button>
     </div>
@@ -52,6 +53,9 @@
         </button>
         <button class="tool-button" type="button" data-tool="book_outline">
             <span class="tool-icon"><i class="fas fa-book-open"></i></span><span>إنشاء كتاب</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="landing_page">
+            <span class="tool-icon"><i class="fas fa-window-maximize"></i></span><span>صفحات الهبوط</span>
         </button>
         <button class="tool-button" type="button" data-tool="art_studio">
             <span class="tool-icon"><i class="fas fa-palette"></i></span><span>رسم اللوحات</span>
@@ -115,6 +119,7 @@
                     <option value="edit">🖌️ تعديل صورة</option>
                     <option value="art_studio">🖼️ استوديو اللوحات الفنية</option>
                     <option value="book_outline">📚 تأليف كتاب (يتطلب الكود الثاني)</option>
+                    <option value="landing_page">🚀 مولد صفحات الهبوط (الكود الثاني)</option>
                 </select>
             </div>
             <div>
@@ -262,6 +267,147 @@
                         <button id="duplicate-art-btn" type="button"><i class="fas fa-clone"></i><strong>لوحة جديدة</strong><span>تبقى القديمة كما هي</span></button>
                     </div>
                     <button type="button" class="dialog-cancel-btn" data-close-art-dialog>إلغاء</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="landing-page-studio" class="landing-page-studio hidden" aria-label="مولد صفحات الهبوط">
+            <div class="landing-studio-head">
+                <div class="landing-title-block">
+                    <span class="landing-title-icon"><i class="fas fa-window-maximize"></i></span>
+                    <div>
+                        <span class="panel-eyebrow">AKLAKE LANDING LAB</span>
+                        <h3>أنشئ صفحة هبوط كاملة من وصف واحد</h3>
+                        <p>أدخل تفاصيل مشروعك، اختر قوة النموذج، ثم عاين الصفحة وعدّلها مع الاحتفاظ بكل النسخ السابقة.</p>
+                    </div>
+                </div>
+                <div class="landing-function-badge"><i class="fas fa-code-branch"></i><span>المسار الثابت</span><strong>الكود الوظيفي الثاني</strong></div>
+            </div>
+
+            <div class="landing-workbench">
+                <aside class="landing-projects-panel">
+                    <div class="landing-panel-title">
+                        <div><span class="panel-eyebrow">PROJECTS</span><h4>صفحاتي</h4></div>
+                        <button id="landing-new-project-btn" type="button" aria-label="صفحة جديدة" title="صفحة جديدة"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <div id="landing-projects-list" class="landing-projects-list"></div>
+                    <div class="landing-storage-note"><i class="fas fa-shield-halved"></i><span>تُحفظ المسودات محليًا في المتصفح حاليًا.</span></div>
+                </aside>
+
+                <div class="landing-builder-panel">
+                    <div class="landing-step-heading">
+                        <span>01</span>
+                        <div><h4>معلومات الصفحة</h4><p>كلما كانت التفاصيل أوضح، أصبحت النتيجة أقرب لما تتخيله.</p></div>
+                    </div>
+
+                    <div class="landing-form-grid">
+                        <label class="landing-field landing-field-wide">
+                            <span>وصف الصفحة المطلوبة <b>*</b></span>
+                            <textarea id="landing-main-prompt" rows="4" placeholder="مثال: صفحة هبوط عربية راقية لخدمة تصميم الكتب بالذكاء الاصطناعي، بتصميم داكن وقسم أسعار وشهادات عملاء..."></textarea>
+                        </label>
+                        <label class="landing-field">
+                            <span>اسم المنتج أو المشروع</span>
+                            <input id="landing-product-name" type="text" placeholder="مثال: AKLAKE Books">
+                        </label>
+                        <label class="landing-field">
+                            <span>الجمهور المستهدف</span>
+                            <input id="landing-audience" type="text" placeholder="مثال: الكتّاب وصنّاع المحتوى">
+                        </label>
+                        <label class="landing-field landing-field-wide">
+                            <span>وصف المنتج ومميزاته</span>
+                            <textarea id="landing-product-details" rows="3" placeholder="اكتب المميزات، السعر، العرض، والنتيجة التي يحصل عليها العميل..."></textarea>
+                        </label>
+                        <label class="landing-field">
+                            <span>رقم الهاتف</span>
+                            <input id="landing-phone" type="tel" dir="ltr" placeholder="+212 ...">
+                        </label>
+                        <label class="landing-field">
+                            <span>رقم واتساب</span>
+                            <input id="landing-whatsapp" type="tel" dir="ltr" placeholder="+212 ...">
+                        </label>
+                        <label class="landing-field">
+                            <span>رابط الزر الرئيسي</span>
+                            <input id="landing-cta-url" type="url" dir="ltr" placeholder="https://example.com/order">
+                        </label>
+                        <label class="landing-field">
+                            <span>لغة الصفحة</span>
+                            <select id="landing-language">
+                                <option value="العربية" selected>العربية</option>
+                                <option value="English">English</option>
+                                <option value="Français">Français</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="landing-step-heading model-step-heading">
+                        <span>02</span>
+                        <div><h4>اختر نموذج التوليد</h4><p>النقاط المعروضة تقديرية في الواجهة، وسيؤكدها الباك إند لاحقًا.</p></div>
+                    </div>
+                    <div id="landing-model-cards" class="landing-model-cards" role="radiogroup" aria-label="نموذج إنشاء صفحة الهبوط">
+                        <button class="landing-model-card" type="button" data-landing-model="gpt-4o-mini" data-points="8" role="radio" aria-checked="false">
+                            <span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-4 اقتصادي</strong><small>للمسودات والصفحات البسيطة</small></span><b>8 نقاط</b>
+                        </button>
+                        <button class="landing-model-card selected" type="button" data-landing-model="gpt-4o" data-points="14" role="radio" aria-checked="true">
+                            <span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-4 متوازن</strong><small>أفضل توازن بين الجودة والتكلفة</small></span><b>14 نقطة</b>
+                        </button>
+                        <button class="landing-model-card premium" type="button" data-landing-model="gpt-5" data-points="24" role="radio" aria-checked="false">
+                            <span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5 الأفضل</strong><small>للتصميم والنسخة التسويقية الأقوى</small></span><b>24 نقطة</b>
+                        </button>
+                    </div>
+
+                    <button id="landing-generate-btn" class="landing-generate-btn" type="button">
+                        <span><i class="fas fa-wand-magic-sparkles"></i> إنشاء صفحة الهبوط</span>
+                        <small id="landing-generate-cost">سيتم خصم 14 نقطة</small>
+                    </button>
+                    <div id="landing-status" class="landing-status" aria-live="polite"></div>
+                </div>
+
+                <div id="landing-output-panel" class="landing-output-panel">
+                    <div class="landing-output-toolbar">
+                        <div class="landing-view-tabs" role="tablist">
+                            <button class="active" type="button" data-landing-view="preview"><i class="far fa-eye"></i> المعاينة</button>
+                            <button type="button" data-landing-view="code"><i class="fas fa-code"></i> كود HTML</button>
+                        </div>
+                        <div class="landing-device-switch" aria-label="حجم المعاينة">
+                            <button class="active" type="button" data-landing-device="desktop" title="حاسوب"><i class="fas fa-desktop"></i></button>
+                            <button type="button" data-landing-device="mobile" title="هاتف"><i class="fas fa-mobile-screen-button"></i></button>
+                        </div>
+                        <div class="landing-code-actions">
+                            <button id="landing-copy-code-btn" type="button" title="نسخ الكود"><i class="far fa-copy"></i></button>
+                            <button id="landing-download-btn" type="button" title="تنزيل HTML"><i class="fas fa-download"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="landing-preview-view" class="landing-preview-view">
+                        <div id="landing-empty-preview" class="landing-empty-preview">
+                            <span><i class="fas fa-window-maximize"></i></span><strong>ستظهر صفحتك هنا</strong><p>املأ المعلومات واختر النموذج ثم اضغط على «إنشاء صفحة الهبوط».</p>
+                        </div>
+                        <div id="landing-preview-shell" class="landing-preview-shell hidden" data-device="desktop">
+                            <div class="landing-browser-bar"><i></i><i></i><i></i><span>معاينة آمنة للصفحة</span></div>
+                            <iframe id="landing-preview-frame" title="معاينة صفحة الهبوط" sandbox="allow-scripts allow-forms"></iframe>
+                        </div>
+                    </div>
+                    <div id="landing-code-view" class="landing-code-view hidden">
+                        <div class="landing-code-head"><span><i class="fas fa-file-code"></i> index.html</span><small>يمكنك تعديل الكود يدويًا ثم تطبيقه على المعاينة</small></div>
+                        <textarea id="landing-code-editor" dir="ltr" spellcheck="false" aria-label="محرر كود HTML"></textarea>
+                        <button id="landing-apply-code-btn" type="button"><i class="fas fa-play"></i> تطبيق الكود على المعاينة</button>
+                    </div>
+
+                    <div id="landing-revision-panel" class="landing-revision-panel hidden">
+                        <div class="landing-revision-head">
+                            <div><span class="panel-eyebrow">AI REVISION</span><h4>اطلب تعديلًا على النسخة الحالية</h4></div>
+                            <div class="landing-version-nav">
+                                <button id="landing-prev-version-btn" type="button" aria-label="النسخة السابقة"><i class="fas fa-chevron-right"></i></button>
+                                <span id="landing-version-label">النسخة 1 من 1</span>
+                                <button id="landing-next-version-btn" type="button" aria-label="النسخة التالية"><i class="fas fa-chevron-left"></i></button>
+                            </div>
+                        </div>
+                        <div class="landing-revision-composer">
+                            <textarea id="landing-revision-prompt" rows="2" placeholder="مثال: غيّر لون الزر الرئيسي، وأضف قسم الأسئلة الشائعة دون تغيير بقية الصفحة..."></textarea>
+                            <button id="landing-revise-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i><span>تعديل الصفحة</span></button>
+                        </div>
+                        <p class="landing-revision-note"><i class="fas fa-clock-rotate-left"></i> كل تعديل يُحفظ كنسخة جديدة، ويمكنك العودة إلى أي نسخة سابقة.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -435,6 +581,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+<script src="workspace.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
