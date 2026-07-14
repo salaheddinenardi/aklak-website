@@ -16,6 +16,7 @@ let isLoginMode = true;
 const SECOND_FUNCTION_ID = '6a445f680013960a14c6';
 const AGENT_AVATAR_URL = 'https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif';
 const MODEL_MEMORY_KEY = 'aklake_remembered_models_v1';
+const AUTO_BOOK_VALUE = 'لم أقم بتحديدها؛ اقرأ وصف الكتاب وحددها بنفسك.';
 const MODEL_CATALOG = {
     text: [
         { provider: 'cloudflare', model: 'llama', name: 'LLaMA 3.3', description: 'اقتصادي للمحادثات اليومية', cost: '5 نقاط', icon: 'fa-feather' },
@@ -255,7 +256,11 @@ const ui = {
     modelChooserTitle: document.getElementById('model-chooser-title'),
     modelChooserDescription: document.getElementById('model-chooser-description'),
     rememberModelToggle: document.getElementById('remember-model-toggle'),
-    confirmModelBtn: document.getElementById('confirm-model-choice-btn')
+    confirmModelBtn: document.getElementById('confirm-model-choice-btn'),
+    bookQuickStart: document.getElementById('book-quick-start'),
+    bookAssistantToggle: document.getElementById('book-assistant-toggle'),
+    defaultWelcomeMessage: document.getElementById('default-welcome-message'),
+    bookWelcomeMessage: document.getElementById('book-welcome-message')
 };
 const pageUI = {
     prevBtn: document.getElementById('prev-page-btn'),
@@ -265,85 +270,9 @@ const pageUI = {
     continueBtn: document.getElementById('continue-writing-btn')
 };
 
-let lastBookPrompt = '';
-
-function updateBookCustomizationCount() {
-    const countBadge = document.getElementById('book-custom-count');
-    if (!countBadge) return;
-    const fields = Array.from(document.querySelectorAll('#book-settings input, #book-settings select'));
-    const count = fields.filter(function(field) {
-        if (field.classList.contains('hidden')) return false;
-        return typeof field.value === 'string' && field.value.trim() !== '';
-    }).length;
-    countBadge.textContent = String(count);
-    countBadge.classList.toggle('hidden', count === 0);
-}
-
-function syncCreditDisplays(value) {
-    const safeValue = value === undefined || value === null ? '0' : String(value);
-    const headerCredits = document.getElementById('user-credits');
-    const profileCredits = document.getElementById('profile-user-credits');
-    if (headerCredits) headerCredits.textContent = safeValue;
-    if (profileCredits) profileCredits.textContent = safeValue;
-}
-
-function initProfileAndTokenUI() {
-    const profileButton = document.getElementById('profile-btn');
-    const profileDrawer = document.getElementById('profile-drawer');
-    const profileBackdrop = document.getElementById('profile-backdrop');
-    const tokenModal = document.getElementById('token-modal');
-
-    function setProfileOpen(open) {
-        if (!profileDrawer || !profileBackdrop) return;
-        profileDrawer.classList.toggle('open', open);
-        profileDrawer.setAttribute('aria-hidden', String(!open));
-        profileBackdrop.classList.toggle('hidden', !open);
-        if (profileButton) profileButton.setAttribute('aria-expanded', String(open));
-        document.body.classList.toggle('drawer-open', open);
-    }
-
-    function setTokenModalOpen(open) {
-        if (!tokenModal) return;
-        tokenModal.style.display = open ? 'flex' : 'none';
-        tokenModal.setAttribute('aria-hidden', String(!open));
-    }
-
-    if (profileButton) profileButton.addEventListener('click', function() {
-        setProfileOpen(!profileDrawer.classList.contains('open'));
-    });
-    document.querySelectorAll('[data-close-profile]').forEach(function(element) {
-        element.addEventListener('click', function() { setProfileOpen(false); });
-    });
-    document.querySelectorAll('[data-open-token-modal]').forEach(function(element) {
-        element.addEventListener('click', function() {
-            setProfileOpen(false);
-            setTokenModalOpen(true);
-        });
-    });
-    const closeToken = document.getElementById('close-token-modal-btn');
-    const acceptToken = document.getElementById('token-modal-ok-btn');
-    if (closeToken) closeToken.addEventListener('click', function() { setTokenModalOpen(false); });
-    if (acceptToken) acceptToken.addEventListener('click', function() { setTokenModalOpen(false); });
-    if (tokenModal) tokenModal.addEventListener('click', function(event) {
-        if (event.target === tokenModal) setTokenModalOpen(false);
-    });
-    const profileCart = document.getElementById('profile-cart-btn');
-    if (profileCart) profileCart.addEventListener('click', function() {
-        setProfileOpen(false);
-        const headerCart = document.getElementById('cart-header-btn');
-        if (headerCart) headerCart.click();
-    });
-    document.addEventListener('keydown', function(event) {
-        if (event.key !== 'Escape') return;
-        setProfileOpen(false);
-        setTokenModalOpen(false);
-    });
-}
-
-const BOOK_AUTO_VALUE = 'لم أقم بتحديدها؛ اقرأ الوصف وحددها بنفسك.';
-
-function bookValueOrAuto(value) {
-    return typeof value === 'string' && value.trim() ? value.trim() : BOOK_AUTO_VALUE;
+function inferBookValue(value) {
+    const normalized = typeof value === 'string' ? value.trim() : '';
+    return normalized || AUTO_BOOK_VALUE;
 }
 
 function collectBookDetails() {
@@ -355,19 +284,46 @@ function collectBookDetails() {
     const rawStructure = structureSelect ? structureSelect.value : '';
     const maxPages = Math.min(400, Math.max(50, Number.parseInt(document.getElementById('b-pages')?.value, 10) || 50));
     return {
-        title: bookValueOrAuto(document.getElementById('b-title')?.value || ''),
-        topic: bookValueOrAuto(document.getElementById('b-topic')?.value || ''),
-        genre: bookValueOrAuto(rawGenre === 'other' ? (customGenre?.value || '') : rawGenre),
-        structure: bookValueOrAuto(rawStructure === 'other' ? (customStructure?.value || '') : rawStructure),
+        title: inferBookValue(document.getElementById('b-title')?.value),
+        topic: inferBookValue(document.getElementById('b-topic')?.value),
+        genre: inferBookValue(rawGenre === 'other' ? customGenre?.value : rawGenre),
+        structure: inferBookValue(rawStructure === 'other' ? customStructure?.value : rawStructure),
         maxPages,
-        audience: bookValueOrAuto(document.getElementById('b-audience')?.value || ''),
-        tone: bookValueOrAuto(document.getElementById('b-tone')?.value || ''),
-        pov: bookValueOrAuto(document.getElementById('b-pov')?.value || ''),
-        language: bookValueOrAuto(document.getElementById('b-language')?.value || ''),
-        imagesType: bookValueOrAuto(document.getElementById('b-images')?.value || ''),
-        coverPrompt: bookValueOrAuto(document.getElementById('b-cover')?.value || ''),
+        audience: inferBookValue(document.getElementById('b-audience')?.value),
+        tone: inferBookValue(document.getElementById('b-tone')?.value),
+        pov: inferBookValue(document.getElementById('b-pov')?.value),
+        language: inferBookValue(document.getElementById('b-language')?.value),
+        imagesType: inferBookValue(document.getElementById('b-images')?.value),
+        coverPrompt: inferBookValue(document.getElementById('b-cover')?.value),
         introPages: Math.min(10, Math.max(1, Number.parseInt(ui.introPagesInput?.value, 10) || 2))
     };
+}
+
+let bookSettingsExpanded = false;
+let lastUIAction = 'text';
+function setBookSettingsExpanded(expanded) {
+    bookSettingsExpanded = Boolean(expanded);
+    if (ui.bookSettings) {
+        ui.bookSettings.classList.toggle('hidden', !bookSettingsExpanded || ui.action.value !== 'book_outline');
+        ui.bookSettings.setAttribute('aria-hidden', String(!bookSettingsExpanded || ui.action.value !== 'book_outline'));
+    }
+    if (ui.bookAssistantToggle) {
+        ui.bookAssistantToggle.classList.toggle('is-open', bookSettingsExpanded);
+        ui.bookAssistantToggle.setAttribute('aria-expanded', String(bookSettingsExpanded));
+    }
+}
+
+function syncBookConversationState(isBookMode) {
+    if (ui.bookQuickStart) ui.bookQuickStart.classList.toggle('hidden', !isBookMode);
+    if (ui.defaultWelcomeMessage) ui.defaultWelcomeMessage.classList.toggle('hidden', isBookMode);
+    if (ui.bookWelcomeMessage) ui.bookWelcomeMessage.classList.toggle('hidden', !isBookMode);
+    if (ui.prompt) {
+        if (isBookMode) {
+            ui.prompt.placeholder = 'صف الكتاب الذي تريد إنشاءه… يمكنك كتابة فكرة قصيرة أو برومنت طويل';
+        } else if (ui.prompt.placeholder.includes('صف الكتاب')) {
+            ui.prompt.placeholder = 'اكتب رسالتك هنا...';
+        }
+    }
 }
 if (ui.undoBtn) ui.undoBtn.addEventListener('click', handleUndo);
 
@@ -465,6 +421,10 @@ function updateUI() {
     }
 
     const currentAction = ui.action.value;
+    if (currentAction === 'book_outline' && lastUIAction !== 'book_outline') {
+        bookSettingsExpanded = false;
+    }
+    lastUIAction = currentAction;
 
     if (currentAction === 'edit') {
         ui.imageUpload.classList.remove('hidden');
@@ -473,15 +433,12 @@ function updateUI() {
     }
 
     const isBookMode = currentAction === 'book_outline';
-    if (!isBookMode) {
+    syncBookConversationState(isBookMode);
+    if (isBookMode) setBookSettingsExpanded(bookSettingsExpanded);
+    else if (ui.bookSettings) {
         ui.bookSettings.classList.add('hidden');
-        ui.bookSettings.dataset.open = 'false';
-        document.getElementById('book-helper-panel')?.classList.add('hidden');
+        ui.bookSettings.setAttribute('aria-hidden', 'true');
     }
-    const bookPagesControl = document.getElementById('book-pages-control');
-    const bookComposerTools = document.getElementById('book-composer-tools');
-    if (bookPagesControl) bookPagesControl.classList.toggle('hidden', !isBookMode);
-    if (bookComposerTools) bookComposerTools.classList.toggle('hidden', !isBookMode);
 
     const artStudio = document.getElementById('art-studio');
     if (artStudio) {
@@ -541,6 +498,8 @@ if (ui.model) ui.model.addEventListener('change', syncWorkspaceFromSelections);
 
 window.addEventListener('DOMContentLoaded', function() {
     ui.source.value = SECOND_FUNCTION_ID;
+    const composer = document.querySelector('.composer');
+    if (composer && ui.bookQuickStart) composer.before(ui.bookQuickStart);
     updateUI();
     initHomeNavigation();
     initArtStudio();
@@ -562,79 +521,28 @@ window.addEventListener('DOMContentLoaded', function() {
             if (structureSelect.value === 'other') customStructure.focus();
         });
     }
+
+    if (ui.bookAssistantToggle) {
+        ui.bookAssistantToggle.addEventListener('click', function() {
+            setBookSettingsExpanded(!bookSettingsExpanded);
+            if (bookSettingsExpanded) ui.bookSettings?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    }
+
     const genreSelect = document.getElementById('b-genre');
     const customGenre = document.getElementById('b-custom-genre');
     if (genreSelect && customGenre) {
         genreSelect.addEventListener('change', function() {
-            customGenre.classList.toggle('hidden', genreSelect.value !== 'other');
-            if (genreSelect.value === 'other') customGenre.focus();
-            updateBookCustomizationCount();
+            const isCustom = genreSelect.value === 'other';
+            customGenre.classList.toggle('hidden', !isCustom);
+            if (isCustom) {
+                setBookSettingsExpanded(true);
+                customGenre.focus();
+            }
         });
     }
 
-    const bookHelper = document.getElementById('book-helper-panel');
-    const bookSettings = document.getElementById('book-settings');
-    const bookHelperBtn = document.getElementById('book-helper-btn');
-    const bookCustomizeBtn = document.getElementById('book-customize-btn');
-    const closeBookHelperBtn = document.getElementById('close-book-helper-btn');
-    const closeBookSettingsBtn = document.getElementById('close-book-settings-btn');
-    if (bookHelperBtn && bookHelper) bookHelperBtn.addEventListener('click', function() {
-        bookHelper.classList.toggle('hidden');
-        if (!bookHelper.classList.contains('hidden')) bookHelper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-    if (closeBookHelperBtn && bookHelper) closeBookHelperBtn.addEventListener('click', function() { bookHelper.classList.add('hidden'); });
-    if (bookCustomizeBtn && bookSettings) bookCustomizeBtn.addEventListener('click', function() {
-        const willOpen = bookSettings.classList.contains('hidden');
-        bookSettings.classList.toggle('hidden', !willOpen);
-        bookSettings.dataset.open = willOpen ? 'true' : 'false';
-        bookCustomizeBtn.classList.toggle('active', willOpen);
-        if (willOpen) bookSettings.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    });
-    if (closeBookSettingsBtn && bookSettings) closeBookSettingsBtn.addEventListener('click', function() {
-        bookSettings.classList.add('hidden');
-        bookSettings.dataset.open = 'false';
-        if (bookCustomizeBtn) bookCustomizeBtn.classList.remove('active');
-    });
-    document.querySelectorAll('[data-book-prompt-add]').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const addition = button.dataset.bookPromptAdd || '';
-            const current = ui.prompt.value.trim();
-            ui.prompt.value = current ? current + '\n' + addition : addition;
-            autoResizeTextarea(ui.prompt);
-            ui.prompt.focus();
-            ui.prompt.setSelectionRange(ui.prompt.value.length, ui.prompt.value.length);
-        });
-    });
-    document.querySelectorAll('#book-settings input, #book-settings select').forEach(function(field) {
-        field.addEventListener('input', updateBookCustomizationCount);
-        field.addEventListener('change', updateBookCustomizationCount);
-    });
-    updateBookCustomizationCount();
-
-    const refineToggle = document.getElementById('toggle-outline-refine-btn');
-    const refinePanel = document.getElementById('outline-refine-panel');
-    if (refineToggle && refinePanel) refineToggle.addEventListener('click', function() {
-        refinePanel.classList.toggle('hidden');
-        if (!refinePanel.classList.contains('hidden')) ui.refinePrompt.focus();
-    });
-    const retryOutlineBtn = document.getElementById('retry-outline-btn');
-    if (retryOutlineBtn) retryOutlineBtn.addEventListener('click', function() {
-        if (!lastBookPrompt) return;
-        ui.prompt.value = lastBookPrompt;
-        autoResizeTextarea(ui.prompt);
-        ui.sendBtn.click();
-    });
-
-    const toolsToggle = document.getElementById('tools-toggle-btn');
-    if (toolsToggle && ui.appShell) toolsToggle.addEventListener('click', function() {
-        const isOpen = ui.appShell.classList.toggle('tools-open');
-        toolsToggle.setAttribute('aria-expanded', String(isOpen));
-    });
-    document.querySelectorAll('[data-tool]').forEach(function(button) {
-        button.addEventListener('click', function() { if (ui.appShell) ui.appShell.classList.remove('tools-open'); });
-    });
-
-    initProfileAndTokenUI();
+    initProfileDrawer();
 
     if (ui.settingsToggle) {
         ui.settingsToggle.addEventListener('click', function() {
@@ -733,6 +641,161 @@ window.addEventListener('DOMContentLoaded', function() {
     refreshComposerModelLabel();
 });
 
+let profileDrawerInitialized = false;
+function setProfileDrawerOpen(open) {
+    const drawer = document.getElementById('profile-drawer');
+    const overlay = document.getElementById('profile-overlay');
+    const trigger = document.getElementById('profile-header-btn');
+    if (!drawer || !overlay || !trigger) return;
+    drawer.classList.toggle('hidden', !open);
+    overlay.classList.toggle('hidden', !open);
+    drawer.setAttribute('aria-hidden', String(!open));
+    overlay.setAttribute('aria-hidden', String(!open));
+    trigger.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('profile-drawer-open', open);
+}
+
+function showPaymentUnavailable() {
+    alert('لم نوفر بوابة دفع بعد. سنضيف إمكانية شراء توكن إضافي قريبًا.');
+}
+
+function initProfileDrawer() {
+    if (profileDrawerInitialized) return;
+    profileDrawerInitialized = true;
+    const trigger = document.getElementById('profile-header-btn');
+    const closeButton = document.getElementById('profile-close-btn');
+    const overlay = document.getElementById('profile-overlay');
+    const profileCart = document.getElementById('profile-cart-btn');
+    trigger?.addEventListener('click', function() {
+        setProfileDrawerOpen(document.getElementById('profile-drawer')?.classList.contains('hidden'));
+    });
+    closeButton?.addEventListener('click', function() { setProfileDrawerOpen(false); });
+    overlay?.addEventListener('click', function() { setProfileDrawerOpen(false); });
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') setProfileDrawerOpen(false);
+    });
+    document.querySelectorAll('[data-add-tokens]').forEach(function(button) {
+        button.addEventListener('click', showPaymentUnavailable);
+    });
+    const creditSource = document.getElementById('user-credits');
+    const profileCreditCount = document.getElementById('profile-credit-count');
+    if (creditSource && profileCreditCount) {
+        const syncProfileCredits = function() { profileCreditCount.textContent = creditSource.textContent || '0'; };
+        syncProfileCredits();
+        new MutationObserver(syncProfileCredits).observe(creditSource, { childList: true, characterData: true, subtree: true });
+    }
+    profileCart?.addEventListener('click', function() {
+        setProfileDrawerOpen(false);
+        openWorkspace();
+        const librarySection = document.getElementById('my-library-section');
+        if (librarySection) librarySection.classList.remove('hidden');
+        document.querySelector('[data-library-tab="cart"]')?.click();
+    });
+}
+
+function renderBookOutlineMessage(outline, sourceLabel) {
+    if (!ui.chatMessages) return;
+    openWorkspace();
+    document.getElementById('book-outline-chat-message')?.remove();
+
+    const row = document.createElement('div');
+    row.id = 'book-outline-chat-message';
+    row.className = 'message-row assistant-message book-outline-message';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar agent-avatar';
+    const avatarImage = document.createElement('img');
+    avatarImage.src = AGENT_AVATAR_URL;
+    avatarImage.alt = 'مؤلف AKLAKE';
+    avatar.appendChild(avatarImage);
+
+    const content = document.createElement('div');
+    content.className = 'message-content';
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble book-outline-bubble';
+    const heading = document.createElement('div');
+    heading.className = 'book-outline-heading';
+    heading.innerHTML = '<span><i class="fas fa-list-check"></i> خطة الكتاب</span><small>راجعها ثم اختر الخطوة التالية</small>';
+    const outlineText = document.createElement('div');
+    outlineText.className = 'book-outline-chat-text';
+    outlineText.textContent = outline || '';
+    bubble.append(heading, outlineText);
+
+    const actions = document.createElement('div');
+    actions.className = 'book-outline-chat-actions';
+    const continueButton = document.createElement('button');
+    continueButton.type = 'button';
+    continueButton.className = 'primary';
+    continueButton.innerHTML = '<i class="fas fa-arrow-left"></i><span>اعتماد وكتابة المقدمة</span>';
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.innerHTML = '<i class="fas fa-pen"></i><span>تعديل</span>';
+    const smartEditButton = document.createElement('button');
+    smartEditButton.type = 'button';
+    smartEditButton.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><span>تعديل ذكي</span>';
+    const retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.innerHTML = '<i class="fas fa-rotate-right"></i><span>محاولة أخرى</span>';
+    actions.append(continueButton, editButton, smartEditButton, retryButton);
+
+    const smartEditor = document.createElement('div');
+    smartEditor.className = 'book-outline-smart-editor hidden';
+    const smartInput = document.createElement('textarea');
+    smartInput.rows = 2;
+    smartInput.placeholder = 'مثال: أضف فصلًا عمليًا واجعل البداية أكثر تشويقًا…';
+    const smartSubmit = document.createElement('button');
+    smartSubmit.type = 'button';
+    smartSubmit.innerHTML = '<i class="fas fa-arrow-up"></i>';
+    smartSubmit.setAttribute('aria-label', 'إرسال التعديل الذكي');
+    smartEditor.append(smartInput, smartSubmit);
+
+    const source = document.createElement('div');
+    source.className = 'message-source';
+    source.textContent = sourceLabel || 'خطة أنشأها مؤلف الكتب';
+    content.append(bubble, actions, smartEditor, source);
+    row.append(avatar, content);
+    ui.chatMessages.appendChild(row);
+
+    const syncOutline = function() {
+        if (ui.bookOutlineText) ui.bookOutlineText.innerText = outlineText.innerText;
+        saveHistoryState();
+    };
+    editButton.addEventListener('click', function() {
+        const editing = outlineText.isContentEditable;
+        if (editing) {
+            outlineText.contentEditable = 'false';
+            outlineText.classList.remove('is-editing');
+            editButton.innerHTML = '<i class="fas fa-pen"></i><span>تعديل</span>';
+            syncOutline();
+        } else {
+            outlineText.contentEditable = 'true';
+            outlineText.classList.add('is-editing');
+            outlineText.focus();
+            editButton.innerHTML = '<i class="fas fa-check"></i><span>حفظ</span>';
+        }
+    });
+    continueButton.addEventListener('click', function() {
+        syncOutline();
+        ui.writeIntroBtn?.click();
+    });
+    retryButton.addEventListener('click', function() {
+        syncOutline();
+        ui.sendBtn?.click();
+    });
+    smartEditButton.addEventListener('click', function() {
+        smartEditor.classList.toggle('hidden');
+        if (!smartEditor.classList.contains('hidden')) smartInput.focus();
+    });
+    smartSubmit.addEventListener('click', function() {
+        const request = smartInput.value.trim();
+        if (!request) return smartInput.focus();
+        syncOutline();
+        if (ui.refinePrompt) ui.refinePrompt.value = request;
+        ui.refineBtn?.click();
+    });
+    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
 // ==========================================
 // 3. التفاعل مع الخادم (Appwrite Functions)
 // ==========================================
@@ -791,21 +854,28 @@ if (ui.sendBtn) {
     ui.sendBtn.addEventListener('click', async function() {
         const actionType = ui.action.value;
         const promptSnapshot = ui.prompt.value.trim();
+        const explicitBookFields = [
+            document.getElementById('b-title')?.value,
+            document.getElementById('b-topic')?.value,
+            document.getElementById('b-genre')?.value,
+            document.getElementById('b-custom-genre')?.value,
+            document.getElementById('b-custom-structure')?.value,
+            document.getElementById('b-cover')?.value
+        ].some(function(value) { return typeof value === 'string' && value.trim(); });
         
-        if (!promptSnapshot) { 
+        if (!promptSnapshot && (actionType !== 'book_outline' || !explicitBookFields)) { 
             alert("يرجى إدخال نص الطلب!"); 
             return; 
         }
 
         if (actionType === 'book_outline') {
-            const pageInput = document.getElementById('b-pages');
-            const requestedPages = Number.parseInt(pageInput ? pageInput.value : '', 10);
-            if (!pageInput || !pageInput.value || !Number.isFinite(requestedPages) || requestedPages < 50 || requestedPages > 400) {
-                alert("حدد عدد صفحات الكتاب أولاً (من 50 إلى 400 صفحة).");
-                if (pageInput) pageInput.focus();
+            const pagesInput = document.getElementById('b-pages');
+            const requestedPages = Number.parseInt(pagesInput?.value, 10);
+            if (!Number.isInteger(requestedPages) || requestedPages < 50 || requestedPages > 400) {
+                alert('عدد الصفحات مطلوب. اختر عددًا من 50 إلى 400 صفحة.');
+                pagesInput?.focus();
                 return;
             }
-            lastBookPrompt = promptSnapshot;
         }
 
         if (getComposerModeKey(actionType)) {
@@ -865,31 +935,34 @@ if (ui.sendBtn) {
         ui.sourceBadge.classList.add('hidden');
         ui.sendBtn.disabled = true;
 
-        openWorkspace();
-        appendChatMessage('user', promptSnapshot, actionType === 'book_outline' ? 'وصف الكتاب' : '', 'text');
-        if (actionType === 'edit' && ui.attachmentImage && ui.attachmentImage.src) {
-            appendChatMessage('user', ui.attachmentImage.src, 'الصورة المرفقة للتعديل', 'image');
+        let typingIndicator = null;
+        if (actionType !== 'book_outline') {
+            openWorkspace();
+            appendChatMessage('user', promptSnapshot, '', 'text');
+            if (actionType === 'edit' && ui.attachmentImage && ui.attachmentImage.src) {
+                appendChatMessage('user', ui.attachmentImage.src, 'الصورة المرفقة للتعديل', 'image');
+            }
+            typingIndicator = appendTypingIndicator();
+            ui.prompt.value = '';
+            autoResizeTextarea(ui.prompt);
         }
-        const typingIndicator = appendTypingIndicator();
-        ui.prompt.value = '';
-        autoResizeTextarea(ui.prompt);
 
         const responseData = await executeRequest(payloadObj);
         if (typingIndicator) typingIndicator.remove();
         ui.sendBtn.disabled = false;
         if (responseData && responseData.success) {
-            syncCreditDisplays(responseData.remainingTokens);
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
             
             if (actionType === 'book_outline') {
                 editHistory = [];
                 ui.bookOutlineText.innerText = responseData.data; 
                 saveHistoryState(); 
-                
-                ui.editableContainer.classList.remove('hidden');
-                ui.bookActions.classList.remove('hidden');
+                renderBookOutlineMessage(responseData.data, getSourceMetadata(responseData));
+                ui.resultArea.classList.add('hidden');
+                ui.editableContainer.classList.add('hidden');
+                ui.bookActions.classList.add('hidden');
                 calculateRemainingPages();
-                if (ui.chatMessages) ui.chatMessages.appendChild(ui.resultArea);
-                scrollChatToBottom();
             } else if (responseData.resultType === 'text') {
                 appendChatMessage('assistant', responseData.data, getSourceMetadata(responseData), 'text');
             } else if (responseData.resultType === 'image' || normalizeImageResult(responseData)) {
@@ -901,7 +974,7 @@ if (ui.sendBtn) {
                 ui.sourceBadge.innerHTML = '<i class="fas fa-check-circle"></i> تم التنفيذ عبر: ' + responseData.sourceFunction;
                 ui.sourceBadge.classList.remove('hidden');
             }
-            if (actionType === 'book_outline') ui.resultArea.classList.remove('hidden');
+            if (actionType === 'book_outline') ui.resultArea.classList.add('hidden');
         } else if (responseData) {
             if (actionType !== 'book_outline') {
                 appendChatMessage('assistant', 'تعذر تنفيذ الطلب: ' + (responseData.error || 'خطأ غير معروف'), getSourceMetadata(responseData), 'text');
@@ -935,12 +1008,13 @@ if (ui.refineBtn) {
         ui.refineBtn.disabled = false;
 
         if (responseData && responseData.success) {
-            syncCreditDisplays(responseData.remainingTokens);
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
             ui.bookOutlineText.innerText = responseData.data; 
             saveHistoryState(); 
             ui.refinePrompt.value = ''; 
             calculateRemainingPages();
-            alert("✅ تم تعديل الخطة بنجاح!");
+            renderBookOutlineMessage(responseData.data, getSourceMetadata(responseData));
         } else if (responseData) {
             alert("❌ فشل التعديل: " + responseData.error);
         }
@@ -966,7 +1040,8 @@ if (ui.writeIntroBtn) {
         ui.writeIntroBtn.disabled = false;
         ui.writeIntroBtn.innerHTML = '<i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة';
         if (responseData && responseData.success) {
-            syncCreditDisplays(responseData.remainingTokens);
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
             
             rawBookTextFull = responseData.data; 
             // تحديد هدف الصفحات الافتراضي من المدخل
@@ -1014,7 +1089,8 @@ if (ui.refineIntroBtn) {
         ui.refineIntroBtn.innerHTML = '<i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة';
 
         if (responseData && responseData.success) {
-            syncCreditDisplays(responseData.remainingTokens);
+            const creditsElem = document.getElementById('user-credits');
+            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
             
             rawBookTextFull = responseData.data;
             const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5; 
@@ -1036,6 +1112,33 @@ if (ui.refineIntroBtn) {
 let currentAutoBookId = null;
 let pollingInterval = null;
 let isGeneratingAutoBook = false;
+
+function getBookTargetPages() {
+    return Math.min(400, Math.max(50, Number.parseInt(document.getElementById('b-pages')?.value, 10) || 50));
+}
+
+function updateBookProgress(generatedPages, totalPages) {
+    const total = Math.max(1, Number.parseInt(totalPages, 10) || getBookTargetPages());
+    const generated = Math.min(total, Math.max(0, Number.parseInt(generatedPages, 10) || 0));
+    const percent = Math.min(100, Math.round((generated / total) * 100));
+    const progressCount = document.getElementById('progress-count');
+    const progressTotal = document.getElementById('progress-total');
+    const progressRing = document.getElementById('book-progress-ring');
+    if (progressCount) progressCount.innerText = String(generated);
+    if (progressTotal) progressTotal.innerText = String(total);
+    if (progressRing) {
+        progressRing.style.setProperty('--book-progress', `${percent * 3.6}deg`);
+        progressRing.setAttribute('aria-label', `تم إنشاء ${generated} من أصل ${total} صفحة`);
+    }
+}
+
+function updateWorkingModelName() {
+    const target = document.getElementById('working-model-name');
+    if (!target) return;
+    const selectedChoice = getSelectedCatalogChoice('book_outline');
+    const fallbackName = ui.model?.selectedOptions?.[0]?.textContent || ui.model?.value || 'نموذج التأليف';
+    target.textContent = selectedChoice?.name || fallbackName.replace(/\s*\([^)]*نقط[^)]*\)\s*/g, '').trim();
+}
 
 document.addEventListener('click', async function(e) {
     if (e.target && (e.target.id === 'start-auto-btn' || e.target.closest('#start-auto-btn'))) {
@@ -1077,6 +1180,7 @@ document.addEventListener('click', async function(e) {
                 startBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إرسال الطلب للسيرفر...';
             }
 
+            const currentBookDetails = collectBookDetails();
             const payloadObj = {
                 userId: currentUser.$id,
                 action: 'start_auto_write',
@@ -1084,9 +1188,9 @@ document.addEventListener('click', async function(e) {
                 modelTier: ui.model.value,
                 outline: ui.bookOutlineText.innerText,
                 introPagesArray: bookPagesData,
-                targetPages: parseInt(document.getElementById('b-pages').value) || 50,
-                title: collectBookDetails().title,
-                bookDetails: collectBookDetails()
+                targetPages: getBookTargetPages(),
+                title: currentBookDetails.title,
+                bookDetails: currentBookDetails
             };
 
             const responseData = await executeRequest(payloadObj);
@@ -1097,7 +1201,8 @@ document.addEventListener('click', async function(e) {
             }
 
             if (responseData && responseData.success) {
-                syncCreditDisplays(responseData.remainingTokens);
+                const creditsElem = document.getElementById('user-credits');
+                if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
 
                 currentAutoBookId = responseData.bookId;
                 
@@ -1105,18 +1210,16 @@ document.addEventListener('click', async function(e) {
                 const statusBox = document.getElementById('auto-generation-status');
                 const newBtn = document.getElementById('new-book-btn');
                 if(mainInputs) mainInputs.classList.add('hidden');
-                if(ui.introArea) ui.introArea.classList.add('hidden');
                 if(statusBox) statusBox.classList.remove('hidden');
                 if(newBtn) newBtn.classList.remove('hidden');
-                const initialGenerated = bookPagesData.length;
-                const targetPages = Number.parseInt(document.getElementById('b-pages').value, 10) || 50;
-                updateGenerationProgress(initialGenerated, targetPages);
-                const generationModelName = document.getElementById('generation-model-name');
-                if (generationModelName) {
-                    generationModelName.textContent = ui.model.options[ui.model.selectedIndex]
-                        ? ui.model.options[ui.model.selectedIndex].text
-                        : ui.model.value;
-                }
+                ui.introArea?.classList.add('hidden');
+                if (ui.introArea) ui.introArea.style.display = 'none';
+                ui.resultArea?.classList.add('hidden');
+                document.getElementById('book-progress-ring')?.classList.remove('is-complete', 'is-failed');
+                const statusTitle = document.getElementById('status-title');
+                if (statusTitle) statusTitle.textContent = 'يتم الآن تأليف كتابك في الخلفية';
+                updateBookProgress(currentBookDetails.introPages, getBookTargetPages());
+                updateWorkingModelName();
                 startPolling();
             } else if (responseData) {
                 alert("❌ فشل بدء التأليف الأوتوماتيكي: " + responseData.error);
@@ -1140,33 +1243,19 @@ window.toggleMainInputs = function() {
     if(mainInputs) mainInputs.classList.toggle('hidden');
 }
 
-function updateGenerationProgress(generated, target) {
-    const safeTarget = Math.max(1, Number.parseInt(target, 10) || 1);
-    const safeGenerated = Math.max(0, Math.min(safeTarget, Number.parseInt(generated, 10) || 0));
-    const progressCount = document.getElementById('progress-count');
-    const progressFrame = document.getElementById('generation-progress-frame');
-    if (progressCount) progressCount.textContent = `${safeTarget - safeGenerated}/${safeTarget}`;
-    if (progressFrame) {
-        const progressAngle = Math.round((safeGenerated / safeTarget) * 360);
-        progressFrame.style.setProperty('--progress-angle', `${progressAngle}deg`);
-        progressFrame.setAttribute('aria-label', `تم إنجاز ${safeGenerated} من ${safeTarget} صفحة`);
-    }
-}
-
 function startPolling() {
     if (pollingInterval) clearInterval(pollingInterval);
     pollingInterval = setInterval(async () => {
         if (!currentAutoBookId) return;
         try {
             const bookDoc = await databases.getDocument(DB_ID, 'books', currentAutoBookId);
-            const generatedPages = Number.parseInt(bookDoc.generated_pages_count, 10) || bookPagesData.length;
-            const targetPages = Number.parseInt(bookDoc.target_pages, 10) || Number.parseInt(document.getElementById('b-pages')?.value, 10) || 50;
-            updateGenerationProgress(generatedPages, targetPages);
+            const generatedPages = Number.parseInt(bookDoc.generated_pages_count, 10);
+            updateBookProgress(Number.isFinite(generatedPages) ? generatedPages : bookPagesData.length, getBookTargetPages());
 
             if (bookDoc.status === 'failed') {
                 const statusTitle = document.getElementById('status-title');
-                if (statusTitle) statusTitle.textContent = 'توقف التأليف مؤقتًا — يمكنك إعادة المحاولة لاحقًا';
-                document.getElementById('auto-generation-status')?.classList.add('generation-failed');
+                if (statusTitle) statusTitle.textContent = 'توقف التأليف بسبب خطأ في النموذج. يمكنك إعادة المحاولة لاحقًا.';
+                document.getElementById('book-progress-ring')?.classList.add('is-failed');
                 clearInterval(pollingInterval);
                 pollingInterval = null;
                 return;
@@ -1175,8 +1264,8 @@ function startPolling() {
             if (bookDoc.status === 'completed') {
                 const statusTitle = document.getElementById('status-title');
                 if(statusTitle) statusTitle.textContent = 'اكتمل تأليف الكتاب بنجاح';
-                updateGenerationProgress(targetPages, targetPages);
-                document.getElementById('auto-generation-status')?.classList.add('generation-complete');
+                updateBookProgress(getBookTargetPages(), getBookTargetPages());
+                document.getElementById('book-progress-ring')?.classList.add('is-complete');
                 clearInterval(pollingInterval);
                 pollingInterval = null;
                 
@@ -1208,20 +1297,21 @@ window.resetForNewBook = function() {
     const mainInputs = document.getElementById('main-inputs-wrapper');
     
     if(statusBox) statusBox.classList.add('hidden');
-    if(statusBox) statusBox.classList.remove('generation-failed', 'generation-complete');
     if(newBtn) newBtn.classList.add('hidden');
     if(mainInputs) mainInputs.classList.remove('hidden');
     const statusTitle = document.getElementById('status-title');
-    const progressCount = document.getElementById('progress-count');
-    if(statusTitle) statusTitle.textContent = 'كتابك قيد التأليف الآن';
-    if(progressCount) progressCount.innerText = "0/0";
-    updateGenerationProgress(0, 1);
+    if(statusTitle) statusTitle.textContent = 'يتم الآن تأليف كتابك في الخلفية';
+    document.getElementById('book-progress-ring')?.classList.remove('is-complete', 'is-failed');
+    updateBookProgress(0, getBookTargetPages());
     
     bookPagesData = [];
     rawBookTextFull = "";
     ui.bookOutlineText.innerText = "";
     ui.introArea.classList.add('hidden');
+    ui.introArea.style.display = 'none';
     ui.resultArea.classList.add('hidden');
+    document.getElementById('book-outline-chat-message')?.remove();
+    setBookSettingsExpanded(false);
     
     updateUI();
 }
@@ -1267,15 +1357,15 @@ async function checkSession() {
         currentUser = await account.get();
         document.getElementById('login-btn').classList.add('hidden');
         document.getElementById('user-info').classList.remove('hidden');
-        document.getElementById('profile-btn')?.classList.remove('hidden');
-        document.getElementById('cart-header-btn')?.classList.remove('hidden');
-        const displayName = currentUser.name || (currentUser.email ? currentUser.email.split('@')[0] : 'حسابي');
-        const profileTriggerName = document.getElementById('profile-trigger-name');
-        const profileUserName = document.getElementById('profile-user-name');
-        const profileUserEmail = document.getElementById('profile-user-email');
-        if (profileTriggerName) profileTriggerName.textContent = displayName;
-        if (profileUserName) profileUserName.textContent = displayName;
-        if (profileUserEmail) profileUserEmail.textContent = currentUser.email || '';
+        document.querySelector('.token-add-btn')?.classList.remove('hidden');
+        document.getElementById('profile-header-btn')?.classList.remove('hidden');
+        const displayName = currentUser.name?.trim() || currentUser.email?.split('@')[0] || 'حسابي';
+        const headerName = document.getElementById('header-user-name');
+        const profileName = document.getElementById('profile-user-name');
+        const profileEmail = document.getElementById('profile-user-email');
+        if (headerName) headerName.textContent = displayName;
+        if (profileName) profileName.textContent = displayName;
+        if (profileEmail) profileEmail.textContent = currentUser.email || '';
         fetchUserCredits();
         fetchUserBooks();
         if (typeof window.syncLandingProjectsFromServer === 'function') {
@@ -1284,8 +1374,9 @@ async function checkSession() {
     } catch (error) {
         document.getElementById('login-btn').classList.remove('hidden');
         document.getElementById('user-info').classList.add('hidden');
-        document.getElementById('profile-btn')?.classList.add('hidden');
-        document.getElementById('cart-header-btn')?.classList.add('hidden');
+        document.querySelector('.token-add-btn')?.classList.add('hidden');
+        document.getElementById('profile-header-btn')?.classList.add('hidden');
+        setProfileDrawerOpen(false);
         currentUser = null;
         const libSec = document.getElementById('my-library-section');
         if (libSec) libSec.classList.add('hidden');
@@ -1301,7 +1392,10 @@ async function fetchUserCredits() {
     try {
         const response = await databases.listDocuments(DB_ID, COLLECTION_ID, [ Query.equal('userId', currentUser.$id) ]);
         if (response.documents.length > 0) {
-            syncCreditDisplays(response.documents[0].tokens);
+            const tokenBalance = response.documents[0].tokens;
+            document.getElementById('user-credits').innerText = tokenBalance;
+            const profileCreditCount = document.getElementById('profile-credit-count');
+            if (profileCreditCount) profileCreditCount.innerText = tokenBalance;
         }
     } catch (error) { 
         console.error("Error fetching credits", error);
