@@ -339,13 +339,22 @@ function syncWorkspaceFromSelections() {
         generate: { kicker: 'IMAGE STUDIO', title: 'إنشاء صورة', placeholder: 'صف الصورة التي تريد إنشاءها...' },
         edit: { kicker: 'IMAGE EDITOR', title: 'تعديل صورة', placeholder: 'اشرح التعديل المطلوب على الصورة...' },
         art_studio: { kicker: 'AKLAKE ART ROOM', title: 'استوديو اللوحات الفنية', placeholder: 'صف اللوحة التي تريد إنشاءها...' },
-        book_outline: { kicker: 'BOOK BUILDER', title: 'إنشاء كتاب طويل', placeholder: 'ملاحظات إضافية عن الكتاب (اختياري)...' },
+        book_outline: { kicker: 'BOOK BUILDER', title: 'المؤلف الذكي', placeholder: 'ما شكل الكتاب الذي تريد إنجازه، أيها البشري؟' },
         landing_page: { kicker: 'AKLAKE LANDING LAB', title: 'مولد صفحات الهبوط', placeholder: 'صف صفحة الهبوط التي تريدها...' }
     };
     const data = workspaceData[action] || workspaceData.text;
     if (ui.workspaceKicker) ui.workspaceKicker.textContent = data.kicker;
     if (ui.workspaceTitle) ui.workspaceTitle.textContent = data.title;
     if (ui.prompt) ui.prompt.placeholder = data.placeholder;
+
+    const initialMessage = document.getElementById('initial-assistant-message');
+    const initialSource = document.getElementById('initial-assistant-source');
+    if (initialMessage) initialMessage.textContent = action === 'book_outline'
+        ? 'ما شكل الكتاب الذي تريد إنجازه، أيها البشري؟ اكتب وصفًا قصيرًا أو طويلًا، وسأتولى تحويله إلى خطة كتاب.'
+        : 'مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.';
+    if (initialSource) initialSource.textContent = action === 'book_outline'
+        ? 'مؤلف AKLAKE جاهز — عدد الصفحات فقط إلزامي'
+        : 'جاهز للمحادثة عبر الكود الوظيفي الثاني';
 
     refreshComposerModelLabel();
     syncComposerModeUI();
@@ -1007,8 +1016,7 @@ async function runArtAI(operation, targetFrame) {
         selected.imageData = imageResult;
         selected.hasGenerated = true;
         renderArtFrame(selected);
-        const credits = document.getElementById('user-credits');
-        if (credits && responseData.remainingTokens !== undefined) credits.textContent = responseData.remainingTokens;
+        if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(responseData.remainingTokens);
         setArtStudioStatus('اكتملت اللوحة وأصبحت جاهزة للحفظ أو الإضافة إلى السلة.', 'success');
     } else if (responseData) {
         setArtStudioStatus('لم يكتمل التحويل: ' + (responseData.error || 'لم يرجع الخادم صورة.'), 'error');
@@ -1751,10 +1759,7 @@ async function generateLandingPage() {
         if (!acceptLandingProjectFromServer(responseData.project, previousProjectId)) {
             saveLandingVersion(html, 'النسخة الأولى', form);
         }
-        if (responseData.remainingTokens !== undefined) {
-            const credits = landingElement('user-credits');
-            if (credits) credits.textContent = responseData.remainingTokens;
-        }
+        if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(responseData.remainingTokens);
         showLandingView('preview');
         setLandingStatus(responseData.storageWarning || 'تم إنشاء الصفحة وحفظ النسخة الأولى بنجاح.', responseData.storageWarning ? 'info' : 'success');
     } catch (error) {
@@ -1792,10 +1797,7 @@ async function reviseLandingPage() {
             saveLandingVersion(html, 'تعديل: ' + instruction.slice(0, 55), form);
         }
         if (landingUI.revisionPrompt) landingUI.revisionPrompt.value = '';
-        if (responseData.remainingTokens !== undefined) {
-            const credits = landingElement('user-credits');
-            if (credits) credits.textContent = responseData.remainingTokens;
-        }
+        if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(responseData.remainingTokens);
         showLandingView('preview');
         setLandingStatus(responseData.storageWarning || 'تم حفظ التعديل كنسخة جديدة، والنسخة القديمة ما زالت متاحة.', responseData.storageWarning ? 'info' : 'success');
     } catch (error) {
@@ -1945,4 +1947,4 @@ function initLandingPageStudio() {
     else startNewLandingProject();
 }
 
-window.initLandingPageStudio = initLandingPageStudio;
+window.initLandingPageStudio = initLandingPageStudio; 
