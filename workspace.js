@@ -115,10 +115,11 @@ function autoResizeTextarea(textarea) {
     textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px';
 }
 
-let modelChooserState = { action: 'text', sendAfterChoice: false, selected: null };
+let modelChooserState = { action: 'text', sendAfterChoice: false, selected: null, source: SECOND_FUNCTION_ID };
 let skipModelGateOnce = false;
 const oneShotModelChoices = {};
 const activeComposerChoices = {};
+const activeComposerSources = {};
 
 function readRememberedModels() {
     try {
@@ -148,10 +149,48 @@ function getSelectedCatalogChoice(action) {
     return findCatalogChoice(action, ui.provider.value, ui.model.value);
 }
 
-function applyModelChoice(action, choice) {
+function isFirstFunctionAllowed(action) {
+    return ['text', 'generate', 'edit'].includes(action);
+}
+
+function normalizeFunctionSource(action, source) {
+    return isFirstFunctionAllowed(action) && source === FIRST_FUNCTION_ID
+        ? FIRST_FUNCTION_ID
+        : SECOND_FUNCTION_ID;
+}
+
+function getAvailableModelChoices(action, source) {
+    const normalizedSource = normalizeFunctionSource(action, source);
+    const choices = MODEL_CATALOG[action] || [];
+    if (normalizedSource !== FIRST_FUNCTION_ID) return choices;
+
+    // الكود الوظيفي الأول مخصص للاختبارات الاقتصادية فقط.
+    if (action === 'text') {
+        return choices.filter(function(choice) {
+            return choice.provider === 'cloudflare' || ['gpt-4o-mini', 'gpt-4.1-mini'].includes(choice.model);
+        });
+    }
+    if (action === 'generate') {
+        return choices.filter(function(choice) { return choice.provider === 'cloudflare'; });
+    }
+    return choices;
+}
+
+function normalizeChoiceForSource(action, choice, source) {
+    const available = getAvailableModelChoices(action, source);
+    if (choice && available.some(function(item) {
+        return item.provider === choice.provider && item.model === choice.model;
+    })) return choice;
+    return available[0] || null;
+}
+
+function applyModelChoice(action, choice, source) {
     if (!choice || !getComposerModeKey(action)) return;
+    activeComposerSources[action] = normalizeFunctionSource(action, source);
+    choice = normalizeChoiceForSource(action, choice, activeComposerSources[action]);
+    if (!choice) return;
     activeComposerChoices[action] = choice;
-    ui.source.value = SECOND_FUNCTION_ID;
+    ui.source.value = activeComposerSources[action];
     ui.action.value = action;
     updateUI();
     ui.provider.value = choice.provider;
@@ -172,10 +211,31 @@ function refreshComposerModelLabel() {
     const choice = activeComposerChoices[action]
         || (remembered ? findCatalogChoice(action, remembered.provider, remembered.model) : null);
     if (choice) {
-        ui.activeModelLabel.innerHTML = '<span class="active-model-name">' + choice.name + '</span> <span class="token-cost">• ' + choice.cost + '</span>';
+        const source = activeComposerSources[action] || normalizeFunctionSource(action, remembered?.source);
+        const sourceLabel = source === FIRST_FUNCTION_ID ? 'الكود 1' : 'الكود 2';
+        ui.activeModelLabel.innerHTML = '<span class="active-model-name">' + choice.name + '</span> <span class="token-cost">• ' + choice.cost + ' • ' + sourceLabel + '</span>';
     } else {
         ui.activeModelLabel.textContent = 'اختيار النموذج';
     }
+}
+
+function renderFunctionSourceSelector(action) {
+    const container = document.getElementById('function-source-selector');
+    if (!container) return;
+    const allowed = isFirstFunctionAllowed(action);
+    container.classList.toggle('hidden', !allowed);
+    modelChooserState.source = normalizeFunctionSource(action, modelChooserState.source);
+    container.querySelectorAll('[data-function-source]').forEach(function(button) {
+        const selected = button.dataset.functionSource === modelChooserState.source;
+        button.classList.toggle('selected', selected);
+        button.setAttribute('aria-pressed', String(selected));
+        button.onclick = function() {
+            modelChooserState.source = normalizeFunctionSource(action, button.dataset.functionSource);
+            modelChooserState.selected = normalizeChoiceForSource(action, modelChooserState.selected, modelChooserState.source);
+            renderFunctionSourceSelector(action);
+            renderModelChoices(action);
+        };
+    });
 }
 
 function renderModelChoices(action) {
@@ -186,7 +246,7 @@ function renderModelChoices(action) {
         || activeComposerChoices[action]
         || (remembered ? findCatalogChoice(action, remembered.provider, remembered.model) : null);
 
-    (MODEL_CATALOG[action] || []).forEach(function(choice) {
+    getAvailableModelChoices(action, modelChooserState.source).forEach(function(choice) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'model-choice-card';
@@ -211,16 +271,22 @@ function renderModelChoices(action) {
 
 function openModelChooser(action, sendAfterChoice) {
     const mode = getComposerModeKey(action) || 'text';
-    modelChooserState = { action: mode, sendAfterChoice: Boolean(sendAfterChoice), selected: null };
+    const remembered = readRememberedModels()[mode];
+    const currentSource = activeComposerSources[mode] || remembered?.source || ui.source?.value || SECOND_FUNCTION_ID;
+    modelChooserState = {
+        action: mode,
+        sendAfterChoice: Boolean(sendAfterChoice),
+        selected: null,
+        source: normalizeFunctionSource(mode, currentSource)
+    };
     const titles = {
-        text: ['اختر نموذج المحادثة', 'جميع هذه النماذج تُستدعى من الكود الوظيفي الثاني.'],
-        generate: ['توليد صورة من الصفر', 'يُستخدم GPT Image 2 من OpenAI عبر الكود الوظيفي الثاني فقط.'],
-        edit: ['اختر قوة تعديل الصورة', 'اختر مستوى الجودة المناسب؛ جميع الخيارات تمر عبر الكود الوظيفي الثاني.'],
-        book_outline: ['اختر نموذج تأليف الكتاب', 'سيُستخدم الاختيار للخطة والمقدمة واستكمال الكتاب مع الحفاظ على السياق.']
+        text: ['اختر نموذج المحادثة', 'اختر النموذج، ويمكنك اختبار الكود الأول أو استخدام الكود الثاني الأساسي.'],
+        generate: ['توليد صورة من الصفر', 'Cloudflare اقتصادي، وOpenAI للجودة الأعلى. يمكنك اختيار مسار التنفيذ.'],
+        edit: ['اختر قوة تعديل الصورة', 'تعديل الصور داخل المحادثة يقبل اختبار الكود الأول أو استخدام الكود الثاني.'],
+        book_outline: ['اختر نموذج تأليف الكتاب', 'أداة الكتب تستخدم الكود الوظيفي الثاني فقط للحفاظ على مراحل التأليف والسياق.']
     };
     if (ui.modelChooserTitle) ui.modelChooserTitle.textContent = titles[mode][0];
     if (ui.modelChooserDescription) ui.modelChooserDescription.textContent = titles[mode][1];
-    const remembered = readRememberedModels()[mode];
     if (ui.rememberModelToggle) ui.rememberModelToggle.checked = Boolean(remembered);
     const rememberIcon = document.querySelector('.remember-toggle-icon');
     if (rememberIcon) {
@@ -230,13 +296,14 @@ function openModelChooser(action, sendAfterChoice) {
     if (ui.confirmModelBtn) ui.confirmModelBtn.innerHTML = sendAfterChoice
         ? '<i class="fas fa-check"></i> متابعة وإرسال'
         : '<i class="fas fa-check"></i> اعتماد الاختيار';
+    renderFunctionSourceSelector(mode);
     renderModelChoices(mode);
     if (ui.modelPopover) ui.modelPopover.classList.remove('hidden');
 }
 
 function closeModelChooser() {
     if (ui.modelPopover) ui.modelPopover.classList.add('hidden');
-    modelChooserState = { action: 'text', sendAfterChoice: false, selected: null };
+    modelChooserState = { action: 'text', sendAfterChoice: false, selected: null, source: SECOND_FUNCTION_ID };
 }
 
 function confirmModelChoice() {
@@ -244,16 +311,17 @@ function confirmModelChoice() {
     if (!choice) return;
     const action = modelChooserState.action;
     const sendAfterChoice = modelChooserState.sendAfterChoice;
-    applyModelChoice(action, choice);
+    const source = normalizeFunctionSource(action, modelChooserState.source);
+    applyModelChoice(action, choice, source);
 
     const rememberedModels = readRememberedModels();
     if (ui.rememberModelToggle && ui.rememberModelToggle.checked) {
-        rememberedModels[action] = { provider: choice.provider, model: choice.model };
+        rememberedModels[action] = { provider: choice.provider, model: choice.model, source };
         writeRememberedModels(rememberedModels);
     } else {
         delete rememberedModels[action];
         writeRememberedModels(rememberedModels);
-        if (!sendAfterChoice) oneShotModelChoices[action] = choice;
+        if (!sendAfterChoice) oneShotModelChoices[action] = { choice, source };
     }
     closeModelChooser();
     refreshComposerModelLabel();
@@ -270,12 +338,12 @@ function prepareModelForSend(action) {
     if (remembered) {
         const choice = findCatalogChoice(action, remembered.provider, remembered.model);
         if (choice) {
-            applyModelChoice(action, choice);
+            applyModelChoice(action, choice, remembered.source);
             return true;
         }
     }
     if (oneShotModelChoices[action]) {
-        applyModelChoice(action, oneShotModelChoices[action]);
+        applyModelChoice(action, oneShotModelChoices[action].choice, oneShotModelChoices[action].source);
         delete oneShotModelChoices[action];
         return true;
     }
@@ -299,7 +367,7 @@ function syncComposerModeUI() {
 
 function setUnifiedComposerMode(action) {
     const target = getComposerModeKey(action) || 'text';
-    ui.source.value = SECOND_FUNCTION_ID;
+    ui.source.value = normalizeFunctionSource(target, ui.source.value);
     ui.action.value = target;
     updateUI();
     syncComposerModeUI();
@@ -354,7 +422,9 @@ function syncWorkspaceFromSelections() {
         : 'مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.';
     if (initialSource) initialSource.textContent = action === 'book_outline'
         ? 'مؤلف AKLAKE جاهز — عدد الصفحات فقط إلزامي'
-        : 'جاهز للمحادثة عبر الكود الوظيفي الثاني';
+        : (ui.source.value === FIRST_FUNCTION_ID
+            ? 'جاهز للاختبار عبر الكود الوظيفي الأول'
+            : 'جاهز للمحادثة عبر الكود الوظيفي الثاني');
 
     refreshComposerModelLabel();
     syncComposerModeUI();
@@ -373,7 +443,7 @@ window.selectAITool = function(action) {
     if (mainInputs) mainInputs.classList.remove('hidden');
     if (libraryDrawer) libraryDrawer.classList.add('hidden');
 
-    // المحادثة والصور والكتب واللوحات تمر الآن عبر الكود الوظيفي الثاني.
+    // يبدأ كل وضع بالكود الثاني؛ ويمكن تغيير المسار من إعدادات المحادثة والصور فقط.
     ui.source.value = SECOND_FUNCTION_ID;
     ui.action.value = action;
     updateUI();
@@ -1255,13 +1325,18 @@ function initArtStudio() {
 const LANDING_STORAGE_KEY = 'aklake_landing_projects_v1';
 const LANDING_MAX_PROJECTS = 20;
 const LANDING_MAX_VERSIONS = 15;
+const LANDING_MODEL_POINTS = Object.freeze({
+    'gpt-4o-mini': 20,
+    'gpt-4.1-mini': 40,
+    'gpt-5.5': 60
+});
 
 const landingState = {
     projects: [],
     activeProjectId: null,
     currentVersionIndex: -1,
     sourceBookId: '',
-    selectedModel: 'gpt-5.6-terra',
+    selectedModel: 'gpt-4.1-mini',
     selectedPoints: 40,
     busy: false
 };
@@ -1495,7 +1570,7 @@ function startNewLandingProject() {
     landingState.currentVersionIndex = -1;
     landingState.sourceBookId = '';
     fillLandingForm({ language: 'العربية' });
-    setLandingModel('gpt-5.6-terra', 40);
+    setLandingModel('gpt-4.1-mini', 40);
     showLandingVersion(null);
     setLandingStatus('مشروع جديد جاهز. اكتب وصف الصفحة للبدء.', 'info');
     renderLandingProjects();
@@ -1513,7 +1588,7 @@ async function openLandingProject(projectId) {
     }
     landingState.activeProjectId = project.id;
     fillLandingForm(project.form || {});
-    setLandingModel(project.model || 'gpt-5.6-terra', Number(project.points || 40));
+    setLandingModel(project.model || 'gpt-4.1-mini', Number(project.points || 40));
     const versions = project.versions || [];
     landingState.currentVersionIndex = Math.max(0, versions.length - 1);
     showLandingVersion(versions[landingState.currentVersionIndex] || null);
@@ -1544,8 +1619,8 @@ async function deleteLandingProject(projectId) {
 }
 
 function setLandingModel(model, points) {
-    landingState.selectedModel = model || 'gpt-5.6-terra';
-    landingState.selectedPoints = Number(points || 40);
+    landingState.selectedModel = Object.prototype.hasOwnProperty.call(LANDING_MODEL_POINTS, model) ? model : 'gpt-4.1-mini';
+    landingState.selectedPoints = LANDING_MODEL_POINTS[landingState.selectedModel];
     if (landingUI.modelCards) {
         landingUI.modelCards.querySelectorAll('[data-landing-model]').forEach(function(card) {
             const selected = card.dataset.landingModel === landingState.selectedModel;
@@ -1941,7 +2016,7 @@ function initLandingPageStudio() {
         });
     }
 
-    setLandingModel('gpt-5.6-terra', 40);
+    setLandingModel('gpt-4.1-mini', 40);
     renderLandingProjects();
     if (landingState.projects.length) openLandingProject(landingState.projects[0].id);
     else startNewLandingProject();

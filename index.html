@@ -19,12 +19,37 @@
         </a>
     </div>
     <div class="account-actions">
-        <span id="user-info" class="credit-pill hidden"><i class="fas fa-bolt token-mark"></i> <span id="user-credits" class="token-value">0</span> <span class="token-unit">نقطة</span></span>
-        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات"><i class="fas fa-bag-shopping"></i><span class="cart-button-text">السلة</span><b id="cart-count">0</b></button>
+        <span id="user-info" class="credit-pill hidden" title="رصيد التوكن"><i class="fas fa-bolt token-mark"></i><span id="user-credits" class="token-value">0</span></span>
+        <button class="token-add-btn hidden" type="button" data-add-tokens aria-label="إضافة توكن" title="إضافة توكن"><i class="fas fa-plus"></i></button>
+        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات" title="السلة"><i class="fas fa-bag-shopping"></i><b id="cart-count">0</b></button>
         <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i> تسجيل الدخول</button>
-        <button id="logout-btn" class="account-btn danger hidden" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i> خروج</button>
+        <button id="profile-header-btn" class="profile-header-btn hidden" type="button" aria-label="فتح الملف الشخصي" aria-expanded="false">
+            <i class="far fa-circle-user"></i><span id="header-user-name">حسابي</span><i class="fas fa-chevron-down profile-chevron"></i>
+        </button>
     </div>
 </header>
+
+<div id="profile-overlay" class="profile-overlay hidden" aria-hidden="true"></div>
+<aside id="profile-drawer" class="profile-drawer hidden" aria-label="الملف الشخصي" aria-hidden="true">
+    <div class="profile-drawer-head">
+        <div class="profile-avatar"><i class="far fa-user"></i></div>
+        <div><small>الملف الشخصي</small><strong id="profile-user-name">المستخدم</strong><span id="profile-user-email"></span></div>
+        <button id="profile-close-btn" type="button" aria-label="إغلاق الملف الشخصي"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div class="profile-drawer-list">
+        <button id="profile-cart-btn" class="profile-menu-item" type="button">
+            <span class="profile-item-icon"><i class="fas fa-bag-shopping"></i></span>
+            <span><strong>السلة</strong><small>راجع الأعمال والمنتجات التي اخترتها</small></span>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="profile-menu-item token-profile-item" type="button" data-add-tokens>
+            <span class="profile-item-icon"><i class="fas fa-bolt"></i></span>
+            <span><strong><b id="profile-credit-count">0</b> توكن</strong><small>اضغط لإضافة توكن إضافي</small></span>
+            <i class="fas fa-plus profile-item-plus"></i>
+        </button>
+    </div>
+    <button id="profile-logout-btn" class="profile-logout-btn" type="button" onclick="logout()"><i class="fas fa-arrow-right-from-bracket"></i><span>تسجيل الخروج</span></button>
+</aside>
 
 <section id="welcome-screen" class="welcome-screen">
     <div class="welcome-copy">
@@ -103,7 +128,10 @@
         <div id="main-inputs-wrapper">
         <!-- حالة التوجيه الداخلية فقط. اختيار النموذج المرئي يتم من واجهات الأدوات الاحترافية. -->
         <div id="routing-state" hidden aria-hidden="true">
-            <select id="source-select" tabindex="-1"><option value="6a445f680013960a14c6" selected>الكود الوظيفي الثاني</option></select>
+            <select id="source-select" tabindex="-1">
+                <option value="6a445f680013960a14c6" selected>الكود الوظيفي الثاني</option>
+                <option value="6a3c7a760032067bd275">الكود الوظيفي الأول</option>
+            </select>
             <select id="action-select" tabindex="-1">
                 <option value="text">محادثة</option>
                 <option value="generate">توليد صورة</option>
@@ -121,32 +149,49 @@
             <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
         </div>
 
-        <div id="book-settings" class="book-fields hidden">
+        <div id="book-quick-start" class="book-quick-start hidden">
+            <div class="book-quick-controls">
+                <label class="book-quick-field book-type-field" for="b-genre">
+                    <span><i class="fas fa-book-open"></i> نوع الكتاب</span>
+                    <select id="b-genre">
+                        <option value="" selected>دع المؤلف يختار من وصفك</option>
+                        <optgroup label="الأدب الخيالي">
+                            <option value="رواية">رواية</option>
+                            <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
+                            <option value="رواية بوليسية">رواية بوليسية / غموض</option>
+                        </optgroup>
+                        <optgroup label="الأدب الواقعي والتعليمي">
+                            <option value="تطوير الذات">تطوير الذات</option>
+                            <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
+                            <option value="دليل إرشادي">دليل إرشادي (How-to)</option>
+                        </optgroup>
+                        <option value="other">نوع آخر أكتبه بنفسي…</option>
+                    </select>
+                </label>
+                <label class="book-quick-field book-pages-field" for="b-pages">
+                    <span><i class="far fa-file-lines"></i> الصفحات <b>مطلوب</b></span>
+                    <input type="number" id="b-pages" placeholder="50–400" min="50" max="400" inputmode="numeric" required>
+                </label>
+                <button id="book-assistant-toggle" class="book-assistant-toggle" type="button" aria-expanded="false" aria-controls="book-settings">
+                    <i class="fas fa-wand-magic-sparkles"></i><span>المساعد · تخصيص</span><i class="fas fa-chevron-down book-assistant-chevron"></i>
+                </button>
+            </div>
+            <p class="book-quick-note"><i class="fas fa-circle-info"></i> اكتب وصفًا قصيرًا أو برومنتًا طويلًا؛ أي تفصيل لا تحدده سيستنتجه مؤلف الكتاب من وصفك.</p>
+        </div>
+
+        <div id="book-settings" class="book-fields hidden" aria-hidden="true">
             <div class="book-form-intro">
                 <span><i class="fas fa-book-open"></i></span>
-                <div><h3>ابنِ كتابك خطوة بخطوة</h3><p>أدخل المعلومات الأساسية، وستبقى آلية التأليف الحالية كما هي.</p></div>
+                <div><h3>إعدادات الكتاب</h3><p>هذه الحقول اختيارية؛ اترك أي خانة فارغة ليحددها المؤلف من وصفك.</p></div>
             </div>
             <div class="book-section-title"><i class="fas fa-info-circle"></i> المعلومات الأساسية</div>
-            <input type="text" id="b-title" placeholder="عنوان الكتاب (مثال: أسرار الفضاء)">
-            <input type="text" id="b-topic" placeholder="موضوع الكتاب (الفكرة العامة)">
-               
-            <select id="b-genre" onchange="const c = document.getElementById('b-custom-genre'); if(this.value==='other') { c.classList.remove('hidden'); c.focus(); } else { c.classList.add('hidden'); }">
-                <optgroup label="الأدب الخيالي">
-                    <option value="رواية">رواية</option>
-                    <option value="خيال علمي وفانتازيا">خيال علمي / فانتازيا</option>
-                    <option value="رواية بوليسية">رواية بوليسية / غموض</option>
-                </optgroup>
-                <optgroup label="الأدب الواقعي والتعليمي">
-                    <option value="تطوير الذات">تطوير الذات</option>
-                    <option value="كتاب تعليمي أكاديمي">كتاب تعليمي (أكاديمي)</option>
-                    <option value="دليل إرشادي">دليل إرشادي (How-to)</option>
-                </optgroup>
-                <option value="other">📌 نوع آخر (إدخال يدوي)...</option>
-            </select>
+            <input type="text" id="b-title" placeholder="عنوان الكتاب — اتركه فارغًا ليقترحه المؤلف">
+            <input type="text" id="b-topic" placeholder="موضوع الكتاب أو فكرته العامة">
             <input type="text" id="b-custom-genre" class="hidden" placeholder="اكتب نوع الكتاب هنا...">
                  
-            <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة والحجم</div>
+            <div class="book-section-title"><i class="fas fa-layer-group"></i> الهيكلة</div>
             <select id="b-structure">
+                <option value="" selected>دع المؤلف يختار البنية المناسبة</option>
                 <option value="فصول (Chapters)">فصول (Chapters)</option>
                 <option value="أجزاء (Parts)">أجزاء كبرى (Parts)</option>
                 <option value="دروس (Lessons)">دروس (Lessons)</option>
@@ -154,31 +199,35 @@
                 <option value="other">بنية مخصصة أكتبها بنفسي</option>
             </select>
             <input type="text" id="b-custom-structure" class="hidden" placeholder="مثال: ثلاثة أبواب، داخل كل باب دراسات حالة وتمارين عملية">
-            <input type="number" id="b-pages" placeholder="عدد الصفحات (50 إلى 400)" min="50" max="400" value="50">
                 
             <div class="book-section-title"><i class="fas fa-users"></i> الأسلوب واللغة</div>
             <select id="b-audience">
+                <option value="" selected>الجمهور — يحدده المؤلف من الوصف</option>
                 <option value="الجمهور العام">الجمهور العام</option>
                 <option value="أطفال">أطفال</option>
                 <option value="مبتدئين">مبتدئين</option>
                 <option value="محترفين وخبراء">محترفين وخبراء</option>
             </select>
             <select id="b-tone">
+                <option value="" selected>النبرة — يحددها المؤلف من الوصف</option>
                 <option value="حيادي وواضح">حيادي وواضح</option>
                 <option value="رسمي وأكاديمي">رسمي وأكاديمي</option>
                 <option value="فكاهي ومرح">فكاهي ومرح</option>
             </select>
             <select id="b-pov">
+                <option value="" selected>زاوية السرد — يحددها المؤلف</option>
                 <option value="الراوي الغائب (هو/هي)">الراوي الغائب (هو/هي)</option>
                 <option value="المتكلم (أنا)">المتكلم (أنا)</option>
             </select>
             <select id="b-language">
+                <option value="" selected>اللغة — تُستنتج من وصفك</option>
                 <option value="العربية">اللغة العربية</option>
                 <option value="الإنجليزية">اللغة الإنجليزية</option>
             </select>
 
             <div class="book-section-title"><i class="fas fa-image"></i> الصور والغلاف</div>
             <select id="b-images">
+                <option value="" selected>الصور — يحددها المؤلف عند الحاجة</option>
                 <option value="بدون صور">بدون صور داخلية</option>
                 <option value="صور أبيض وأسود للطباعة">صور توضيحية أبيض وأسود</option>
                 <option value="أسلوب أنمي/مانغا">أسلوب أنمي / مانغا</option>
@@ -329,14 +378,14 @@
                         <div><h4>اختر نموذج التوليد</h4><p>السعر يثبته الخادم، وكل تعديل ذكي يُحفظ كنسخة جديدة.</p></div>
                     </div>
                     <div id="landing-model-cards" class="landing-model-cards" role="radiogroup" aria-label="نموذج إنشاء صفحة الهبوط">
-                        <button class="landing-model-card" type="button" data-landing-model="gpt-5.6-luna" data-points="20" role="radio" aria-checked="false">
-                            <span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-5.6 Luna</strong><small>سريع للمسودات والصفحات المباشرة</small></span><b>20 نقطة</b>
+                        <button class="landing-model-card" type="button" data-landing-model="gpt-4o-mini" data-points="20" role="radio" aria-checked="false">
+                            <span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-4o mini</strong><small>اقتصادي للمسودات والصفحات المباشرة</small></span><b>20 نقطة</b>
                         </button>
-                        <button class="landing-model-card selected" type="button" data-landing-model="gpt-5.6-terra" data-points="40" role="radio" aria-checked="true">
-                            <span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-5.6 Terra</strong><small>أفضل توازن للنسخة التسويقية والتصميم</small></span><b>40 نقطة</b>
+                        <button class="landing-model-card selected" type="button" data-landing-model="gpt-4.1-mini" data-points="40" role="radio" aria-checked="true">
+                            <span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-4.1 mini</strong><small>أفضل توازن للنسخة التسويقية والتصميم</small></span><b>40 نقطة</b>
                         </button>
-                        <button class="landing-model-card premium" type="button" data-landing-model="gpt-5.6" data-points="60" role="radio" aria-checked="false">
-                            <span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5.6 الأقوى</strong><small>لصفحات البيع المعقدة والنتيجة الأعلى جودة</small></span><b>60 نقطة</b>
+                        <button class="landing-model-card premium" type="button" data-landing-model="gpt-5.5" data-points="60" role="radio" aria-checked="false">
+                            <span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5.5 القياسي</strong><small>لصفحات البيع المعقدة والعمل المتقن</small></span><b>60 نقطة</b>
                         </button>
                     </div>
 
@@ -399,11 +448,18 @@
 
         <div id="chat-stream" class="chat-stream">
             <div id="chat-messages" class="chat-messages" aria-live="polite">
-                <div class="message-row assistant-message">
+                <div id="default-welcome-message" class="message-row assistant-message">
                     <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
                     <div class="message-content">
                         <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
                         <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الثاني</div>
+                    </div>
+                </div>
+                <div id="book-welcome-message" class="message-row assistant-message hidden">
+                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="مؤلف AKLAKE"></div>
+                    <div class="message-content">
+                        <div class="message-bubble">ما شكل الكتاب الذي تريد إنجازه، أيها البشري؟ صفه بطريقتك، وسأحوّل فكرتك إلى خطة واضحة.</div>
+                        <div class="message-source">مؤلف الكتب · AKLAKE</div>
                     </div>
                 </div>
             </div>
@@ -436,11 +492,22 @@
                     <button id="close-model-chooser-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button>
                 </div>
                 <p id="model-chooser-description">سيُستخدم النموذج المختار لهذا الطلب.</p>
+                <div id="function-source-selector" class="function-source-selector hidden" aria-label="اختيار الكود الوظيفي">
+                    <span class="function-source-label"><i class="fas fa-code-branch"></i> مسار التنفيذ</span>
+                    <div class="function-source-options">
+                        <button type="button" data-function-source="6a445f680013960a14c6" class="selected" aria-pressed="true">
+                            <strong>الكود الثاني</strong><small>المسار الأساسي والأحدث</small>
+                        </button>
+                        <button type="button" data-function-source="6a3c7a760032067bd275" aria-pressed="false">
+                            <strong>الكود الأول</strong><small>اقتصادي؛ للمحادثة والصور فقط</small>
+                        </button>
+                    </div>
+                </div>
                 <div id="model-choices-list" class="model-choices-list"></div>
                 <label class="remember-model-card">
                     <input id="remember-model-toggle" type="checkbox">
                     <span class="memory-card-icon"><i class="fas fa-memory"></i></span>
-                    <span><strong>تذكّر اختياري</strong><small>استمر مع هذا النموذج ولا تسألني في كل مرة</small></span>
+                    <span><strong>تذكّر اختياري</strong></span>
                     <i class="fas fa-toggle-off remember-toggle-icon"></i>
                 </label>
                 <button id="confirm-model-choice-btn" class="confirm-model-choice-btn" type="button" disabled><i class="fas fa-check"></i> متابعة وإرسال</button>
@@ -541,13 +608,26 @@
         </div>
     </div>
 
-    <div id="auto-generation-status" class="hidden" style="text-align: center; margin-top: 30px; padding: 40px; background: #eef2ff; border-radius: 12px; border: 2px dashed #818cf8;">
-        <h2 id="status-title" style="color: #4338ca;"><i class='fas fa-cog fa-spin'></i> يتم الآن تأليف الكتاب بالكامل في الخلفية...</h2>
-        <p style="font-size: 1.2em; color: #3730a3; margin-top: 20px;">عدد الصفحات/الأجزاء المنجزة حتى الآن</p>
-        <div style="font-size: 4em; font-weight: bold; color: #312e81; margin: 10px 0;" id="progress-count">0</div>
-        <p style="color: #6b7280;">(يمكنك إغلاق الصفحة والعودة لاحقاً، الذكاء الاصطناعي يعمل نيابة عنك)</p>
-        
-        <button id="new-book-btn" class="hidden" onclick="resetForNewBook()" style="margin-top: 30px; background: #10b981; width: auto; padding: 12px 30px; font-size: 1.1em;"><i class="fas fa-plus"></i> تأليف كتاب جديد</button>
+    <div id="auto-generation-status" class="book-generation-status hidden">
+        <div class="book-progress-shell">
+            <div id="book-progress-ring" class="book-progress-ring" style="--book-progress: 0deg;">
+                <div class="book-progress-media">
+                    <!-- رابط صورة انتظار تأليف الكتاب: غيّره من السطر التالي مستقبلًا عند الحاجة -->
+                    <img src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يتم الآن تأليف الكتاب" loading="eager">
+                    <span class="book-progress-live"><i class="fas fa-circle"></i> يعمل الآن</span>
+                </div>
+            </div>
+            <div class="book-progress-meta">
+                <span class="book-progress-label">تقدّم الصفحات</span>
+                <div class="book-progress-fraction"><strong id="progress-count">0</strong><span>/</span><strong id="progress-total">0</strong></div>
+            </div>
+        </div>
+        <h2 id="status-title">يتم الآن تأليف كتابك في الخلفية</h2>
+        <p class="book-waiting-copy">يمكنك البدء في كتاب ثانٍ أو الاستمتاع بقهوتك ريثما ينتهي هذا الكتاب.</p>
+        <div class="working-models"><span>النموذج الذي يعمل</span><strong id="working-model-name">—</strong></div>
+        <div class="book-generation-actions">
+            <button id="new-book-btn" class="hidden" onclick="resetForNewBook()"><i class="fas fa-plus"></i> تأليف كتاب جديد</button>
+        </div>
     </div>
 
     </main>

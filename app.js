@@ -13,6 +13,7 @@ const DB_ID = '6a3706880011ad5651b5';
 const COLLECTION_ID = 'cvs_chat_cv_mab';
 let currentUser = null;
 let isLoginMode = true;
+const FIRST_FUNCTION_ID = '6a3c7a760032067bd275';
 const SECOND_FUNCTION_ID = '6a445f680013960a14c6';
 const AGENT_AVATAR_URL = 'https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif';
 const MODEL_MEMORY_KEY = 'aklake_remembered_models_v1';
@@ -20,17 +21,28 @@ const AUTO_BOOK_VALUE = 'لم أقم بتحديدها؛ اقرأ وصف الكت
 const MODEL_CATALOG = {
     text: [
         { provider: 'cloudflare', model: 'llama', name: 'LLaMA 3.3', description: 'اقتصادي للمحادثات اليومية', cost: '5 نقاط', icon: 'fa-feather' },
-        { provider: 'openai', model: 'gpt-5.6-luna', name: 'GPT-5.6 Luna', description: 'سريع واقتصادي للمحادثة', cost: '8 نقاط', icon: 'fa-bolt' },
-        { provider: 'openai', model: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', description: 'توازن قوي بين الجودة والتكلفة', cost: '10 نقاط', icon: 'fa-brain' },
-        { provider: 'openai', model: 'gpt-5.6', name: 'GPT-5.6', description: 'أعلى جودة للطلبات المعقدة', cost: '15 نقطة', icon: 'fa-gem' }
+        { provider: 'openai', model: 'gpt-4o-mini', name: 'GPT-4o mini', description: 'اقتصادي وسريع للمهام البسيطة', cost: '8 نقاط', icon: 'fa-bolt' },
+        { provider: 'openai', model: 'gpt-4.1-mini', name: 'GPT-4.1 mini', description: 'متوازن ودقيق للمحادثات والعمل اليومي', cost: '10 نقاط', icon: 'fa-brain' },
+        { provider: 'openai', model: 'gpt-5.5', name: 'GPT-5.5', description: 'النموذج القياسي للعمل المتقن والمعقد', cost: '15 نقطة', icon: 'fa-gem' }
     ],
     book_outline: [
         { provider: 'gemini', model: 'gemini-3.5-flash', name: 'Gemini Flash', description: 'خيار اقتصادي لتجارب الكتاب', cost: '5 نقاط', icon: 'fa-feather' },
-        { provider: 'openai', model: 'gpt-5.6-luna', name: 'GPT-5.6 Luna', description: 'سريع للخطة والمقدمة', cost: '8 نقاط', icon: 'fa-bolt' },
-        { provider: 'openai', model: 'gpt-5.6-terra', name: 'GPT-5.6 Terra', description: 'الاختيار المتوازن لتأليف كتاب مترابط', cost: '10 نقاط', icon: 'fa-book-open' },
-        { provider: 'openai', model: 'gpt-5.6', name: 'GPT-5.6', description: 'أقوى جودة للتحرير والبناء الطويل', cost: '15 نقطة', icon: 'fa-gem' }
+        { provider: 'cloudflare', model: 'llama', name: 'LLaMA 3.3', description: 'خيار اقتصادي للخطط والمسودات', cost: '5 نقاط', icon: 'fa-feather' },
+        { provider: 'openai', model: 'gpt-4o-mini', name: 'GPT-4o mini', description: 'اقتصادي للخطة والمقدمة', cost: '8 نقاط', icon: 'fa-bolt' },
+        { provider: 'openai', model: 'gpt-4.1-mini', name: 'GPT-4.1 mini', description: 'متوازن لتأليف كتاب مترابط', cost: '10 نقاط', icon: 'fa-book-open' },
+        { provider: 'openai', model: 'gpt-5.5', name: 'GPT-5.5', description: 'قياسي قوي للتحرير والبناء الطويل', cost: '15 نقطة', icon: 'fa-gem' }
     ],
     generate: [
+        {
+            provider: 'cloudflare',
+            model: 'flux-schnell',
+            modelTier: 'flux-schnell',
+            quality: 'low',
+            name: 'Cloudflare FLUX',
+            description: 'توليد اقتصادي وسريع للصور',
+            cost: '5 نقاط',
+            icon: 'fa-cloud'
+        },
         {
             provider: 'openai',
             model: 'gpt-image-2',
@@ -407,18 +419,13 @@ if (pageUI.continueBtn) {
 // واجهة المحادثة الاحترافية والتنقل بين الأدوات
 // ==========================================
 function updateUI() {
-    const source = ui.source.value;
-    const action = ui.action.value;
-    if (source === '6a3c7a760032067bd275') { 
-        Array.from(ui.action.options).forEach(function(opt) {
-            if (opt.value === 'book_outline') opt.disabled = true;
-        });
-        if (action === 'book_outline') ui.action.value = 'text'; 
-    } else {
-        Array.from(ui.action.options).forEach(function(opt) {
-            opt.disabled = false;
-        });
+    const basicFirstFunctionActions = new Set(['text', 'generate', 'edit']);
+    if (ui.source.value === FIRST_FUNCTION_ID && !basicFirstFunctionActions.has(ui.action.value)) {
+        ui.source.value = SECOND_FUNCTION_ID;
     }
+    Array.from(ui.action.options).forEach(function(opt) {
+        opt.disabled = ui.source.value === FIRST_FUNCTION_ID && !basicFirstFunctionActions.has(opt.value);
+    });
 
     const currentAction = ui.action.value;
     if (currentAction === 'book_outline' && lastUIAction !== 'book_outline') {
@@ -458,7 +465,7 @@ function updateUI() {
     } else if (currentAction === 'text') {
         ui.provider.innerHTML = '<option value="openai">OpenAI (متقدم)</option><option value="cloudflare">Cloudflare (اقتصادي)</option>';
     } else if (currentAction === 'generate') {
-        ui.provider.innerHTML = '<option value="openai">OpenAI (توليد الصور)</option>';
+        ui.provider.innerHTML = '<option value="cloudflare">Cloudflare FLUX (اقتصادي)</option><option value="openai">OpenAI (توليد الصور)</option>';
     } else if (currentAction === 'edit') {
         ui.provider.innerHTML = '<option value="openai">OpenAI (تعديل الصور)</option>';
     }
@@ -474,17 +481,19 @@ function updateModels() {
     if (action === 'art_studio') {
         ui.model.innerHTML = '<option value="gpt-image-2">GPT Image 2</option>';
     } else if (action === 'landing_page') {
-        ui.model.innerHTML = '<option value="gpt-5.6-luna">GPT-5.6 Luna (20 نقطة)</option><option value="gpt-5.6-terra" selected>GPT-5.6 Terra (40 نقطة)</option><option value="gpt-5.6">GPT-5.6 (60 نقطة)</option>';
+        ui.model.innerHTML = '<option value="gpt-4o-mini">GPT-4o mini — اقتصادي (20 نقطة)</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — متوازن (40 نقطة)</option><option value="gpt-5.5">GPT-5.5 — قياسي قوي (60 نقطة)</option>';
     } else if (action === 'text' || action === 'book_outline') {
         if (provider === 'gemini') {
             ui.model.innerHTML = '<option value="gemini-3.5-flash">Gemini 3.5 Flash</option>';
         } else if (provider === 'openai') {
-            ui.model.innerHTML = '<option value="gpt-5.6-luna">GPT-5.6 Luna (8 نقاط)</option><option value="gpt-5.6-terra" selected>GPT-5.6 Terra (10 نقاط)</option><option value="gpt-5.6">GPT-5.6 (15 نقطة)</option>';
+            ui.model.innerHTML = '<option value="gpt-4o-mini">GPT-4o mini — اقتصادي (8 نقاط)</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — متوازن (10 نقاط)</option><option value="gpt-5.5">GPT-5.5 — قياسي قوي (15 نقطة)</option>';
         } else {
             ui.model.innerHTML = '<option value="llama">LLaMA 3.3 (5 نقاط)</option>';
         }
     } else if (action === 'generate') {
-        ui.model.innerHTML = '<option value="gpt-image-2">GPT Image 2 — توليد من الصفر (20 نقطة)</option>';
+        ui.model.innerHTML = provider === 'cloudflare'
+            ? '<option value="flux-schnell">Cloudflare FLUX Schnell (5 نقاط)</option>'
+            : '<option value="gpt-image-2">GPT Image 2 — توليد من الصفر (20 نقطة)</option>';
     } else if (action === 'edit') {
         ui.model.innerHTML = '<option value="gpt-image-1-mini">GPT Image 1 mini — تعديل بسيط (10 نقاط)</option><option value="gpt-image-1.5">GPT Image 1.5 — تعديل متوازن (15 نقطة)</option><option value="gpt-image-2">GPT Image 2 — تعديل احترافي (20 نقطة)</option>';
     }
@@ -819,8 +828,13 @@ async function executeRequest(payloadObj) {
         return null; 
     }
 
-    // هذه الواجهة مرتبطة حصريًا بالكود الوظيفي الثاني؛ الكود الأول يبقى معزولًا لوظيفته الأخرى.
-    const targetFunctionId = SECOND_FUNCTION_ID;
+    // الكود الأول اختياري للمحادثة وصور المحادثة فقط؛ الأدوات المتخصصة تبقى على الكود الثاني.
+    const canUseFirstFunction = payloadObj?.action === 'legacy_chat'
+        && ['text', 'generate', 'edit'].includes(payloadObj?.mode)
+        && ['text', 'generate', 'edit'].includes(ui.action?.value);
+    const requestedFunctionId = canUseFirstFunction ? ui.source.value : SECOND_FUNCTION_ID;
+    const targetFunctionId = requestedFunctionId === FIRST_FUNCTION_ID ? FIRST_FUNCTION_ID : SECOND_FUNCTION_ID;
+    const targetFunctionLabel = targetFunctionId === FIRST_FUNCTION_ID ? 'الكود الوظيفي الأول' : 'الكود الوظيفي الثاني';
     ui.loader.classList.remove('hidden');
     try {
         const execution = await appwriteFunctions.createExecution(
@@ -835,7 +849,7 @@ async function executeRequest(payloadObj) {
         try {
             parsedBody = execution.responseBody ? JSON.parse(execution.responseBody) : null;
         } catch (parseError) {
-            throw new Error('ردّ السيرفر ليس JSON صالحًا. راجع سجل الكود الوظيفي الثاني.');
+            throw new Error(`ردّ ${targetFunctionLabel} ليس JSON صالحًا. راجع سجل التنفيذ الخاص به.`);
         }
         if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400) {
             const serverMessage = parsedBody && (parsedBody.error || parsedBody.message);
