@@ -236,6 +236,7 @@ const ui = {
     resultImage: document.getElementById('result-image'),
     sourceBadge: document.getElementById('source-badge'),
     imageFile: document.getElementById('image-file'),
+    bookReferenceFile: document.getElementById('book-reference-file'),
 
     introPagesInput: document.getElementById('intro-pages-input'),
     remainingPagesDisplay: document.getElementById('remaining-pages-display'),
@@ -261,6 +262,8 @@ const ui = {
     modeCloseBtn: document.getElementById('composer-mode-close-btn'),
     attachmentPreview: document.getElementById('composer-attachment-preview'),
     attachmentImage: document.getElementById('composer-attachment-image'),
+    attachmentFileIcon: document.getElementById('composer-attachment-file-icon'),
+    attachmentTitle: document.getElementById('composer-attachment-title'),
     attachmentName: document.getElementById('composer-attachment-name'),
     removeAttachmentBtn: document.getElementById('remove-composer-attachment-btn'),
     modelPopover: document.getElementById('model-chooser-popover'),
@@ -336,6 +339,7 @@ function syncBookConversationState(isBookMode) {
             ui.prompt.placeholder = 'اكتب رسالتك هنا...';
         }
     }
+    if (typeof syncConversationThreads === 'function') syncConversationThreads();
 }
 if (ui.undoBtn) ui.undoBtn.addEventListener('click', handleUndo);
 
@@ -508,6 +512,7 @@ if (ui.model) ui.model.addEventListener('change', syncWorkspaceFromSelections);
 window.addEventListener('DOMContentLoaded', function() {
     ui.source.value = SECOND_FUNCTION_ID;
     const composer = document.querySelector('.composer');
+    if (composer && ui.bookSettings) composer.before(ui.bookSettings);
     if (composer && ui.bookQuickStart) composer.before(ui.bookQuickStart);
     updateUI();
     initHomeNavigation();
@@ -534,7 +539,6 @@ window.addEventListener('DOMContentLoaded', function() {
     if (ui.bookAssistantToggle) {
         ui.bookAssistantToggle.addEventListener('click', function() {
             setBookSettingsExpanded(!bookSettingsExpanded);
-            if (bookSettingsExpanded) ui.bookSettings?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
     }
 
@@ -585,13 +589,24 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (ui.attachBtn && ui.imageFile) ui.attachBtn.addEventListener('click', function() { ui.imageFile.click(); });
+    if (ui.attachBtn) ui.attachBtn.addEventListener('click', function() {
+        if (ui.action.value === 'book_outline') ui.bookReferenceFile?.click();
+        else ui.imageFile?.click();
+    });
     if (ui.imageFile) {
         ui.imageFile.addEventListener('change', function() {
             if (ui.imageFile.files && ui.imageFile.files[0]) showComposerAttachment(ui.imageFile.files[0]);
         });
     }
-    if (ui.removeAttachmentBtn) ui.removeAttachmentBtn.addEventListener('click', function() { clearComposerAttachment(true); });
+    if (ui.bookReferenceFile) {
+        ui.bookReferenceFile.addEventListener('change', function() {
+            if (ui.bookReferenceFile.files && ui.bookReferenceFile.files[0]) showBookReferenceAttachment(ui.bookReferenceFile.files[0]);
+        });
+    }
+    if (ui.removeAttachmentBtn) ui.removeAttachmentBtn.addEventListener('click', function() {
+        if (ui.action.value === 'book_outline') clearBookReferenceAttachment();
+        else clearComposerAttachment(true);
+    });
     if (ui.imageModeBtn) {
         ui.imageModeBtn.addEventListener('click', function() {
             if (ui.action.value === 'generate') setUnifiedComposerMode('text');
@@ -710,6 +725,7 @@ function renderBookOutlineMessage(outline, sourceLabel) {
     const row = document.createElement('div');
     row.id = 'book-outline-chat-message';
     row.className = 'message-row assistant-message book-outline-message';
+    row.dataset.conversation = 'book';
 
     const avatar = document.createElement('div');
     avatar.className = 'message-avatar agent-avatar';
@@ -764,6 +780,7 @@ function renderBookOutlineMessage(outline, sourceLabel) {
     content.append(bubble, actions, smartEditor, source);
     row.append(avatar, content);
     ui.chatMessages.appendChild(row);
+    if (typeof syncConversationThreads === 'function') syncConversationThreads();
 
     const syncOutline = function() {
         if (ui.bookOutlineText) ui.bookOutlineText.innerText = outlineText.innerText;
@@ -868,6 +885,9 @@ if (ui.sendBtn) {
     ui.sendBtn.addEventListener('click', async function() {
         const actionType = ui.action.value;
         const promptSnapshot = ui.prompt.value.trim();
+        const bookReference = actionType === 'book_outline' && typeof getBookReferenceAttachment === 'function'
+            ? getBookReferenceAttachment()
+            : null;
         const explicitBookFields = [
             document.getElementById('b-title')?.value,
             document.getElementById('b-topic')?.value,
@@ -877,7 +897,7 @@ if (ui.sendBtn) {
             document.getElementById('b-cover')?.value
         ].some(function(value) { return typeof value === 'string' && value.trim(); });
         
-        if (!promptSnapshot && (actionType !== 'book_outline' || !explicitBookFields)) { 
+        if (!promptSnapshot && (actionType !== 'book_outline' || (!explicitBookFields && !bookReference))) { 
             alert("يرجى إدخال نص الطلب!"); 
             return; 
         }
@@ -905,9 +925,18 @@ if (ui.sendBtn) {
         }
 
         const selectedCatalogChoice = getSelectedCatalogChoice(actionType);
+        const requestPrompt = actionType === 'book_outline' && bookReference
+            ? [
+                promptSnapshot || 'أنشئ الكتاب بالاعتماد على المستند المرجعي المرفق.',
+                '',
+                '--- بداية المستند المرجعي: ' + bookReference.name + ' ---',
+                bookReference.content,
+                '--- نهاية المستند المرجعي ---'
+            ].join('\n')
+            : promptSnapshot;
         let payloadObj = {
             userId: currentUser ? currentUser.$id : null,
-            prompt: promptSnapshot,
+            prompt: requestPrompt,
             provider: ui.provider.value,
             modelTier: selectedCatalogChoice && selectedCatalogChoice.modelTier
                 ? selectedCatalogChoice.modelTier
@@ -950,16 +979,17 @@ if (ui.sendBtn) {
         ui.sendBtn.disabled = true;
 
         let typingIndicator = null;
-        if (actionType !== 'book_outline') {
-            openWorkspace();
-            appendChatMessage('user', promptSnapshot, '', 'text');
-            if (actionType === 'edit' && ui.attachmentImage && ui.attachmentImage.src) {
-                appendChatMessage('user', ui.attachmentImage.src, 'الصورة المرفقة للتعديل', 'image');
-            }
-            typingIndicator = appendTypingIndicator();
-            ui.prompt.value = '';
-            autoResizeTextarea(ui.prompt);
+        openWorkspace();
+        const visiblePrompt = actionType === 'book_outline' && bookReference
+            ? (promptSnapshot || 'أنشئ الكتاب بالاعتماد على المستند المرفق.') + '\n📎 ' + bookReference.name
+            : promptSnapshot;
+        appendChatMessage('user', visiblePrompt, '', 'text');
+        if (actionType === 'edit' && ui.attachmentImage && ui.attachmentImage.src) {
+            appendChatMessage('user', ui.attachmentImage.src, 'الصورة المرفقة للتعديل', 'image');
         }
+        typingIndicator = appendTypingIndicator();
+        ui.prompt.value = '';
+        autoResizeTextarea(ui.prompt);
 
         const responseData = await executeRequest(payloadObj);
         if (typingIndicator) typingIndicator.remove();
@@ -973,6 +1003,7 @@ if (ui.sendBtn) {
                 ui.bookOutlineText.innerText = responseData.data; 
                 saveHistoryState(); 
                 renderBookOutlineMessage(responseData.data, getSourceMetadata(responseData));
+                if (bookReference && typeof clearBookReferenceAttachment === 'function') clearBookReferenceAttachment();
                 ui.resultArea.classList.add('hidden');
                 ui.editableContainer.classList.add('hidden');
                 ui.bookActions.classList.add('hidden');
@@ -990,9 +1021,7 @@ if (ui.sendBtn) {
             }
             if (actionType === 'book_outline') ui.resultArea.classList.add('hidden');
         } else if (responseData) {
-            if (actionType !== 'book_outline') {
-                appendChatMessage('assistant', 'تعذر تنفيذ الطلب: ' + (responseData.error || 'خطأ غير معروف'), getSourceMetadata(responseData), 'text');
-            }
+            appendChatMessage('assistant', 'تعذر تنفيذ الطلب: ' + (responseData.error || 'خطأ غير معروف'), getSourceMetadata(responseData), 'text');
             alert("❌ فشل: " + responseData.error);
         }
     });

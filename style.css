@@ -395,8 +395,13 @@ select:focus, input:focus { border-color: rgba(255,255,255,.4); box-shadow: 0 0 
 .composer-note { display: flex; justify-content: space-between; gap: 12px; padding: 7px 7px 0; color: #68717d; font-size: .69rem; }
 #active-model-label { color: #8f99a7; }
 
-.app-shell[data-action="book_outline"] .chat-stream { display: none; }
-.app-shell[data-action="book_outline"] .composer-wrap { margin-top: 16px; }
+.app-shell[data-action="book_outline"] .chat-stream { display: block; }
+.app-shell[data-action="book_outline"] .composer-wrap { margin-top: auto; }
+
+/* نتائج التأليف المتخصصة لا تظهر خارج مساحة الكتاب. */
+.app-shell:not([data-action="book_outline"]) #result-area,
+.app-shell:not([data-action="book_outline"]) #intro-area,
+.app-shell:not([data-action="book_outline"]) #auto-generation-status { display: none !important; }
 
 #loader { text-align: center; color: var(--muted); padding: 10px; }
 .result-box { width: min(920px, 100%); margin-inline: auto; }
@@ -1190,6 +1195,18 @@ body::after {
     border: 1px solid var(--green-line);
     border-radius: 3px;
 }
+.composer-attachment-file-icon {
+    width: 46px;
+    height: 45px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 46px;
+    color: var(--green-bright);
+    background: rgba(121,226,173,.09);
+    border: 1px solid var(--green-line);
+    border-radius: 5px;
+    font-size: 1.15rem;
+}
 
 .model-chooser-popover {
     position: absolute;
@@ -1278,9 +1295,9 @@ body::after {
 
 /*** Ø§Ù„Ø¥Ø±ÙØ§Ù‚ Ø£ØµØ¨Ø­ Ø¯Ø§Ø®Ù„ Ø®Ø§Ù†Ø© Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©ØŒ Ù„Ø°Ù„Ùƒ Ù„Ø§ Ù†Ø¹Ø±Ø¶ Ø®Ø§Ù†Ø© Ø§Ù„Ø±ÙØ¹ Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© */
 .app-shell[data-action="edit"] #image-upload-section { display: none !important; }
-.app-shell[data-action="book_outline"] .composer-side-btn,
-.app-shell[data-action="book_outline"] .composer-mode-banner,
-.app-shell[data-action="book_outline"] .composer-attachment-preview { display: none !important; }
+.app-shell[data-action="book_outline"] .composer-mode-banner { display: none !important; }
+.app-shell[data-action="book_outline"] .composer-side-btn { display: grid !important; }
+.app-shell[data-action="book_outline"] .composer-attachment-preview:not(.hidden) { display: flex !important; }
 .app-shell[data-action="book_outline"] .composer-tools { display: flex !important; }
 .app-shell[data-action="book_outline"] #composer-image-mode-btn,
 .app-shell[data-action="book_outline"] .composer-shortcut { display: none !important; }
@@ -1869,7 +1886,27 @@ body::after { content: none !important; }
 .book-quick-note i { color: var(--green); margin-inline-end: 4px; }
 .app-shell[data-action="book_outline"] .composer { border-color: rgba(121,226,173,.22); }
 .app-shell[data-action="book_outline"] .composer textarea { min-height: 50px; max-height: 190px; }
-.app-shell[data-action="book_outline"] .book-fields { margin-top: 10px; }
+.app-shell[data-action="book_outline"] .composer-wrap {
+    max-height: calc(100vh - 102px);
+    padding-top: 8px;
+}
+.app-shell[data-action="book_outline"] .composer-wrap .book-fields {
+    width: 100%;
+    max-height: min(46vh, 420px);
+    margin: 0 0 8px;
+    padding: 14px;
+    border-radius: 13px;
+    box-shadow: 0 -18px 54px rgba(0,0,0,.3);
+}
+.app-shell[data-action="book_outline"] .model-chooser-popover {
+    position: fixed;
+    right: 50%;
+    bottom: 88px;
+    transform: translateX(50%);
+    width: min(520px, calc(100vw - 24px));
+    max-height: calc(100vh - 190px);
+    overflow-y: auto;
+}
 
 .book-outline-message .message-content { max-width: min(780px, calc(100% - 8px)); }
 .book-outline-bubble { padding: 0 !important; overflow: hidden; }
@@ -1948,6 +1985,17 @@ body::after { content: none !important; }
     .book-quick-controls { grid-template-columns: minmax(0,1fr) 104px; }
     .book-assistant-toggle { grid-column: 1 / -1; }
     .book-quick-note { display: none; }
+    .app-shell[data-action="book_outline"] .composer-wrap .book-fields {
+        grid-template-columns: 1fr;
+        max-height: min(48vh, 360px);
+    }
+    .app-shell[data-action="book_outline"] .model-chooser-popover {
+        right: 10px;
+        bottom: 78px;
+        transform: none;
+        width: calc(100% - 20px);
+        max-height: calc(100vh - 100px);
+    }
     .book-outline-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
     .book-outline-chat-actions button { flex: 1 1 calc(50% - 7px); }
     .book-generation-status { margin-top: 16px !important; padding: 14px !important; border-radius: 14px !important; }

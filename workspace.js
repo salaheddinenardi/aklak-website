@@ -30,6 +30,18 @@ function initHomeNavigation() {
     }
 }
 
+function getActiveConversationKey() {
+    return ui.action && ui.action.value === 'book_outline' ? 'book' : 'chat';
+}
+
+function syncConversationThreads() {
+    const activeConversation = getActiveConversationKey();
+    document.querySelectorAll('#chat-messages .message-row[data-conversation]').forEach(function(row) {
+        row.classList.toggle('hidden', row.dataset.conversation !== activeConversation);
+    });
+}
+window.syncConversationThreads = syncConversationThreads;
+
 function scrollChatToBottom() {
     if (!ui.chatMessages) return;
     requestAnimationFrame(function() {
@@ -42,6 +54,7 @@ function appendChatMessage(role, content, metadata, resultType) {
 
     const row = document.createElement('div');
     row.className = `message-row ${role === 'user' ? 'user-message' : 'assistant-message'}`;
+    row.dataset.conversation = getActiveConversationKey();
 
     const avatar = document.createElement('div');
     avatar.className = role === 'user' ? 'message-avatar' : 'message-avatar agent-avatar';
@@ -83,6 +96,7 @@ function appendTypingIndicator() {
     if (!ui.chatMessages) return null;
     const row = document.createElement('div');
     row.className = 'message-row assistant-message typing-row';
+    row.dataset.conversation = getActiveConversationKey();
     row.innerHTML = `
         <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
         <div class="message-content">
@@ -359,7 +373,7 @@ function syncComposerModeUI() {
     const isImageMode = action === 'generate' || action === 'edit';
     if (ui.modeBanner) ui.modeBanner.classList.toggle('hidden', !isImageMode);
     if (ui.imageModeBtn) ui.imageModeBtn.classList.toggle('active', action === 'generate');
-    if (ui.attachBtn) ui.attachBtn.classList.toggle('active', action === 'edit');
+    if (ui.attachBtn) ui.attachBtn.classList.toggle('active', action === 'edit' || (action === 'book_outline' && Boolean(bookReferenceAttachment)));
     if (ui.modeTitle) ui.modeTitle.textContent = action === 'edit' ? 'وضع تعديل الصورة' : 'وضع توليد الصور';
     if (ui.modeDescription) ui.modeDescription.textContent = action === 'edit'
         ? 'اكتب التعديل المطلوب على الصورة المرفقة'
@@ -379,15 +393,22 @@ function setUnifiedComposerMode(action) {
 function clearComposerAttachment(returnToChat) {
     if (ui.imageFile) ui.imageFile.value = '';
     if (ui.attachmentImage) ui.attachmentImage.src = '';
+    if (ui.attachmentImage) ui.attachmentImage.classList.remove('hidden');
+    if (ui.attachmentFileIcon) ui.attachmentFileIcon.classList.add('hidden');
+    if (ui.attachmentTitle) ui.attachmentTitle.textContent = 'صورة مرفقة للتعديل';
     if (ui.attachmentPreview) ui.attachmentPreview.classList.add('hidden');
     if (returnToChat && ui.action.value === 'edit') setUnifiedComposerMode('text');
 }
 
 function showComposerAttachment(file) {
     if (!file) return;
+    clearBookReferenceAttachment();
     const reader = new FileReader();
     reader.onload = function() {
         if (ui.attachmentImage) ui.attachmentImage.src = reader.result;
+        if (ui.attachmentImage) ui.attachmentImage.classList.remove('hidden');
+        if (ui.attachmentFileIcon) ui.attachmentFileIcon.classList.add('hidden');
+        if (ui.attachmentTitle) ui.attachmentTitle.textContent = 'صورة مرفقة للتعديل';
         if (ui.attachmentName) ui.attachmentName.textContent = file.name;
         if (ui.attachmentPreview) ui.attachmentPreview.classList.remove('hidden');
     };
@@ -395,10 +416,74 @@ function showComposerAttachment(file) {
     setUnifiedComposerMode('edit');
 }
 
+const BOOK_REFERENCE_MAX_BYTES = 4 * 1024 * 1024;
+const BOOK_REFERENCE_MAX_CHARACTERS = 60000;
+const BOOK_REFERENCE_EXTENSIONS = new Set(['txt', 'md', 'markdown', 'csv', 'json', 'html', 'htm', 'xml', 'yaml', 'yml', 'rtf']);
+let bookReferenceAttachment = null;
+
+function clearBookReferenceAttachment() {
+    bookReferenceAttachment = null;
+    if (ui.bookReferenceFile) ui.bookReferenceFile.value = '';
+    if (ui.action && ui.action.value === 'book_outline') {
+        if (ui.attachmentPreview) ui.attachmentPreview.classList.add('hidden');
+        if (ui.attachmentName) ui.attachmentName.textContent = '';
+        if (ui.attachBtn) ui.attachBtn.classList.remove('active');
+    }
+}
+window.clearBookReferenceAttachment = clearBookReferenceAttachment;
+
+function getBookReferenceAttachment() {
+    return bookReferenceAttachment;
+}
+window.getBookReferenceAttachment = getBookReferenceAttachment;
+
+async function showBookReferenceAttachment(file) {
+    if (!file) return;
+    const extension = (file.name.split('.').pop() || '').toLowerCase();
+    if (!BOOK_REFERENCE_EXTENSIONS.has(extension)) {
+        alert('يمكن إرفاق مستندات نصية مثل TXT وMD وCSV وJSON وHTML وRTF.');
+        clearBookReferenceAttachment();
+        return;
+    }
+    if (file.size > BOOK_REFERENCE_MAX_BYTES) {
+        alert('حجم المستند أكبر من 4MB. اختر مستندًا أصغر حتى لا يصبح طلب الكتاب ثقيلًا.');
+        clearBookReferenceAttachment();
+        return;
+    }
+
+    if (ui.attachmentImage) ui.attachmentImage.classList.add('hidden');
+    if (ui.attachmentFileIcon) ui.attachmentFileIcon.classList.remove('hidden');
+    if (ui.attachmentTitle) ui.attachmentTitle.textContent = 'جاري قراءة المستند…';
+    if (ui.attachmentName) ui.attachmentName.textContent = file.name;
+    if (ui.attachmentPreview) ui.attachmentPreview.classList.remove('hidden');
+
+    try {
+        const rawText = (await file.text()).replace(/\u0000/g, '').trim();
+        if (!rawText) throw new Error('المستند فارغ أو لا يحتوي على نص قابل للقراءة.');
+        const content = rawText.slice(0, BOOK_REFERENCE_MAX_CHARACTERS);
+        bookReferenceAttachment = {
+            name: file.name,
+            type: file.type || 'text/plain',
+            content,
+            truncated: rawText.length > content.length
+        };
+        if (ui.attachmentTitle) ui.attachmentTitle.textContent = 'مستند مرجعي للكتاب';
+        if (ui.attachmentName) {
+            ui.attachmentName.textContent = file.name + (bookReferenceAttachment.truncated ? ' · تم اعتماد أول 60 ألف حرف' : ' · جاهز');
+        }
+        if (ui.attachBtn) ui.attachBtn.classList.add('active');
+    } catch (error) {
+        alert(error.message || 'تعذر قراءة المستند.');
+        clearBookReferenceAttachment();
+    }
+}
+window.showBookReferenceAttachment = showBookReferenceAttachment;
+
 function syncWorkspaceFromSelections() {
     if (!ui.action) return;
     const action = ui.action.value;
     if (ui.appShell) ui.appShell.dataset.action = action;
+    syncConversationThreads();
 
     document.querySelectorAll('[data-tool]').forEach(function(button) {
         button.classList.toggle('active', button.dataset.tool === action);
@@ -416,6 +501,11 @@ function syncWorkspaceFromSelections() {
     if (ui.workspaceKicker) ui.workspaceKicker.textContent = data.kicker;
     if (ui.workspaceTitle) ui.workspaceTitle.textContent = data.title;
     if (ui.prompt) ui.prompt.placeholder = data.placeholder;
+    if (ui.attachBtn) {
+        const attachLabel = action === 'book_outline' ? 'إرفاق مستند مرجعي للكتاب' : 'إرفاق صورة للتعديل';
+        ui.attachBtn.setAttribute('aria-label', attachLabel);
+        ui.attachBtn.title = attachLabel;
+    }
 
     const initialMessage = document.getElementById('initial-assistant-message');
     const initialSource = document.getElementById('initial-assistant-source');
@@ -439,6 +529,7 @@ window.selectAITool = function(action) {
     if (action !== 'edit' && ui.imageFile && ui.imageFile.files && ui.imageFile.files.length > 0) {
         clearComposerAttachment(false);
     }
+    if (action !== 'book_outline' && bookReferenceAttachment) clearBookReferenceAttachment();
 
     const mainInputs = document.getElementById('main-inputs-wrapper');
     const libraryDrawer = document.getElementById('my-library-section');
@@ -449,12 +540,6 @@ window.selectAITool = function(action) {
     ui.source.value = SECOND_FUNCTION_ID;
     ui.action.value = action;
     updateUI();
-    if (action === 'art_studio' || action === 'landing_page') {
-        if (ui.resultArea) ui.resultArea.classList.add('hidden');
-        if (ui.introArea) ui.introArea.classList.add('hidden');
-        const autoStatus = document.getElementById('auto-generation-status');
-        if (autoStatus) autoStatus.classList.add('hidden');
-    }
     if (action === 'text' && ui.prompt) ui.prompt.focus();
 };
 

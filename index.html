@@ -148,6 +148,7 @@
             <label><i class="fas fa-cloud-arrow-up"></i> ارفع الصورة التي تريد تعديلها</label>
             <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
         </div>
+        <input type="file" id="book-reference-file" class="hidden" accept=".txt,.md,.markdown,.csv,.json,.html,.htm,.xml,.yaml,.yml,.rtf,text/plain,text/markdown,text/csv,application/json,text/html,application/xml,text/xml,application/rtf">
 
         <div id="book-quick-start" class="book-quick-start hidden">
             <div class="book-quick-controls">
@@ -448,14 +449,14 @@
 
         <div id="chat-stream" class="chat-stream">
             <div id="chat-messages" class="chat-messages" aria-live="polite">
-                <div id="default-welcome-message" class="message-row assistant-message">
+                <div id="default-welcome-message" class="message-row assistant-message" data-conversation="chat">
                     <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
                     <div class="message-content">
                         <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
                         <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الثاني</div>
                     </div>
                 </div>
-                <div id="book-welcome-message" class="message-row assistant-message hidden">
+                <div id="book-welcome-message" class="message-row assistant-message hidden" data-conversation="book">
                     <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="مؤلف AKLAKE"></div>
                     <div class="message-content">
                         <div class="message-bubble">ما شكل الكتاب الذي تريد إنجازه، أيها البشري؟ صفه بطريقتك، وسأحوّل فكرتك إلى خطة واضحة.</div>
@@ -473,11 +474,12 @@
             </div>
             <div id="composer-attachment-preview" class="composer-attachment-preview hidden">
                 <img id="composer-attachment-image" src="" alt="الصورة المرفقة">
-                <div><strong>صورة مرفقة للتعديل</strong><span id="composer-attachment-name"></span></div>
-                <button id="remove-composer-attachment-btn" type="button" aria-label="إزالة الصورة"><i class="far fa-trash-can"></i></button>
+                <span id="composer-attachment-file-icon" class="composer-attachment-file-icon hidden" aria-hidden="true"><i class="far fa-file-lines"></i></span>
+                <div><strong id="composer-attachment-title">صورة مرفقة للتعديل</strong><span id="composer-attachment-name"></span></div>
+                <button id="remove-composer-attachment-btn" type="button" aria-label="إزالة المرفق"><i class="far fa-trash-can"></i></button>
             </div>
             <div class="composer">
-                <button id="composer-attach-btn" class="composer-side-btn" type="button" aria-label="إرفاق صورة للتعديل" title="إرفاق صورة"><i class="fas fa-plus"></i></button>
+                <button id="composer-attach-btn" class="composer-side-btn" type="button" aria-label="إرفاق ملف" title="إرفاق ملف"><i class="fas fa-plus"></i></button>
                 <textarea id="main-prompt" rows="1" placeholder="اكتب رسالتك هنا..."></textarea>
                 <button id="send-btn" type="button" aria-label="إرسال الطلب"><i class="fas fa-arrow-up"></i></button>
             </div>
