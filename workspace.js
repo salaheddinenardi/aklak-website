@@ -115,7 +115,9 @@ function autoResizeTextarea(textarea) {
     textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px';
 }
 
-let modelChooserState = { action: 'text', sendAfterChoice: false, selected: null, source: SECOND_FUNCTION_ID };
+// app.js defines SECOND_FUNCTION_ID after this file is loaded. Keep the initial
+// value independent so workspace.js can finish loading before app.js is parsed.
+let modelChooserState = { action: 'text', sendAfterChoice: false, selected: null, source: '6a445f680013960a14c6' };
 let skipModelGateOnce = false;
 const oneShotModelChoices = {};
 const activeComposerChoices = {};
