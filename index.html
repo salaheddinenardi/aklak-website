@@ -553,7 +553,7 @@
         <div id="source-badge" class="source-badge hidden"></div>
     </div>
 
-    <div id="intro-area" class="hidden" style="margin-top: 30px; display: flex; flex-direction: column; align-items: center;">
+    <div id="intro-area" class="book-intro-panel hidden" style="display: flex; flex-direction: column; align-items: center;">
         
         <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
         <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
@@ -590,23 +590,25 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: 15px; width: 100%; max-width: 700px; justify-content: center; align-items: center;">
-            <button id="prev-page-btn" class="hidden" style="width: auto; background: #4b5563;"><i class="fas fa-arrow-right"></i> السابقة</button>
-            <span id="page-indicator" class="hidden" style="font-weight: bold; color: #4b5563;">صفحة 1 من 1</span>
-            <button id="next-page-btn" class="hidden" style="width: auto; background: #4b5563;">التالية <i class="fas fa-arrow-left"></i></button>
+        <div class="book-page-navigation">
+            <button id="prev-page-btn" class="hidden" type="button"><i class="fas fa-arrow-right"></i> السابقة</button>
+            <span id="page-indicator" class="hidden">صفحة 1 من 1</span>
+            <button id="next-page-btn" class="hidden" type="button">التالية <i class="fas fa-arrow-left"></i></button>
         </div>
 
-        <div id="intro-refine-section" style="width: 100%; max-width: 700px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 20px;">
+        <div id="intro-refine-section" class="book-intro-refine hidden">
             <label style="display: block; margin-bottom: 10px; font-weight: bold; color: #b45309;"><i class="fas fa-edit"></i> هل تريد إجراء تعديل على هذه المقدمة؟</label>
-            <div style="display: flex; gap: 10px;">
+            <div class="book-intro-refine-composer">
                 <input type="text" id="refine-intro-prompt" placeholder="اكتب طلب التعديل هنا (مثال: اجعل البداية أكثر حماساً...)">
-                <button id="refine-intro-btn" style="width: 180px; background: #d97706; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;"><i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة</button>
+                <button id="refine-intro-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i> تنفيذ التعديل</button>
             </div>
         </div>
         
-        <div style="width: 100%; max-width: 700px; margin-top: 20px; display: flex; gap: 15px;">
-            <button id="continue-writing-btn" style="width: 40%; background: #2563eb; font-size: 1.1em;"><i class="fas fa-pen-fancy"></i> إكمال يدوياً</button>
-            <button id="start-auto-btn" style="width: 60%; background: #7c3aed; font-size: 1.1em;"><i class="fas fa-bolt"></i> بدء التأليف الأوتوماتيكي في الخلفية</button>
+        <div class="book-intro-actions">
+            <button id="start-auto-btn" class="primary" type="button"><i class="fas fa-bolt"></i><span>إكمال تأليف الكتاب</span></button>
+            <button id="intro-edit-toggle-btn" type="button"><i class="fas fa-pen"></i><span>تعديل المقدمة</span></button>
+            <button id="retry-intro-btn" type="button"><i class="fas fa-rotate-right"></i><span>إعادة المحاولة</span></button>
+            <button id="continue-writing-btn" type="button"><i class="fas fa-pen-fancy"></i><span>إكمال يدويًا</span></button>
         </div>
     </div>
 

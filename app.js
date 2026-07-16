@@ -117,6 +117,7 @@ function handleUndo() {
 let bookPagesData = []; 
 let currentViewedPageIndex = 0; 
 let rawBookTextFull = ""; // للاحتفاظ بالنص الخام قبل التقسيم
+let lastBookOutlinePrompt = '';
 
 let currentFontSize = 1.15; // الحجم الافتراضي
 
@@ -242,6 +243,8 @@ const ui = {
     remainingPagesDisplay: document.getElementById('remaining-pages-display'),
     refineIntroPrompt: document.getElementById('refine-intro-prompt'),
     refineIntroBtn: document.getElementById('refine-intro-btn'),
+    introEditToggleBtn: document.getElementById('intro-edit-toggle-btn'),
+    retryIntroBtn: document.getElementById('retry-intro-btn'),
 
     appShell: document.getElementById('app-shell'),
     welcomeScreen: document.getElementById('welcome-screen'),
@@ -415,7 +418,10 @@ if (pageUI.nextBtn) {
 
 if (pageUI.continueBtn) {
     pageUI.continueBtn.addEventListener('click', function() {
-        alert("سيتم برمجة زر الإكمال لاحقاً ليأخذ النص الحالي ويطلب من الذكاء الاصطناعي إكمال الفصل الأول.");
+        if (!ui.prompt) return;
+        ui.prompt.placeholder = 'اكتب تعليمات إكمال الفصل أو الجزء التالي…';
+        ui.prompt.focus();
+        ui.prompt.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
 }
 
@@ -519,6 +525,8 @@ window.addEventListener('DOMContentLoaded', function() {
     initArtStudio();
     initCreationLibrary();
     initLandingPageStudio();
+    mountBookStagesInConversation();
+    initBookIntroActions();
 
     document.querySelectorAll('[data-tool]').forEach(function(button) {
         button.addEventListener('click', function() { window.selectAITool(button.dataset.tool); });
@@ -717,6 +725,79 @@ function initProfileDrawer() {
     });
 }
 
+function mountBookStageMessage(element, options) {
+    if (!element || !ui.chatMessages || document.getElementById(options.rowId)) return null;
+    const row = document.createElement('div');
+    row.id = options.rowId;
+    row.className = 'message-row assistant-message book-stage-message hidden';
+    row.dataset.conversation = 'book';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar agent-avatar';
+    avatar.innerHTML = '<img src="' + AGENT_AVATAR_URL + '" alt="مؤلف AKLAKE">';
+
+    const content = document.createElement('div');
+    content.className = 'message-content book-stage-content';
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble book-stage-bubble ' + (options.bubbleClass || '');
+    const heading = document.createElement('div');
+    heading.className = 'book-stage-heading';
+    heading.innerHTML = '<span><i class="fas ' + options.icon + '"></i> ' + options.title + '</span><small>' + options.description + '</small>';
+    const source = document.createElement('div');
+    source.className = 'message-source';
+    source.textContent = options.source;
+
+    bubble.append(heading, element);
+    content.append(bubble, source);
+    row.append(avatar, content);
+    ui.chatMessages.appendChild(row);
+
+    const syncVisibility = function() {
+        const isVisible = !element.classList.contains('hidden') && element.style.display !== 'none';
+        row.dataset.stageVisible = String(isVisible);
+        if (isVisible) ui.chatMessages.appendChild(row);
+        if (typeof syncConversationThreads === 'function') syncConversationThreads();
+    };
+    new MutationObserver(syncVisibility).observe(element, { attributes: true, attributeFilter: ['class', 'style'] });
+    syncVisibility();
+    return row;
+}
+
+function mountBookStagesInConversation() {
+    mountBookStageMessage(ui.introArea, {
+        rowId: 'book-intro-chat-message',
+        title: 'مقدمة الكتاب',
+        description: 'راجع الصفحات ثم اختر الخطوة التالية',
+        icon: 'fa-file-lines',
+        source: 'مقدمة أنشأها مؤلف الكتب',
+        bubbleClass: 'book-intro-bubble'
+    });
+    mountBookStageMessage(document.getElementById('auto-generation-status'), {
+        rowId: 'book-progress-chat-message',
+        title: 'مراحل إنشاء الكتاب',
+        description: 'التأليف مستمر في الخلفية ويمكنك متابعة المحادثة',
+        icon: 'fa-gears',
+        source: 'حالة التأليف المباشرة',
+        bubbleClass: 'book-progress-bubble'
+    });
+}
+
+function initBookIntroActions() {
+    const refineSection = document.getElementById('intro-refine-section');
+    ui.introEditToggleBtn?.addEventListener('click', function() {
+        if (!refineSection) return;
+        const willOpen = refineSection.classList.contains('hidden');
+        refineSection.classList.toggle('hidden', !willOpen);
+        ui.introEditToggleBtn.innerHTML = willOpen
+            ? '<i class="fas fa-xmark"></i><span>إغلاق التعديل</span>'
+            : '<i class="fas fa-pen"></i><span>تعديل المقدمة</span>';
+        if (willOpen) ui.refineIntroPrompt?.focus();
+    });
+    ui.retryIntroBtn?.addEventListener('click', function() {
+        ui.writeIntroBtn?.click();
+    });
+}
+
 function renderBookOutlineMessage(outline, sourceLabel) {
     if (!ui.chatMessages) return;
     openWorkspace();
@@ -806,6 +887,10 @@ function renderBookOutlineMessage(outline, sourceLabel) {
     });
     retryButton.addEventListener('click', function() {
         syncOutline();
+        if (ui.prompt && !ui.prompt.value.trim()) {
+            ui.prompt.value = lastBookOutlinePrompt || 'أنشئ خطة أخرى للكتاب مع الحفاظ على المعلومات والإعدادات نفسها.';
+            autoResizeTextarea(ui.prompt);
+        }
         ui.sendBtn?.click();
     });
     smartEditButton.addEventListener('click', function() {
@@ -910,6 +995,7 @@ if (ui.sendBtn) {
                 pagesInput?.focus();
                 return;
             }
+            if (promptSnapshot) lastBookOutlinePrompt = promptSnapshot;
         }
 
         if (getComposerModeKey(actionType)) {
@@ -973,7 +1059,7 @@ if (ui.sendBtn) {
         ui.resultText.classList.add('hidden');
         ui.editableContainer.classList.add('hidden');
         ui.bookActions.classList.add('hidden');
-        ui.introArea.classList.add('hidden');
+        if (actionType === 'book_outline') ui.introArea.classList.add('hidden');
         ui.resultImage.classList.add('hidden');
         ui.sourceBadge.classList.add('hidden');
         ui.sendBtn.disabled = true;
@@ -1027,125 +1113,131 @@ if (ui.sendBtn) {
     });
 }
 
+async function executeBookOutlineRefinement(refinePrompt) {
+    const payloadObj = {
+        userId: currentUser ? currentUser.$id : null,
+        action: 'book_outline',
+        bookStep: 'refine',
+        provider: ui.provider.value,
+        modelTier: ui.model.value,
+        previousOutline: ui.bookOutlineText.innerText,
+        prompt: refinePrompt,
+        bookDetails: collectBookDetails()
+    };
+    ui.refineBtn.disabled = true;
+    const typingIndicator = appendTypingIndicator();
+    const responseData = await executeRequest(payloadObj);
+    typingIndicator?.remove();
+    ui.refineBtn.disabled = false;
+    if (responseData && responseData.success) {
+        const creditsElem = document.getElementById('user-credits');
+        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+        ui.bookOutlineText.innerText = responseData.data;
+        saveHistoryState();
+        ui.refinePrompt.value = '';
+        calculateRemainingPages();
+        renderBookOutlineMessage(responseData.data, getSourceMetadata(responseData));
+    } else if (responseData) {
+        alert("❌ فشل التعديل: " + responseData.error);
+    }
+}
+
 if (ui.refineBtn) {
-    ui.refineBtn.addEventListener('click', async function() {
+    ui.refineBtn.addEventListener('click', function() {
         const refinePrompt = ui.refinePrompt.value.trim();
-        if (!refinePrompt) {
-            alert("يرجى كتابة التعديلات المطلوبة!"); 
-            return;
-        }
-
-        const payloadObj = {
-            userId: currentUser ? currentUser.$id : null,
-            action: 'book_outline',
-            bookStep: 'refine',
-            provider: ui.provider.value,
-            modelTier: ui.model.value,
-            previousOutline: ui.bookOutlineText.innerText, 
-            prompt: refinePrompt,
-            bookDetails: collectBookDetails()
-        };
-
-        ui.refineBtn.disabled = true;
-        const responseData = await executeRequest(payloadObj);
-        ui.refineBtn.disabled = false;
-
-        if (responseData && responseData.success) {
-            const creditsElem = document.getElementById('user-credits');
-            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
-            ui.bookOutlineText.innerText = responseData.data; 
-            saveHistoryState(); 
-            ui.refinePrompt.value = ''; 
-            calculateRemainingPages();
-            renderBookOutlineMessage(responseData.data, getSourceMetadata(responseData));
-        } else if (responseData) {
-            alert("❌ فشل التعديل: " + responseData.error);
-        }
+        if (!refinePrompt) return alert("يرجى كتابة التعديلات المطلوبة!");
+        runBookStepWithModel('تعديل الخطة', function() {
+            return executeBookOutlineRefinement(refinePrompt);
+        });
     });
+}
+
+async function executeBookIntroduction() {
+    const payloadObj = {
+        userId: currentUser ? currentUser.$id : null,
+        action: 'book_outline',
+        bookStep: 'introduction',
+        provider: ui.provider.value,
+        modelTier: ui.model.value,
+        previousOutline: ui.bookOutlineText.innerText,
+        bookDetails: collectBookDetails()
+    };
+    ui.writeIntroBtn.disabled = true;
+    ui.retryIntroBtn && (ui.retryIntroBtn.disabled = true);
+    ui.writeIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الكتابة...';
+    const typingIndicator = appendTypingIndicator();
+    const responseData = await executeRequest(payloadObj);
+    typingIndicator?.remove();
+    ui.writeIntroBtn.disabled = false;
+    ui.retryIntroBtn && (ui.retryIntroBtn.disabled = false);
+    ui.writeIntroBtn.innerHTML = '<i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة';
+    if (responseData && responseData.success) {
+        const creditsElem = document.getElementById('user-credits');
+        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+        rawBookTextFull = responseData.data;
+        const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5;
+        bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
+        currentViewedPageIndex = 0;
+        ui.introArea.style.display = 'flex';
+        ui.introArea.classList.remove('hidden');
+        renderCurrentPage();
+        const introSource = document.querySelector('#book-intro-chat-message .message-source');
+        if (introSource) introSource.textContent = getSourceMetadata(responseData);
+        document.getElementById('book-intro-chat-message')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    } else if (responseData) {
+        alert("❌ فشل كتابة المقدمة: " + responseData.error);
+    }
 }
 
 if (ui.writeIntroBtn) {
-    ui.writeIntroBtn.addEventListener('click', async function() {
-        const payloadObj = {
-            userId: currentUser ? currentUser.$id : null,
-            action: 'book_outline',
-            bookStep: 'introduction',
-            provider: ui.provider.value,
-            modelTier: ui.model.value,
-            previousOutline: ui.bookOutlineText.innerText, 
-            bookDetails: collectBookDetails()
-        };
-
-        ui.writeIntroBtn.disabled = true;
-        ui.writeIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الكتابة...';
-
-        const responseData = await executeRequest(payloadObj);
-        ui.writeIntroBtn.disabled = false;
-        ui.writeIntroBtn.innerHTML = '<i class="fas fa-rocket"></i> اعتماد الخطة الحالية وكتابة المقدمة';
-        if (responseData && responseData.success) {
-            const creditsElem = document.getElementById('user-credits');
-            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
-            
-            rawBookTextFull = responseData.data; 
-            // تحديد هدف الصفحات الافتراضي من المدخل
-            const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5;
-            
-            bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
-            currentViewedPageIndex = 0;
-            
-            ui.introArea.style.display = 'flex'; 
-            ui.introArea.classList.remove('hidden');
-            renderCurrentPage();
-            
-            ui.introArea.scrollIntoView({ behavior: 'smooth' });
-        } else if (responseData) {
-            alert("❌ فشل كتابة المقدمة: " + responseData.error);
-        }
+    ui.writeIntroBtn.addEventListener('click', function() {
+        runBookStepWithModel('كتابة المقدمة', executeBookIntroduction);
     });
 }
 
+async function executeIntroductionRefinement(promptText) {
+    const payloadObj = {
+        userId: currentUser ? currentUser.$id : null,
+        action: 'book_outline',
+        bookStep: 'refine_intro',
+        provider: ui.provider.value,
+        modelTier: ui.model.value,
+        previousOutline: ui.bookOutlineText.innerText,
+        currentIntro: rawBookTextFull,
+        prompt: promptText,
+        bookDetails: collectBookDetails()
+    };
+    ui.refineIntroBtn.disabled = true;
+    ui.refineIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعديل...';
+    const typingIndicator = appendTypingIndicator();
+    const responseData = await executeRequest(payloadObj);
+    typingIndicator?.remove();
+    ui.refineIntroBtn.disabled = false;
+    ui.refineIntroBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> تنفيذ التعديل';
+    if (responseData && responseData.success) {
+        const creditsElem = document.getElementById('user-credits');
+        if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
+        rawBookTextFull = responseData.data;
+        const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5;
+        bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
+        currentViewedPageIndex = 0;
+        renderCurrentPage();
+        if (ui.refineIntroPrompt) ui.refineIntroPrompt.value = '';
+        const introSource = document.querySelector('#book-intro-chat-message .message-source');
+        if (introSource) introSource.textContent = getSourceMetadata(responseData) + ' • تم تحديث المقدمة';
+        document.getElementById('book-intro-chat-message')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    } else if (responseData) {
+        alert("❌ فشل تعديل المقدمة: " + responseData.error);
+    }
+}
+
 if (ui.refineIntroBtn) {
-    ui.refineIntroBtn.addEventListener('click', async function() {
+    ui.refineIntroBtn.addEventListener('click', function() {
         const promptText = ui.refineIntroPrompt ? ui.refineIntroPrompt.value.trim() : '';
-        if (!promptText) {
-            alert("يرجى كتابة التعديل الذي تريده على المقدمة أولاً!");
-            return;
-        }
-
-        const payloadObj = {
-            userId: currentUser ? currentUser.$id : null,
-            action: 'book_outline',
-            bookStep: 'refine_intro', 
-            provider: ui.provider.value,
-            modelTier: ui.model.value,
-            previousOutline: ui.bookOutlineText.innerText, 
-            currentIntro: rawBookTextFull, 
-            prompt: promptText, 
-            bookDetails: collectBookDetails()
-        };
-        ui.refineIntroBtn.disabled = true;
-        ui.refineIntroBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التعديل...';
-
-        const responseData = await executeRequest(payloadObj);
-        
-        ui.refineIntroBtn.disabled = false;
-        ui.refineIntroBtn.innerHTML = '<i class="fas fa-sync-alt"></i> إعادة كتابة المقدمة';
-
-        if (responseData && responseData.success) {
-            const creditsElem = document.getElementById('user-credits');
-            if (creditsElem) creditsElem.innerText = responseData.remainingTokens;
-            
-            rawBookTextFull = responseData.data;
-            const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5; 
-            bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
-            currentViewedPageIndex = 0;
-            renderCurrentPage();
-            
-            if (ui.refineIntroPrompt) ui.refineIntroPrompt.value = ''; 
-            alert("✅ تم تعديل المقدمة بنجاح!");
-        } else if (responseData) {
-            alert("❌ فشل تعديل المقدمة: " + responseData.error);
-        }
+        if (!promptText) return alert("يرجى كتابة التعديل الذي تريده على المقدمة أولاً!");
+        runBookStepWithModel('تعديل المقدمة', function() {
+            return executeIntroductionRefinement(promptText);
+        });
     });
 }
 
@@ -1192,6 +1284,17 @@ document.addEventListener('click', async function(e) {
         
         if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); return; }
         if (bookPagesData.length === 0) { alert("يجب كتابة والموافقة على المقدمة أولاً قبل توليد باقي الكتاب."); return; }
+
+        if (startBtnElem?.dataset.modelReady === 'true') {
+            delete startBtnElem.dataset.modelReady;
+        } else {
+            runBookStepWithModel('تأليف الكتاب الكامل', function() {
+                if (!startBtnElem) return;
+                startBtnElem.dataset.modelReady = 'true';
+                startBtnElem.click();
+            });
+            return;
+        }
 
         if(startBtnElem) {
             startBtnElem.disabled = true;
@@ -1249,14 +1352,10 @@ document.addEventListener('click', async function(e) {
 
                 currentAutoBookId = responseData.bookId;
                 
-                const mainInputs = document.getElementById('main-inputs-wrapper');
                 const statusBox = document.getElementById('auto-generation-status');
                 const newBtn = document.getElementById('new-book-btn');
-                if(mainInputs) mainInputs.classList.add('hidden');
                 if(statusBox) statusBox.classList.remove('hidden');
                 if(newBtn) newBtn.classList.remove('hidden');
-                ui.introArea?.classList.add('hidden');
-                if (ui.introArea) ui.introArea.style.display = 'none';
                 ui.resultArea?.classList.add('hidden');
                 document.getElementById('book-progress-ring')?.classList.remove('is-complete', 'is-failed');
                 const statusTitle = document.getElementById('status-title');
@@ -1264,6 +1363,7 @@ document.addEventListener('click', async function(e) {
                 updateBookProgress(currentBookDetails.introPages, getBookTargetPages());
                 updateWorkingModelName();
                 startPolling();
+                document.getElementById('book-progress-chat-message')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
             } else if (responseData) {
                 alert("❌ فشل بدء التأليف الأوتوماتيكي: " + responseData.error);
             }
@@ -1349,11 +1449,15 @@ window.resetForNewBook = function() {
     
     bookPagesData = [];
     rawBookTextFull = "";
+    lastBookOutlinePrompt = '';
     ui.bookOutlineText.innerText = "";
     ui.introArea.classList.add('hidden');
     ui.introArea.style.display = 'none';
     ui.resultArea.classList.add('hidden');
     document.getElementById('book-outline-chat-message')?.remove();
+    document.getElementById('intro-refine-section')?.classList.add('hidden');
+    document.getElementById('start-auto-btn')?.parentElement?.classList.remove('hidden');
+    if (ui.introEditToggleBtn) ui.introEditToggleBtn.innerHTML = '<i class="fas fa-pen"></i><span>تعديل المقدمة</span>';
     setBookSettingsExpanded(false);
     
     updateUI();
@@ -1498,10 +1602,11 @@ async function fetchUserBooks() {
 }
 
 function loadBookFromLibrary(book) {
+    window.selectAITool('book_outline');
     const mainInputs = document.getElementById('main-inputs-wrapper');
     const autoGenStatus = document.getElementById('auto-generation-status');
     
-    if(mainInputs) mainInputs.classList.add('hidden');
+    if(mainInputs) mainInputs.classList.remove('hidden');
     if(autoGenStatus) autoGenStatus.classList.add('hidden');
     
     ui.resultArea.classList.add('hidden');

@@ -37,7 +37,9 @@ function getActiveConversationKey() {
 function syncConversationThreads() {
     const activeConversation = getActiveConversationKey();
     document.querySelectorAll('#chat-messages .message-row[data-conversation]').forEach(function(row) {
-        row.classList.toggle('hidden', row.dataset.conversation !== activeConversation);
+        const belongsToActiveThread = row.dataset.conversation === activeConversation;
+        const stageIsVisible = row.dataset.stageVisible !== 'false';
+        row.classList.toggle('hidden', !belongsToActiveThread || !stageIsVisible);
     });
 }
 window.syncConversationThreads = syncConversationThreads;
@@ -131,7 +133,14 @@ function autoResizeTextarea(textarea) {
 
 // app.js defines SECOND_FUNCTION_ID after this file is loaded. Keep the initial
 // value independent so workspace.js can finish loading before app.js is parsed.
-let modelChooserState = { action: 'text', sendAfterChoice: false, selected: null, source: '6a445f680013960a14c6' };
+let modelChooserState = {
+    action: 'text',
+    sendAfterChoice: false,
+    selected: null,
+    source: '6a445f680013960a14c6',
+    continuation: null,
+    context: null
+};
 let skipModelGateOnce = false;
 const oneShotModelChoices = {};
 const activeComposerChoices = {};
@@ -285,7 +294,7 @@ function renderModelChoices(action) {
     if (ui.confirmModelBtn) ui.confirmModelBtn.disabled = !modelChooserState.selected;
 }
 
-function openModelChooser(action, sendAfterChoice) {
+function openModelChooser(action, sendAfterChoice, continuation, context) {
     const mode = getComposerModeKey(action) || 'text';
     const remembered = readRememberedModels()[mode];
     const currentSource = activeComposerSources[mode] || remembered?.source || ui.source?.value || SECOND_FUNCTION_ID;
@@ -293,7 +302,9 @@ function openModelChooser(action, sendAfterChoice) {
         action: mode,
         sendAfterChoice: Boolean(sendAfterChoice),
         selected: null,
-        source: normalizeFunctionSource(mode, currentSource)
+        source: normalizeFunctionSource(mode, currentSource),
+        continuation: typeof continuation === 'function' ? continuation : null,
+        context: context || null
     };
     const titles = {
         text: ['اختر نموذج المحادثة', 'اختر النموذج، ويمكنك اختبار الكود الأول أو استخدام الكود الثاني الأساسي.'],
@@ -301,8 +312,8 @@ function openModelChooser(action, sendAfterChoice) {
         edit: ['اختر قوة تعديل الصورة', 'تعديل الصور داخل المحادثة يقبل اختبار الكود الأول أو استخدام الكود الثاني.'],
         book_outline: ['اختر نموذج تأليف الكتاب', 'أداة الكتب تستخدم الكود الوظيفي الثاني فقط للحفاظ على مراحل التأليف والسياق.']
     };
-    if (ui.modelChooserTitle) ui.modelChooserTitle.textContent = titles[mode][0];
-    if (ui.modelChooserDescription) ui.modelChooserDescription.textContent = titles[mode][1];
+    if (ui.modelChooserTitle) ui.modelChooserTitle.textContent = context?.title || titles[mode][0];
+    if (ui.modelChooserDescription) ui.modelChooserDescription.textContent = context?.description || titles[mode][1];
     if (ui.rememberModelToggle) ui.rememberModelToggle.checked = Boolean(remembered);
     const rememberIcon = document.querySelector('.remember-toggle-icon');
     if (rememberIcon) {
@@ -319,7 +330,14 @@ function openModelChooser(action, sendAfterChoice) {
 
 function closeModelChooser() {
     if (ui.modelPopover) ui.modelPopover.classList.add('hidden');
-    modelChooserState = { action: 'text', sendAfterChoice: false, selected: null, source: SECOND_FUNCTION_ID };
+    modelChooserState = {
+        action: 'text',
+        sendAfterChoice: false,
+        selected: null,
+        source: SECOND_FUNCTION_ID,
+        continuation: null,
+        context: null
+    };
 }
 
 function confirmModelChoice() {
@@ -327,6 +345,7 @@ function confirmModelChoice() {
     if (!choice) return;
     const action = modelChooserState.action;
     const sendAfterChoice = modelChooserState.sendAfterChoice;
+    const continuation = modelChooserState.continuation;
     const source = normalizeFunctionSource(action, modelChooserState.source);
     applyModelChoice(action, choice, source);
 
@@ -337,7 +356,7 @@ function confirmModelChoice() {
     } else {
         delete rememberedModels[action];
         writeRememberedModels(rememberedModels);
-        if (!sendAfterChoice) oneShotModelChoices[action] = { choice, source };
+        if (!sendAfterChoice && !continuation) oneShotModelChoices[action] = { choice, source };
     }
     closeModelChooser();
     refreshComposerModelLabel();
@@ -345,6 +364,11 @@ function confirmModelChoice() {
     if (sendAfterChoice) {
         skipModelGateOnce = true;
         ui.sendBtn.click();
+    } else if (continuation) {
+        Promise.resolve().then(continuation).catch(function(error) {
+            console.error('تعذر تنفيذ خطوة الكتاب بعد اختيار النموذج:', error);
+            alert('تعذر بدء العملية المختارة. حاول مرة أخرى.');
+        });
     }
 }
 
@@ -366,6 +390,33 @@ function prepareModelForSend(action) {
     openModelChooser(action, true);
     return false;
 }
+
+function runBookStepWithModel(stepLabel, continuation) {
+    if (typeof continuation !== 'function') return false;
+    const action = 'book_outline';
+    const remembered = readRememberedModels()[action];
+    if (remembered) {
+        const choice = findCatalogChoice(action, remembered.provider, remembered.model);
+        if (choice) {
+            applyModelChoice(action, choice, remembered.source);
+            Promise.resolve().then(continuation);
+            return true;
+        }
+    }
+    if (oneShotModelChoices[action]) {
+        const pending = oneShotModelChoices[action];
+        delete oneShotModelChoices[action];
+        applyModelChoice(action, pending.choice, pending.source);
+        Promise.resolve().then(continuation);
+        return true;
+    }
+    openModelChooser(action, false, continuation, {
+        title: 'اختر نموذج ' + stepLabel,
+        description: 'اختر النموذج لهذه الخطوة. إذا فعّلت «تذكّر اختياري» فسيُستخدم تلقائيًا في بقية مراحل الكتاب.'
+    });
+    return false;
+}
+window.runBookStepWithModel = runBookStepWithModel;
 
 function syncComposerModeUI() {
     if (!ui.action) return;

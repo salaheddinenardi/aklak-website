@@ -1925,6 +1925,105 @@ body::after { content: none !important; }
 .book-outline-smart-editor textarea:focus { border-color: var(--green); }
 .book-outline-smart-editor button { color: #062016; background: var(--green-bright); border: 0; border-radius: 9px; cursor: pointer; }
 
+.book-stage-message .book-stage-content {
+    width: min(860px, calc(100% - 8px));
+    max-width: min(860px, calc(100% - 8px));
+}
+.book-stage-bubble {
+    padding: 0 !important;
+    overflow: hidden;
+    background: rgba(4,15,10,.96) !important;
+}
+.book-stage-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 13px;
+    background: rgba(121,226,173,.07);
+    border-bottom: 1px solid rgba(121,226,173,.12);
+}
+.book-stage-heading span { color: #dff9ea; font-size: .76rem; font-weight: 800; }
+.book-stage-heading span i { color: var(--green-bright); margin-inline-end: 5px; }
+.book-stage-heading small { color: #759485; font-size: .58rem; }
+.book-intro-panel {
+    width: 100%;
+    gap: 12px;
+    margin: 0 !important;
+    padding: 14px;
+}
+.book-intro-panel .book-toolbar { margin: 0 auto 2px; }
+.book-intro-panel #book-container {
+    width: min(700px, 100%) !important;
+    margin: 0 auto 4px !important;
+    background: #fff;
+    color: #1f2937;
+    box-shadow: 0 16px 50px rgba(0,0,0,.28) !important;
+}
+.book-page-navigation {
+    width: min(700px, 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.book-page-navigation button,
+.book-intro-actions button {
+    width: auto !important;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 10px !important;
+    color: #bcd8c8 !important;
+    background: rgba(255,255,255,.035) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 8px !important;
+    font-size: .65rem !important;
+    cursor: pointer;
+}
+.book-page-navigation button:hover,
+.book-intro-actions button:hover { color: #fff !important; border-color: var(--green-line) !important; }
+.book-page-navigation button:disabled { opacity: .45 !important; cursor: default; }
+.book-page-navigation #page-indicator { color: #9fbcae !important; font-size: .66rem; font-weight: 750; }
+.book-intro-actions {
+    width: min(700px, 100%);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+.book-intro-actions button.primary {
+    color: #062016 !important;
+    background: var(--green-bright) !important;
+    border-color: var(--green-bright) !important;
+    font-weight: 800;
+}
+.book-intro-refine {
+    width: min(700px, 100%);
+    margin: 0 !important;
+    padding: 12px !important;
+    background: rgba(121,226,173,.045) !important;
+    border: 1px solid var(--green-line) !important;
+    border-radius: 9px !important;
+}
+.book-intro-refine > label { color: #cce9d9 !important; font-size: .7rem; }
+.book-intro-refine-composer { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px; }
+.book-intro-refine-composer input { min-height: 38px; }
+.book-intro-refine-composer #refine-intro-btn {
+    width: auto !important;
+    min-width: 124px;
+    padding: 8px 11px !important;
+    font-size: .68rem !important;
+}
+.book-progress-bubble .book-generation-status {
+    width: 100%;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none;
+}
+
 .remember-model-card { grid-template-columns: 34px minmax(0,1fr) auto; background: rgba(154,165,159,.055); border-color: rgba(154,165,159,.18); }
 .remember-model-card .memory-card-icon { color: #8a9690; background: rgba(154,165,159,.08); }
 .remember-model-card > span:nth-of-type(2) { align-self: center; }
@@ -1997,7 +2096,13 @@ body::after { content: none !important; }
         max-height: calc(100vh - 100px);
     }
     .book-outline-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
+    .book-stage-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
     .book-outline-chat-actions button { flex: 1 1 calc(50% - 7px); }
+    .book-intro-actions button { flex: 1 1 calc(50% - 7px); }
+    .book-intro-refine-composer { grid-template-columns: 1fr; }
+    .book-intro-refine-composer #refine-intro-btn { width: 100% !important; }
+    .book-intro-panel { padding: 9px; }
+    .book-intro-panel #book-container { min-height: 480px !important; padding: 25px !important; }
     .book-generation-status { margin-top: 16px !important; padding: 14px !important; border-radius: 14px !important; }
     .book-progress-shell { width: min(300px, 100%); }
     .book-progress-ring { border-radius: 14px; }
