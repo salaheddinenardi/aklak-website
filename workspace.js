@@ -189,7 +189,7 @@ function getAvailableModelChoices(action, source) {
     const choices = MODEL_CATALOG[action] || [];
     if (normalizedSource !== FIRST_FUNCTION_ID) return choices;
 
-    // الكود الوظيفي الأول مخصص للاختبارات الاقتصادية فقط.
+    /// الكود الوظيفي الأول مخصص للاختبارات الاقتصادية فقط.
     if (action === 'text') {
         return choices.filter(function(choice) {
             return choice.provider === 'cloudflare' || ['gpt-4o-mini', 'gpt-4.1-mini'].includes(choice.model);

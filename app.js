@@ -1,9 +1,11 @@
 // 1. تهيئة Appwrite
 // ==========================================
 const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
+const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
+const APPWRITE_PROJECT_ID = '6a36cda70021ceb1f3d0';
 const client = new Client()
-    .setEndpoint('https://fra.cloud.appwrite.io/v1') 
-    .setProject('6a36cda70021ceb1f3d0'); 
+    .setEndpoint(APPWRITE_ENDPOINT)
+    .setProject(APPWRITE_PROJECT_ID);
   
 const account = new Account(client);
 const databases = new Databases(client);
@@ -923,6 +925,187 @@ function normalizeImageResult(responseData) {
     return '';
 }
 
+function cleanDiagnosticValue(value, maxLength) {
+    if (value === undefined || value === null || value === '') return '';
+    let text = typeof value === 'string' ? value : JSON.stringify(value);
+    text = text
+        .replace(/(authorization|api[-_ ]?key|secret|token)\s*[:=]\s*[^\s,;]+/gi, '$1: [مخفي]')
+        .replace(/data:image\/[^;]+;base64,[A-Za-z0-9+/=]+/gi, '[بيانات صورة مخفية]');
+    const limit = Number(maxLength) || 900;
+    return text.length > limit ? text.slice(0, limit) + '…' : text;
+}
+
+function getExecutionFailureExplanation(details) {
+    const code = Number(details.responseStatusCode || details.sdkCode || 0);
+    const message = String(details.serverMessage || details.sdkMessage || '').toLowerCase();
+    const hasExecution = Boolean(details.executionId || details.executionStatus);
+
+    if (/timeout|timed out|deadline|duration/.test(message) || code === 408 || code === 504) {
+        return 'وصل الطلب إلى Appwrite، لكن تنفيذ الوظيفة تجاوز المهلة المسموح بها. راجع مدة التنفيذ وسجل Runtime الخاص بالوظيفة.';
+    }
+    if (/cors|failed to fetch|networkerror|network error|load failed/.test(message)) {
+        return 'المتصفح لم يتمكن من الوصول إلى واجهة Appwrite. افحص الشبكة، نطاق الموقع المسموح داخل Appwrite، وقيود CORS.';
+    }
+    if (code === 400) {
+        return hasExecution
+            ? 'وصل الطلب إلى الوظيفة، لكنها رفضت بيانات الطلب. افحص رسالة الوظيفة والحقول المرسلة.'
+            : 'رفض Appwrite إنشاء التنفيذ لأن الطلب أو أحد إعداداته غير صالح.';
+    }
+    if (code === 401) {
+        return 'رفض Appwrite الطلب لأن جلسة المستخدم مفقودة أو منتهية. سجّل الخروج ثم ادخل مجددًا وتحقق من صلاحية الجلسة.';
+    }
+    if (code === 403) {
+        return 'تم الوصول إلى Appwrite، لكنه منع تنفيذ الوظيفة بسبب صلاحيات Execute. راجع صلاحيات تنفيذ الوظيفة للمستخدمين المسجلين.';
+    }
+    if (code === 404) {
+        return 'تم الوصول إلى Appwrite، لكن المشروع أو معرّف الوظيفة أو مسار التنفيذ غير موجود. قارن المعرّفات الظاهرة أدناه بإعدادات Appwrite.';
+    }
+    if (code === 429) {
+        return 'تم الوصول إلى Appwrite، لكن الطلبات كثيرة حاليًا وتم تفعيل حدّ الاستخدام. انتظر قليلًا ثم أعد المحاولة.';
+    }
+    if (code === 500) {
+        return hasExecution
+            ? 'تم إنشاء التنفيذ والوصول إلى الوظيفة، ثم وقع خطأ داخل الكود الوظيفي. افتح سجل Runtime للتنفيذ المبيّن أدناه.'
+            : 'وصلت الواجهة إلى Appwrite، لكن المنصة لم تستطع إنشاء التنفيذ بسبب خطأ داخلي.';
+    }
+    if (code === 502 || code === 503) {
+        return hasExecution
+            ? 'نجح اتصال الواجهة بـ Appwrite وتم إنشاء تنفيذ للوظيفة، لكن الوظيفة أو Runtime أعاد حالة عدم توفر. هذا ليس انقطاعًا بين المتصفح وAppwrite؛ افحص النشر النشط وEntrypoint وRuntime Logs.'
+            : 'وصلت الواجهة إلى Appwrite، لكن Appwrite لم يستطع بدء تنفيذ الوظيفة أو كانت الخدمة غير متاحة. افحص حالة النشر وRuntime ثم أعد المحاولة.';
+    }
+    if (details.failureKind === 'invalid_json') {
+        return 'تم الوصول إلى الوظيفة واستلام رد منها، لكن الرد ليس JSON صالحًا. الخلل داخل صيغة الرد التي يعيدها الكود الوظيفي.';
+    }
+    if (hasExecution || details.stage === 'function_response') {
+        return 'نجح اتصال الواجهة بـ Appwrite، لكن تنفيذ الوظيفة فشل. استخدم معرّف التنفيذ أدناه للعثور على السجل المطابق داخل Appwrite.';
+    }
+    return 'تعذر إكمال طلب إنشاء التنفيذ. التفاصيل أدناه تحدد المسار والوظيفة والمرحلة التي توقف عندها الطلب.';
+}
+
+function formatExecutionDiagnostic(details) {
+    const lines = [
+        'تشخيص اتصال Appwrite',
+        'النتيجة: ' + details.explanation,
+        '',
+        'المرحلة التي توقفت: ' + details.stageLabel,
+        'المسار المختار في الواجهة: ' + details.selectedFunctionLabel + ' (' + details.selectedFunctionId + ')',
+        'الوظيفة التي أُرسل إليها فعليًا: ' + details.targetFunctionLabel + ' (' + details.targetFunctionId + ')',
+        'سبب التوجيه: ' + details.routingNote,
+        'نوع الطلب: ' + details.requestSummary,
+        'مشروع Appwrite: ' + APPWRITE_PROJECT_ID,
+        'Endpoint: ' + APPWRITE_ENDPOINT
+    ];
+
+    if (details.executionId) lines.push('معرّف التنفيذ: ' + details.executionId);
+    if (details.executionStatus) lines.push('حالة التنفيذ: ' + details.executionStatus);
+    if (details.responseStatusCode) lines.push('HTTP داخل الوظيفة: ' + details.responseStatusCode);
+    if (details.sdkCode && Number(details.sdkCode) !== Number(details.responseStatusCode)) lines.push('رمز Appwrite SDK: ' + details.sdkCode);
+    if (details.sdkType) lines.push('نوع خطأ Appwrite: ' + details.sdkType);
+    if (details.serverMessage) lines.push('رسالة الوظيفة: ' + details.serverMessage);
+    if (details.sdkMessage && details.sdkMessage !== details.serverMessage) lines.push('رسالة Appwrite: ' + details.sdkMessage);
+    lines.push('مرجع التشخيص: ' + details.diagnosticId);
+    return lines.join('\n');
+}
+
+function showExecutionDiagnostic(details) {
+    const diagnosticText = formatExecutionDiagnostic(details);
+    window.__AKLAKE_LAST_EXECUTION_ERROR__ = Object.freeze(Object.assign({}, details, {
+        diagnosticText: diagnosticText
+    }));
+
+    console.group('[AKLAKE] فشل تنفيذ طلب Appwrite — ' + details.diagnosticId);
+    console.error(diagnosticText);
+    console.table({
+        stage: details.stage,
+        selectedFunctionId: details.selectedFunctionId,
+        targetFunctionId: details.targetFunctionId,
+        executionId: details.executionId || 'لم يُنشأ',
+        executionStatus: details.executionStatus || 'غير متاح',
+        responseStatusCode: details.responseStatusCode || 'غير متاح',
+        sdkCode: details.sdkCode || 'غير متاح',
+        sdkType: details.sdkType || 'غير متاح'
+    });
+    console.groupEnd();
+
+    let panel = document.getElementById('aklake-connection-diagnostic');
+    if (!panel) {
+        panel = document.createElement('section');
+        panel.id = 'aklake-connection-diagnostic';
+        panel.setAttribute('role', 'alertdialog');
+        panel.setAttribute('aria-live', 'assertive');
+        panel.setAttribute('dir', 'rtl');
+        Object.assign(panel.style, {
+            position: 'fixed',
+            insetInline: '16px',
+            bottom: '16px',
+            zIndex: '99999',
+            maxWidth: '760px',
+            marginInline: 'auto',
+            padding: '18px',
+            border: '1px solid #f1a7a7',
+            borderRadius: '16px',
+            background: '#fff7f7',
+            color: '#4a1010',
+            boxShadow: '0 18px 50px rgba(40, 10, 10, .22)',
+            fontFamily: 'inherit'
+        });
+
+        const title = document.createElement('strong');
+        title.textContent = 'تعذر تنفيذ الطلب — تفاصيل التشخيص';
+        title.style.display = 'block';
+        title.style.marginBottom = '10px';
+
+        const output = document.createElement('pre');
+        output.dataset.diagnosticOutput = 'true';
+        Object.assign(output.style, {
+            margin: '0',
+            maxHeight: '42vh',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'anywhere',
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            lineHeight: '1.7'
+        });
+
+        const actions = document.createElement('div');
+        Object.assign(actions.style, { display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' });
+        const copyButton = document.createElement('button');
+        copyButton.type = 'button';
+        copyButton.textContent = 'نسخ تفاصيل الخطأ';
+        copyButton.addEventListener('click', async function() {
+            const value = panel.querySelector('[data-diagnostic-output]')?.textContent || '';
+            try {
+                await navigator.clipboard.writeText(value);
+                copyButton.textContent = 'تم النسخ';
+            } catch (copyError) {
+                console.warn('[AKLAKE] تعذر نسخ التشخيص تلقائيًا.', copyError);
+            }
+        });
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.textContent = 'إغلاق';
+        closeButton.addEventListener('click', function() { panel.remove(); });
+        [copyButton, closeButton].forEach(function(button) {
+            Object.assign(button.style, {
+                border: '1px solid #d38b8b',
+                borderRadius: '9px',
+                background: '#ffffff',
+                color: '#4a1010',
+                padding: '8px 12px',
+                cursor: 'pointer',
+                fontFamily: 'inherit'
+            });
+        });
+        actions.append(copyButton, closeButton);
+        panel.append(title, output, actions);
+        document.body.appendChild(panel);
+    }
+
+    const output = panel.querySelector('[data-diagnostic-output]');
+    if (output) output.textContent = diagnosticText;
+}
+
 async function executeRequest(payloadObj) {
     if (!currentUser) { 
         alert("يرجى تسجيل الدخول أولاً.");
@@ -931,15 +1114,34 @@ async function executeRequest(payloadObj) {
     }
 
     // الكود الأول اختياري للمحادثة وصور المحادثة فقط؛ الأدوات المتخصصة تبقى على الكود الثاني.
+    const selectedFunctionId = ui.source?.value || SECOND_FUNCTION_ID;
     const canUseFirstFunction = payloadObj?.action === 'legacy_chat'
         && ['text', 'generate', 'edit'].includes(payloadObj?.mode)
         && ['text', 'generate', 'edit'].includes(ui.action?.value);
-    const requestedFunctionId = canUseFirstFunction ? ui.source.value : SECOND_FUNCTION_ID;
+    const requestedFunctionId = canUseFirstFunction ? selectedFunctionId : SECOND_FUNCTION_ID;
     const targetFunctionId = requestedFunctionId === FIRST_FUNCTION_ID ? FIRST_FUNCTION_ID : SECOND_FUNCTION_ID;
     const targetFunctionLabel = targetFunctionId === FIRST_FUNCTION_ID ? 'الكود الوظيفي الأول' : 'الكود الوظيفي الثاني';
-    ui.loader.classList.remove('hidden');
+    const selectedFunctionLabel = selectedFunctionId === FIRST_FUNCTION_ID ? 'الكود الوظيفي الأول' : 'الكود الوظيفي الثاني';
+    const routingNote = selectedFunctionId === targetFunctionId
+        ? 'تم احترام الاختيار الظاهر في الواجهة.'
+        : 'هذه الأداة لا تعمل عبر الكود الأول؛ لذلك وجّهتها الواجهة إلى الكود الوظيفي الثاني.';
+    const requestSummary = [payloadObj?.action, payloadObj?.mode, payloadObj?.provider, payloadObj?.model]
+        .filter(Boolean)
+        .join(' / ') || 'طلب غير مصنف';
+    let execution = null;
+    let stage = 'create_execution';
+    if (ui.loader) ui.loader.classList.remove('hidden');
+
+    console.info('[AKLAKE] بدء طلب Appwrite', {
+        selectedFunctionId: selectedFunctionId,
+        targetFunctionId: targetFunctionId,
+        requestSummary: requestSummary,
+        endpoint: APPWRITE_ENDPOINT,
+        projectId: APPWRITE_PROJECT_ID
+    });
+
     try {
-        const execution = await appwriteFunctions.createExecution(
+        execution = await appwriteFunctions.createExecution(
             targetFunctionId,
             JSON.stringify(payloadObj),
             false,
@@ -947,22 +1149,62 @@ async function executeRequest(payloadObj) {
             'POST',
             { 'Content-Type': 'application/json' }
         );
+        stage = 'function_response';
         let parsedBody = null;
         try {
             parsedBody = execution.responseBody ? JSON.parse(execution.responseBody) : null;
         } catch (parseError) {
-            throw new Error(`ردّ ${targetFunctionLabel} ليس JSON صالحًا. راجع سجل التنفيذ الخاص به.`);
+            parseError.failureKind = 'invalid_json';
+            parseError.message = `ردّ ${targetFunctionLabel} ليس JSON صالحًا.`;
+            throw parseError;
         }
         if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400) {
             const serverMessage = parsedBody && (parsedBody.error || parsedBody.message);
-            throw new Error(serverMessage || execution.errors || `حدث خطأ داخلي في السيرفر (${execution.responseStatusCode || 'unknown'}).`);
+            const executionError = new Error(serverMessage || execution.errors || `فشل تنفيذ الوظيفة بحالة ${execution.responseStatusCode || 'غير معروفة'}.`);
+            executionError.serverMessage = serverMessage || execution.errors || '';
+            throw executionError;
         }
+        window.__AKLAKE_LAST_EXECUTION__ = Object.freeze({
+            targetFunctionId: targetFunctionId,
+            targetFunctionLabel: targetFunctionLabel,
+            executionId: execution.$id || '',
+            status: execution.status || '',
+            responseStatusCode: Number(execution.responseStatusCode || 200),
+            requestSummary: requestSummary
+        });
+        console.info('[AKLAKE] اكتمل تنفيذ Appwrite بنجاح', window.__AKLAKE_LAST_EXECUTION__);
         return parsedBody;
     } catch (error) {
-        alert("خطأ في الاتصال بالسيرفر: " + error.message);
+        const responseStatusCode = Number(execution?.responseStatusCode || 0);
+        const sdkCode = Number(error?.code || error?.response?.code || error?.response?.status || 0);
+        const serverMessage = cleanDiagnosticValue(error?.serverMessage || '', 1000);
+        const sdkMessage = cleanDiagnosticValue(error?.message || error?.response?.message || 'خطأ غير معروف', 1000);
+        const details = {
+            diagnosticId: 'AK-' + Date.now().toString(36).toUpperCase(),
+            stage: stage,
+            stageLabel: stage === 'function_response'
+                ? 'بعد وصول الطلب إلى الوظيفة وأثناء معالجة ردها'
+                : 'أثناء طلب إنشاء التنفيذ من Appwrite',
+            selectedFunctionId: selectedFunctionId,
+            selectedFunctionLabel: selectedFunctionLabel,
+            targetFunctionId: targetFunctionId,
+            targetFunctionLabel: targetFunctionLabel,
+            routingNote: routingNote,
+            requestSummary: requestSummary,
+            executionId: execution?.$id || '',
+            executionStatus: execution?.status || '',
+            responseStatusCode: responseStatusCode,
+            sdkCode: sdkCode,
+            sdkType: cleanDiagnosticValue(error?.type || error?.response?.type || '', 250),
+            serverMessage: serverMessage,
+            sdkMessage: sdkMessage,
+            failureKind: error?.failureKind || ''
+        };
+        details.explanation = getExecutionFailureExplanation(details);
+        showExecutionDiagnostic(details);
         return null;
     } finally {
-        ui.loader.classList.add('hidden');
+        if (ui.loader) ui.loader.classList.add('hidden');
     }
 }
 
@@ -1657,3 +1899,4 @@ function toggleAuthMode() {
 }
 
 checkSession();
+
