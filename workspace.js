@@ -2160,4 +2160,4 @@ function initLandingPageStudio() {
     else startNewLandingProject();
 }
 
-window.initLandingPageStudio = initLandingPageStudio; 
+window.initLandingPageStudio = initLandingPageStudio;
