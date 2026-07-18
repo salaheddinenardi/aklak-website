@@ -170,7 +170,7 @@
                 </label>
                 <label class="book-quick-field book-pages-field" for="b-pages">
                     <span><i class="far fa-file-lines"></i> الصفحات <b>مطلوب</b></span>
-                    <input type="number" id="b-pages" placeholder="50–400" min="50" max="400" inputmode="numeric" required>
+                    <input type="number" id="b-pages" placeholder="25–400" min="25" max="400" inputmode="numeric" required>
                 </label>
                 <button id="book-assistant-toggle" class="book-assistant-toggle" type="button" aria-expanded="false" aria-controls="book-settings">
                     <i class="fas fa-wand-magic-sparkles"></i><span>المساعد · تخصيص</span><i class="fas fa-chevron-down book-assistant-chevron"></i>
@@ -571,7 +571,7 @@
 
             <div style="display: flex; align-items: center; gap: 5px;">
                 <label style="margin:0; font-size:0.8em;">عدد الصفحات:</label>
-                <input type="number" id="target-pages-input" value="5" min="1" max="100" style="width: 60px; padding: 4px; font-size: 0.9em;">
+                <input type="number" id="target-pages-input" value="5" min="1" max="400" style="width: 60px; padding: 4px; font-size: 0.9em;">
                 <button class="toolbar-btn" onclick="recalculatePages()" style="background: #14539a; color: white; font-weight: bold;">تطبيق التقسيم</button>
             </div>
         </div>
@@ -609,12 +609,17 @@
     </div>
 
     <div id="auto-generation-status" class="book-generation-status hidden">
+        <div class="book-progress-title">
+            <span><i class="fas fa-book-open"></i> الكتاب الجاري تأليفه</span>
+            <strong id="progress-book-title">—</strong>
+        </div>
         <div class="book-progress-shell">
             <div id="book-progress-ring" class="book-progress-ring" style="--book-progress: 0deg;">
                 <div class="book-progress-media">
                     <!-- رابط صورة انتظار تأليف الكتاب: غيّره من السطر التالي مستقبلًا عند الحاجة -->
                     <img src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يتم الآن تأليف الكتاب" loading="eager">
                     <span class="book-progress-live"><i class="fas fa-circle"></i> يعمل الآن</span>
+                    <span class="book-progress-complete" aria-hidden="true"><i class="fas fa-check"></i></span>
                 </div>
             </div>
             <div class="book-progress-meta">

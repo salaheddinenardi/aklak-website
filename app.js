@@ -118,6 +118,8 @@ let bookPagesData = [];
 let currentViewedPageIndex = 0; 
 let rawBookTextFull = ""; // للاحتفاظ بالنص الخام قبل التقسيم
 let lastBookOutlinePrompt = '';
+const MIN_BOOK_PAGES = 25;
+const MAX_BOOK_PAGES = 400;
 
 let currentFontSize = 1.15; // الحجم الافتراضي
 
@@ -138,8 +140,10 @@ window.changeBookTheme = function(themeClass) {
 
 // الدالة الذكية لتقسيم النص لصفحات مع استخراج العناوين
 function smartPaginateText(rawText, targetPages) {
-    // 1. استخراج أول عنوان (بين ** **) للغلاف
-    const firstTitleMatch = rawText.match(/\*\*(.*?)\*\*/);
+    targetPages = Math.min(MAX_BOOK_PAGES, Math.max(1, Number.parseInt(targetPages, 10) || 1));
+    const sourceText = String(rawText || '').trim();
+    // استخراج عنوان الغلاف من الصيغة الجديدة (*العنوان*) أو الصيغة القديمة **العنوان**.
+    const firstTitleMatch = sourceText.match(/\(\*\s*([^*\n]+?)\s*\*\)/) || sourceText.match(/\*\*(.*?)\*\*/);
     const coverElement = document.getElementById('book-cover-display');
     if (firstTitleMatch) {
         coverElement.innerText = firstTitleMatch[1];
@@ -148,54 +152,57 @@ function smartPaginateText(rawText, targetPages) {
         coverElement.classList.add('hidden');
     }
 
-    // 2. تحويل علامات ** ** إلى HTML ليكون العنوان كبيراً
-    let formattedText = rawText.replace(/\*\*(.*?)\*\*/g, '<div class="book-heading">$1</div>');
+    const formatPage = (pageText) => String(pageText || '')
+        .replace(/\(\*\s*([^*\n]+?)\s*\*\)/g, '<div class="book-heading">$1</div>')
+        .replace(/\*\*(.*?)\*\*/g, '<div class="book-heading">$1</div>');
 
-    let pages = [];
-    let totalLength = formattedText.length;
-    
-    // إذا كان المستخدم يطلب صفحة واحدة فقط، نعطيه النص كاملاً
-    if (targetPages <= 1) {
-        return [formattedText];
-    }
+    if (targetPages === 1) return [formatPage(sourceText) || '&nbsp;'];
+    if (!sourceText) return Array.from({ length: targetPages }, () => '&nbsp;');
 
-    let avgCharsPerPage = Math.ceil(totalLength / targetPages);
-    let currentIndex = 0;
+    const pages = [];
+    let cursor = 0;
 
-    for (let i = 0; i < targetPages; i++) {
-        if (i === targetPages - 1) {
-            pages.push(formattedText.slice(currentIndex).trim());
-            break;
+    for (let pageIndex = 0; pageIndex < targetPages; pageIndex++) {
+        const remainingPages = targetPages - pageIndex;
+        if (remainingPages === 1 || cursor >= sourceText.length) {
+            pages.push(formatPage(sourceText.slice(cursor).trim()) || '&nbsp;');
+            cursor = sourceText.length;
+            continue;
         }
 
-        let chunkEnd = currentIndex + avgCharsPerPage;
-        if (chunkEnd >= totalLength) {
-            pages.push(formattedText.slice(currentIndex).trim());
-            break;
-        }
+        const remainingLength = sourceText.length - cursor;
+        const idealLength = Math.max(1, Math.floor(remainingLength / remainingPages));
+        const idealEnd = cursor + idealLength;
+        const minEnd = Math.min(sourceText.length, cursor + Math.max(1, Math.floor(idealLength * .65)));
+        const maxEnd = Math.max(minEnd, Math.min(sourceText.length - (remainingPages - 1), cursor + Math.ceil(idealLength * 1.35)));
+        let cutAt = -1;
 
-        // محاولة إيجاد مكان مناسب للقطع (قبل عنوان، أو فقرة، أو مسافة)
-        let chunk = formattedText.slice(currentIndex, chunkEnd + 300); 
-        let headingIndex = chunk.indexOf('<div class="book-heading">');
+        // نفضّل بداية عنوان أو نهاية فقرة، ثم نهاية جملة أو كلمة قريبة من الحجم المتوازن.
+        const headingAt = sourceText.indexOf('**', minEnd);
+        if (headingAt > cursor && headingAt <= maxEnd) cutAt = headingAt;
 
-        // إذا وجدنا عنواناً في النصف الثاني من الصفحة، نقطع قبله ليبدأ في الصفحة التالية
-        if (headingIndex !== -1 && headingIndex > avgCharsPerPage * 0.4) {
-            chunkEnd = currentIndex + headingIndex;
-        } else {
-            // محاولة القطع عند مسافة مزدوجة (نهاية فقرة)
-            let lastNewline = formattedText.lastIndexOf('\n\n', chunkEnd);
-            if (lastNewline > currentIndex) {
-                chunkEnd = lastNewline;
-            } else {
-                let lastSpace = formattedText.lastIndexOf(' ', chunkEnd);
-                if (lastSpace > currentIndex) chunkEnd = lastSpace;
+        const boundaryCandidates = ['\n\n', '\n', '. ', '؟ ', '! ', ' '];
+        for (const boundary of boundaryCandidates) {
+            if (cutAt !== -1) break;
+            const afterIdeal = sourceText.indexOf(boundary, idealEnd);
+            if (afterIdeal >= minEnd && afterIdeal <= maxEnd) {
+                cutAt = afterIdeal + boundary.length;
+                break;
+            }
+            const beforeIdeal = sourceText.lastIndexOf(boundary, idealEnd);
+            if (beforeIdeal >= minEnd && beforeIdeal <= maxEnd) {
+                cutAt = beforeIdeal + boundary.length;
+                break;
             }
         }
 
-        pages.push(formattedText.slice(currentIndex, chunkEnd).trim());
-        currentIndex = chunkEnd;
+        if (cutAt <= cursor || cutAt > maxEnd) cutAt = Math.max(cursor + 1, Math.min(idealEnd, maxEnd));
+        pages.push(formatPage(sourceText.slice(cursor, cutAt).trim()) || '&nbsp;');
+        cursor = cutAt;
+        while (cursor < sourceText.length && /\s/.test(sourceText[cursor])) cursor++;
     }
-    return pages.filter(p => p.trim() !== ""); // إزالة الصفحات الفارغة إن وجدت
+
+    return pages;
 }
 
 // تطبيق التقسيم بناءً على طلب المستخدم
@@ -300,7 +307,7 @@ function collectBookDetails() {
     const structureSelect = document.getElementById('b-structure');
     const customStructure = document.getElementById('b-custom-structure');
     const rawStructure = structureSelect ? structureSelect.value : '';
-    const maxPages = Math.min(400, Math.max(50, Number.parseInt(document.getElementById('b-pages')?.value, 10) || 50));
+    const maxPages = Math.min(MAX_BOOK_PAGES, Math.max(MIN_BOOK_PAGES, Number.parseInt(document.getElementById('b-pages')?.value, 10) || MIN_BOOK_PAGES));
     return {
         title: inferBookValue(document.getElementById('b-title')?.value),
         topic: inferBookValue(document.getElementById('b-topic')?.value),
@@ -356,7 +363,7 @@ if (ui.bookOutlineText) {
 
 function calculateRemainingPages() {
     if (!ui.introPagesInput) return;
-    const totalPages = parseInt(document.getElementById('b-pages') ? document.getElementById('b-pages').value : 50) || 50;
+    const totalPages = parseInt(document.getElementById('b-pages') ? document.getElementById('b-pages').value : MIN_BOOK_PAGES) || MIN_BOOK_PAGES;
     const introPages = parseInt(ui.introPagesInput.value) || 2;
     const remaining = totalPages - introPages;
     if (ui.remainingPagesDisplay) {
@@ -990,8 +997,8 @@ if (ui.sendBtn) {
         if (actionType === 'book_outline') {
             const pagesInput = document.getElementById('b-pages');
             const requestedPages = Number.parseInt(pagesInput?.value, 10);
-            if (!Number.isInteger(requestedPages) || requestedPages < 50 || requestedPages > 400) {
-                alert('عدد الصفحات مطلوب. اختر عددًا من 50 إلى 400 صفحة.');
+            if (!Number.isInteger(requestedPages) || requestedPages < MIN_BOOK_PAGES || requestedPages > MAX_BOOK_PAGES) {
+                alert(`عدد الصفحات مطلوب. اختر عددًا من ${MIN_BOOK_PAGES} إلى ${MAX_BOOK_PAGES} صفحة.`);
                 pagesInput?.focus();
                 return;
             }
@@ -1249,7 +1256,42 @@ let pollingInterval = null;
 let isGeneratingAutoBook = false;
 
 function getBookTargetPages() {
-    return Math.min(400, Math.max(50, Number.parseInt(document.getElementById('b-pages')?.value, 10) || 50));
+    return Math.min(MAX_BOOK_PAGES, Math.max(MIN_BOOK_PAGES, Number.parseInt(document.getElementById('b-pages')?.value, 10) || MIN_BOOK_PAGES));
+}
+
+function normalizeBookDisplayPages(value, fallback = MIN_BOOK_PAGES) {
+    const parsed = Number.parseInt(value, 10);
+    const safeFallback = Number.parseInt(fallback, 10) || MIN_BOOK_PAGES;
+    return Math.min(MAX_BOOK_PAGES, Math.max(1, Number.isInteger(parsed) ? parsed : safeFallback));
+}
+
+function syncBookDisplayPages(value) {
+    const pages = normalizeBookDisplayPages(value, getBookTargetPages());
+    const targetInput = document.getElementById('target-pages-input');
+    if (targetInput) {
+        targetInput.value = String(pages);
+        targetInput.max = String(MAX_BOOK_PAGES);
+    }
+    return pages;
+}
+
+function setBookProgressTitle(title) {
+    const target = document.getElementById('progress-book-title');
+    if (!target) return;
+    const cleanTitle = String(title || '').trim();
+    target.textContent = cleanTitle && cleanTitle !== AUTO_BOOK_VALUE ? cleanTitle : 'كتاب قيد التأليف';
+}
+
+function setBookGenerationStatusState(state) {
+    const statusBox = document.getElementById('auto-generation-status');
+    const progressRing = document.getElementById('book-progress-ring');
+    const states = ['is-generating', 'is-complete', 'is-failed'];
+    statusBox?.classList.remove(...states);
+    progressRing?.classList.remove(...states);
+    if (states.includes(state)) {
+        statusBox?.classList.add(state);
+        progressRing?.classList.add(state);
+    }
 }
 
 function updateBookProgress(generatedPages, totalPages) {
@@ -1327,6 +1369,7 @@ document.addEventListener('click', async function(e) {
             }
 
             const currentBookDetails = collectBookDetails();
+            const requestedBookPages = syncBookDisplayPages(getBookTargetPages());
             const payloadObj = {
                 userId: currentUser.$id,
                 action: 'start_auto_write',
@@ -1334,7 +1377,7 @@ document.addEventListener('click', async function(e) {
                 modelTier: ui.model.value,
                 outline: ui.bookOutlineText.innerText,
                 introPagesArray: bookPagesData,
-                targetPages: getBookTargetPages(),
+                targetPages: requestedBookPages,
                 title: currentBookDetails.title,
                 bookDetails: currentBookDetails
             };
@@ -1357,10 +1400,11 @@ document.addEventListener('click', async function(e) {
                 if(statusBox) statusBox.classList.remove('hidden');
                 if(newBtn) newBtn.classList.remove('hidden');
                 ui.resultArea?.classList.add('hidden');
-                document.getElementById('book-progress-ring')?.classList.remove('is-complete', 'is-failed');
+                setBookGenerationStatusState('is-generating');
                 const statusTitle = document.getElementById('status-title');
                 if (statusTitle) statusTitle.textContent = 'يتم الآن تأليف كتابك في الخلفية';
-                updateBookProgress(currentBookDetails.introPages, getBookTargetPages());
+                setBookProgressTitle(responseData.title || currentBookDetails.title);
+                updateBookProgress(currentBookDetails.introPages, requestedBookPages);
                 updateWorkingModelName();
                 startPolling();
                 document.getElementById('book-progress-chat-message')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -1393,12 +1437,14 @@ function startPolling() {
         try {
             const bookDoc = await databases.getDocument(DB_ID, 'books', currentAutoBookId);
             const generatedPages = Number.parseInt(bookDoc.generated_pages_count, 10);
-            updateBookProgress(Number.isFinite(generatedPages) ? generatedPages : bookPagesData.length, getBookTargetPages());
+            const storedTargetPages = normalizeBookDisplayPages(bookDoc.target_pages, getBookTargetPages());
+            updateBookProgress(Number.isFinite(generatedPages) ? generatedPages : bookPagesData.length, storedTargetPages);
+            if (bookDoc.title) setBookProgressTitle(bookDoc.title);
 
             if (bookDoc.status === 'failed') {
                 const statusTitle = document.getElementById('status-title');
                 if (statusTitle) statusTitle.textContent = 'توقف التأليف بسبب خطأ في النموذج. يمكنك إعادة المحاولة لاحقًا.';
-                document.getElementById('book-progress-ring')?.classList.add('is-failed');
+                setBookGenerationStatusState('is-failed');
                 clearInterval(pollingInterval);
                 pollingInterval = null;
                 return;
@@ -1407,8 +1453,9 @@ function startPolling() {
             if (bookDoc.status === 'completed') {
                 const statusTitle = document.getElementById('status-title');
                 if(statusTitle) statusTitle.textContent = 'اكتمل تأليف الكتاب بنجاح';
-                updateBookProgress(getBookTargetPages(), getBookTargetPages());
-                document.getElementById('book-progress-ring')?.classList.add('is-complete');
+                const displayPages = syncBookDisplayPages(storedTargetPages);
+                updateBookProgress(displayPages, displayPages);
+                setBookGenerationStatusState('is-complete');
                 clearInterval(pollingInterval);
                 pollingInterval = null;
                 
@@ -1416,13 +1463,12 @@ function startPolling() {
                     try {
                         let rawPages = JSON.parse(bookDoc.content_pages);
                         rawBookTextFull = rawPages.join('\n\n'); 
-                        const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 10;
-                        bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
+                        bookPagesData = smartPaginateText(rawBookTextFull, displayPages);
                     } catch (e) {
                         rawBookTextFull = bookDoc.content_pages;
-                        const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 10;
-                        bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
+                        bookPagesData = smartPaginateText(rawBookTextFull, displayPages);
                     }
+                    currentViewedPageIndex = 0;
                     renderCurrentPage(); 
                 }
             }
@@ -1444,7 +1490,8 @@ window.resetForNewBook = function() {
     if(mainInputs) mainInputs.classList.remove('hidden');
     const statusTitle = document.getElementById('status-title');
     if(statusTitle) statusTitle.textContent = 'يتم الآن تأليف كتابك في الخلفية';
-    document.getElementById('book-progress-ring')?.classList.remove('is-complete', 'is-failed');
+    setBookGenerationStatusState('is-generating');
+    setBookProgressTitle('');
     updateBookProgress(0, getBookTargetPages());
     
     bookPagesData = [];
@@ -1605,6 +1652,7 @@ function loadBookFromLibrary(book) {
     window.selectAITool('book_outline');
     const mainInputs = document.getElementById('main-inputs-wrapper');
     const autoGenStatus = document.getElementById('auto-generation-status');
+    let storedTargetPages = normalizeBookDisplayPages(book.target_pages, getBookTargetPages());
     
     if(mainInputs) mainInputs.classList.remove('hidden');
     if(autoGenStatus) autoGenStatus.classList.add('hidden');
@@ -1614,6 +1662,9 @@ function loadBookFromLibrary(book) {
     if (book.content_pages) {
         try {
             let parsed = JSON.parse(book.content_pages);
+            if (!book.target_pages && Array.isArray(parsed) && parsed.length) {
+                storedTargetPages = normalizeBookDisplayPages(parsed.length, storedTargetPages);
+            }
             rawBookTextFull = parsed.join('\n\n');
         } catch(e) {
             rawBookTextFull = book.content_pages;
@@ -1622,9 +1673,10 @@ function loadBookFromLibrary(book) {
         rawBookTextFull = "جاري التأليف أو لا يوجد محتوى بعد...";
     }
     
-    const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 10;
+    const targetPages = syncBookDisplayPages(storedTargetPages);
     bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
     currentViewedPageIndex = 0;
+    setBookProgressTitle(book.title);
     
     ui.introArea.style.display = 'flex';
     ui.introArea.classList.remove('hidden');
