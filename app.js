@@ -1,4 +1,4 @@
-// 1. تهيئة Appwrite
+/// 1. تهيئة Appwrite
 // ==========================================
 const { Client, Account, Databases, Functions, Query, ID } = Appwrite;
 const client = new Client()

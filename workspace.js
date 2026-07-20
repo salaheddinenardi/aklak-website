@@ -131,7 +131,7 @@ function autoResizeTextarea(textarea) {
     textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px';
 }
 
-// app.js defines SECOND_FUNCTION_ID after this file is loaded. Keep the initial
+/// app.js defines SECOND_FUNCTION_ID after this file is loaded. Keep the initial
 // value independent so workspace.js can finish loading before app.js is parsed.
 let modelChooserState = {
     action: 'text',
