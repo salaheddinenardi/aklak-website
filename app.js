@@ -534,6 +534,7 @@ window.addEventListener('DOMContentLoaded', function() {
     initLandingPageStudio();
     mountBookStagesInConversation();
     initBookIntroActions();
+    initCompletedBookViewer();
 
     document.querySelectorAll('[data-tool]').forEach(function(button) {
         button.addEventListener('click', function() { window.selectAITool(button.dataset.tool); });
@@ -803,6 +804,50 @@ function initBookIntroActions() {
     ui.retryIntroBtn?.addEventListener('click', function() {
         ui.writeIntroBtn?.click();
     });
+}
+
+function setBookViewerMode(isViewer) {
+    const viewerHeading = document.getElementById('book-viewer-heading');
+    const refineSection = document.getElementById('intro-refine-section');
+    const introNextActions = document.getElementById('intro-next-actions');
+    const stageHeading = document.querySelector('#book-intro-chat-message .book-stage-heading');
+    const stageSource = document.querySelector('#book-intro-chat-message .message-source');
+
+    ui.introArea?.classList.toggle('is-book-viewer', Boolean(isViewer));
+    viewerHeading?.classList.toggle('hidden', !isViewer);
+    refineSection?.classList.toggle('hidden', Boolean(isViewer));
+    introNextActions?.classList.toggle('hidden', Boolean(isViewer));
+
+    if (stageHeading) {
+        stageHeading.innerHTML = isViewer
+            ? '<span><i class="fas fa-book-open"></i> معاينة الكتاب</span><small>اقرأ الصفحات أو عدّل طريقة عرضها</small>'
+            : '<span><i class="fas fa-file-lines"></i> مقدمة الكتاب</span><small>راجع الصفحات ثم اختر الخطوة التالية</small>';
+    }
+    if (stageSource && isViewer) stageSource.textContent = 'نسخة الكتاب الجاهزة للقراءة';
+}
+
+function openBookViewer() {
+    if (!completedBookReady || bookPagesData.length === 0) {
+        alert('لم تصبح صفحات الكتاب جاهزة للعرض بعد.');
+        return;
+    }
+    setBookViewerMode(true);
+    currentViewedPageIndex = Math.min(currentViewedPageIndex, Math.max(0, bookPagesData.length - 1));
+    ui.introArea.style.display = 'flex';
+    ui.introArea.classList.remove('hidden');
+    renderCurrentPage();
+    document.getElementById('book-intro-chat-message')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeBookViewer() {
+    ui.introArea?.classList.add('hidden');
+    if (ui.introArea) ui.introArea.style.display = 'none';
+    document.getElementById('book-progress-chat-message')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function initCompletedBookViewer() {
+    document.getElementById('open-completed-book-btn')?.addEventListener('click', openBookViewer);
+    document.getElementById('close-book-viewer-btn')?.addEventListener('click', closeBookViewer);
 }
 
 function renderBookOutlineMessage(outline, sourceLabel) {
@@ -1185,6 +1230,8 @@ async function executeBookIntroduction() {
         const targetPages = document.getElementById('target-pages-input') ? parseInt(document.getElementById('target-pages-input').value) : 5;
         bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
         currentViewedPageIndex = 0;
+        completedBookReady = false;
+        setBookViewerMode(false);
         ui.introArea.style.display = 'flex';
         ui.introArea.classList.remove('hidden');
         renderCurrentPage();
@@ -1254,6 +1301,7 @@ if (ui.refineIntroBtn) {
 let currentAutoBookId = null;
 let pollingInterval = null;
 let isGeneratingAutoBook = false;
+let completedBookReady = false;
 
 function getBookTargetPages() {
     return Math.min(MAX_BOOK_PAGES, Math.max(MIN_BOOK_PAGES, Number.parseInt(document.getElementById('b-pages')?.value, 10) || MIN_BOOK_PAGES));
@@ -1277,14 +1325,18 @@ function syncBookDisplayPages(value) {
 
 function setBookProgressTitle(title) {
     const target = document.getElementById('progress-book-title');
+    const completedTarget = document.getElementById('completed-book-title');
     if (!target) return;
     const cleanTitle = String(title || '').trim();
-    target.textContent = cleanTitle && cleanTitle !== AUTO_BOOK_VALUE ? cleanTitle : 'كتاب قيد التأليف';
+    const displayTitle = cleanTitle && cleanTitle !== AUTO_BOOK_VALUE ? cleanTitle : 'كتاب قيد التأليف';
+    target.textContent = displayTitle;
+    if (completedTarget) completedTarget.textContent = displayTitle;
 }
 
 function setBookGenerationStatusState(state) {
     const statusBox = document.getElementById('auto-generation-status');
     const progressRing = document.getElementById('book-progress-ring');
+    const openBookButton = document.getElementById('open-completed-book-btn');
     const states = ['is-generating', 'is-complete', 'is-failed'];
     statusBox?.classList.remove(...states);
     progressRing?.classList.remove(...states);
@@ -1292,6 +1344,7 @@ function setBookGenerationStatusState(state) {
         statusBox?.classList.add(state);
         progressRing?.classList.add(state);
     }
+    if (openBookButton) openBookButton.disabled = state !== 'is-complete' || !completedBookReady;
 }
 
 function updateBookProgress(generatedPages, totalPages) {
@@ -1301,12 +1354,17 @@ function updateBookProgress(generatedPages, totalPages) {
     const progressCount = document.getElementById('progress-count');
     const progressTotal = document.getElementById('progress-total');
     const progressRing = document.getElementById('book-progress-ring');
+    const progressBar = document.getElementById('book-progress-bar');
+    const progressTrack = document.querySelector('.book-progress-track');
+    const completedPages = document.getElementById('completed-pages-count');
     if (progressCount) progressCount.innerText = String(generated);
     if (progressTotal) progressTotal.innerText = String(total);
+    if (completedPages) completedPages.innerText = String(total);
     if (progressRing) {
-        progressRing.style.setProperty('--book-progress', `${percent * 3.6}deg`);
         progressRing.setAttribute('aria-label', `تم إنشاء ${generated} من أصل ${total} صفحة`);
     }
+    if (progressBar) progressBar.style.width = `${percent}%`;
+    if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(percent));
 }
 
 function updateWorkingModelName() {
@@ -1400,6 +1458,10 @@ document.addEventListener('click', async function(e) {
                 if(statusBox) statusBox.classList.remove('hidden');
                 if(newBtn) newBtn.classList.remove('hidden');
                 ui.resultArea?.classList.add('hidden');
+                completedBookReady = false;
+                setBookViewerMode(false);
+                ui.introArea?.classList.add('hidden');
+                if (ui.introArea) ui.introArea.style.display = 'none';
                 setBookGenerationStatusState('is-generating');
                 const statusTitle = document.getElementById('status-title');
                 if (statusTitle) statusTitle.textContent = 'يتم الآن تأليف كتابك في الخلفية';
@@ -1455,10 +1517,10 @@ function startPolling() {
                 if(statusTitle) statusTitle.textContent = 'اكتمل تأليف الكتاب بنجاح';
                 const displayPages = syncBookDisplayPages(storedTargetPages);
                 updateBookProgress(displayPages, displayPages);
-                setBookGenerationStatusState('is-complete');
                 clearInterval(pollingInterval);
                 pollingInterval = null;
-                
+
+                completedBookReady = false;
                 if(bookDoc.content_pages) {
                     try {
                         let rawPages = JSON.parse(bookDoc.content_pages);
@@ -1469,8 +1531,12 @@ function startPolling() {
                         bookPagesData = smartPaginateText(rawBookTextFull, displayPages);
                     }
                     currentViewedPageIndex = 0;
-                    renderCurrentPage(); 
+                    completedBookReady = bookPagesData.length > 0;
                 }
+                setBookViewerMode(true);
+                ui.introArea?.classList.add('hidden');
+                if (ui.introArea) ui.introArea.style.display = 'none';
+                setBookGenerationStatusState('is-complete');
             }
         } catch (err) {
             console.error("خطأ في جلب حالة الكتاب:", err);
@@ -1481,6 +1547,7 @@ function startPolling() {
 window.resetForNewBook = function() {
     if (pollingInterval) clearInterval(pollingInterval);
     currentAutoBookId = null;
+    completedBookReady = false;
     const statusBox = document.getElementById('auto-generation-status');
     const newBtn = document.getElementById('new-book-btn');
     const mainInputs = document.getElementById('main-inputs-wrapper');
@@ -1502,8 +1569,7 @@ window.resetForNewBook = function() {
     ui.introArea.style.display = 'none';
     ui.resultArea.classList.add('hidden');
     document.getElementById('book-outline-chat-message')?.remove();
-    document.getElementById('intro-refine-section')?.classList.add('hidden');
-    document.getElementById('start-auto-btn')?.parentElement?.classList.remove('hidden');
+    setBookViewerMode(false);
     if (ui.introEditToggleBtn) ui.introEditToggleBtn.innerHTML = '<i class="fas fa-pen"></i><span>تعديل المقدمة</span>';
     setBookSettingsExpanded(false);
     
@@ -1676,19 +1742,9 @@ function loadBookFromLibrary(book) {
     const targetPages = syncBookDisplayPages(storedTargetPages);
     bookPagesData = smartPaginateText(rawBookTextFull, targetPages);
     currentViewedPageIndex = 0;
+    completedBookReady = bookPagesData.length > 0;
     setBookProgressTitle(book.title);
-    
-    ui.introArea.style.display = 'flex';
-    ui.introArea.classList.remove('hidden');
-    
-    const introRefine = document.getElementById('intro-refine-section');
-    if (introRefine) introRefine.classList.add('hidden');
-    
-    const autoBtns = document.getElementById('start-auto-btn');
-    if (autoBtns && autoBtns.parentElement) autoBtns.parentElement.classList.add('hidden');
-    
-    renderCurrentPage();
-    ui.introArea.scrollIntoView({ behavior: 'smooth' });
+    openBookViewer();
 }
 
 function openModal() { document.getElementById('auth-modal').style.display = 'flex'; }
