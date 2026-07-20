@@ -616,17 +616,19 @@
     </div>
 
     <div id="auto-generation-status" class="book-generation-status hidden">
-        <div class="book-progress-title">
-            <span><i class="fas fa-book-open"></i> الكتاب الجاري تأليفه</span>
-            <strong id="progress-book-title">—</strong>
-        </div>
         <div class="book-progress-shell">
             <div id="book-progress-ring" class="book-progress-ring" aria-label="تم إنشاء 0 صفحة">
                 <div class="book-progress-media">
                     <!-- رابط صورة انتظار تأليف الكتاب: غيّره من السطر التالي مستقبلًا عند الحاجة -->
                     <img src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يتم الآن تأليف الكتاب" loading="eager">
-                    <span class="book-progress-live"><i class="fas fa-circle"></i> يعمل الآن</span>
                 </div>
+            </div>
+            <div class="book-progress-details">
+                <div class="book-progress-title">
+                    <span><i class="fas fa-book-open"></i> الكتاب الجاري تأليفه</span>
+                    <strong id="progress-book-title">—</strong>
+                </div>
+                <div class="working-models"><span>النموذج الذي يعمل</span><strong id="working-model-name">—</strong></div>
             </div>
             <div class="book-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <span id="book-progress-bar"></span>
@@ -638,7 +640,6 @@
         </div>
         <h2 id="status-title">يتم الآن تأليف كتابك في الخلفية</h2>
         <p class="book-waiting-copy">يمكنك البدء في كتاب ثانٍ أو الاستمتاع بقهوتك ريثما ينتهي هذا الكتاب.</p>
-        <div class="working-models"><span>النموذج الذي يعمل</span><strong id="working-model-name">—</strong></div>
         <div class="book-generation-actions">
             <button id="new-book-btn" class="hidden" onclick="resetForNewBook()"><i class="fas fa-plus"></i> تأليف كتاب جديد</button>
         </div>

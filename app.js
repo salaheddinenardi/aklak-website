@@ -1363,8 +1363,18 @@ function updateBookProgress(generatedPages, totalPages) {
     if (progressRing) {
         progressRing.setAttribute('aria-label', `تم إنشاء ${generated} من أصل ${total} صفحة`);
     }
-    if (progressBar) progressBar.style.width = `${percent}%`;
-    if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(percent));
+    if (progressBar) {
+        progressBar.style.width = `${percent}%`;
+        progressBar.setAttribute('data-progress', String(percent));
+    }
+    if (progressTrack) {
+        const hue = Math.round(34 + (percent * 1.06));
+        const endHue = Math.min(145, hue + 12);
+        progressTrack.style.setProperty('--progress-color-start', `hsl(${hue} 78% 55%)`);
+        progressTrack.style.setProperty('--progress-color-end', `hsl(${endHue} 82% 66%)`);
+        progressTrack.setAttribute('aria-valuenow', String(percent));
+        progressTrack.setAttribute('aria-valuetext', `${generated} من ${total} صفحة، ${percent}%`);
+    }
 }
 
 function updateWorkingModelName() {
@@ -1765,4 +1775,3 @@ function toggleAuthMode() {
 }
 
 checkSession();
-
