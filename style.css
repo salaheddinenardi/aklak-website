@@ -2017,11 +2017,57 @@ body::after { content: none !important; }
     padding: 8px 11px !important;
     font-size: .68rem !important;
 }
+.book-viewer-heading {
+    width: min(700px, 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 2px;
+    padding: 9px 10px 10px 12px;
+    color: #ddf8e8;
+    background: rgba(121,226,173,.045);
+    border: 1px solid rgba(121,226,173,.12);
+    border-radius: 9px;
+}
+.book-viewer-heading > div { display: grid; gap: 2px; text-align: right; }
+.book-viewer-heading span { font-size: .72rem; font-weight: 800; }
+.book-viewer-heading span i { margin-inline-end: 5px; color: var(--green-bright); }
+.book-viewer-heading small { color: #789687; font-size: .58rem; }
+.book-viewer-heading button {
+    width: 32px !important;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    padding: 0 !important;
+    color: #a9c8b8 !important;
+    background: rgba(255,255,255,.035) !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+}
+.book-viewer-heading button:hover { color: #fff !important; border-color: var(--green-line) !important; }
+
+#book-progress-chat-message .book-stage-content {
+    width: min(450px, calc(100% - 8px));
+    max-width: min(450px, calc(100% - 8px));
+}
+.book-stage-bubble.book-progress-bubble {
+    width: 100%;
+    margin-inline-start: auto;
+    background: rgba(4,15,10,.97) !important;
+    border: 1px solid rgba(121,226,173,.16);
+    border-radius: 14px;
+    box-shadow: 0 18px 55px rgba(0,0,0,.24);
+}
+.book-progress-bubble .book-stage-heading { padding: 9px 11px; }
 .book-progress-bubble .book-generation-status {
-    width: min(480px, 100%);
-    margin: 0 auto !important;
+    width: 100%;
+    margin: 0 !important;
     border: 0 !important;
-    border-radius: 18px !important;
+    border-radius: 0 0 14px 14px !important;
+    box-shadow: none;
 }
 
 .remember-model-card { grid-template-columns: 34px minmax(0,1fr) auto; background: rgba(154,165,159,.055); border-color: rgba(154,165,159,.18); }
@@ -2034,23 +2080,22 @@ body::after { content: none !important; }
 .remember-model-card:has(input:checked) .remember-toggle-icon { transform: scale(1.04); }
 
 .book-generation-status {
-    width: min(480px, 100%);
-    aspect-ratio: 1 / 1;
+    width: min(440px, 100%);
     margin: 34px auto 0 !important;
-    padding: 22px !important;
+    padding: 15px 16px 16px !important;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 9px;
+    justify-content: flex-start;
+    gap: 8px;
     color: #eafff1 !important;
     text-align: center !important;
-    background: linear-gradient(160deg, rgba(14,28,20,.98), rgba(4,9,6,.99)) !important;
-    border: 1px solid rgba(121,226,173,.14) !important;
-    border-radius: 18px !important;
-    box-shadow: 0 24px 80px rgba(0,0,0,.32);
-    transition: aspect-ratio .25s ease, padding .25s ease, background .25s ease;
+    background: linear-gradient(160deg, rgba(10,24,17,.98), rgba(4,11,7,.99)) !important;
+    border: 1px solid rgba(121,226,173,.16) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,.28);
+    transition: padding .25s ease, background .25s ease;
 }
 .book-progress-title {
     width: 100%;
@@ -2064,40 +2109,42 @@ body::after { content: none !important; }
 }
 .book-progress-title strong {
     color: var(--token-orange);
-    font-size: .92rem;
+    font-size: .86rem;
     line-height: 1.5;
     overflow-wrap: anywhere;
 }
-.book-progress-shell { width: min(210px, 58%); margin: 0 auto; }
+.book-progress-shell { width: min(282px, 100%); margin: 2px auto 0; }
 .book-progress-ring {
-    --book-progress: 0deg;
     width: 100%;
-    aspect-ratio: 1 / 1;
-    padding: 3px;
+    aspect-ratio: 16 / 10;
     box-sizing: border-box;
-    background: conic-gradient(from -90deg, var(--green-bright) 0 var(--book-progress), rgba(121,226,173,.1) var(--book-progress) 360deg);
-    border-radius: 17px;
-    box-shadow: 0 0 0 1px rgba(121,226,173,.08), 0 18px 50px rgba(0,0,0,.3);
-    transition: background .8s ease;
+    overflow: hidden;
+    background: #020604;
+    border: 1px solid rgba(121,226,173,.2);
+    border-radius: 11px;
+    box-shadow: 0 12px 34px rgba(0,0,0,.26);
 }
 .book-progress-media {
     position: relative;
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: #06110c;
-    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: #020604;
+    border-radius: inherit;
 }
 .book-progress-media img {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
 }
 .book-progress-live {
     position: absolute;
-    right: 10px;
-    bottom: 10px;
+    right: 8px;
+    bottom: 8px;
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -2110,24 +2157,34 @@ body::after { content: none !important; }
     font-weight: 800;
 }
 .book-progress-live i { color: var(--green-bright); font-size: .52rem; }
-.book-progress-complete {
-    position: absolute;
-    inset: 0;
-    display: none;
-    place-items: center;
-    color: #062017;
-    background: linear-gradient(145deg, #c1f9dd, var(--green-bright));
-    font-size: 2.2rem;
+.book-progress-track {
+    width: 100%;
+    height: 5px;
+    margin-top: 9px;
+    overflow: hidden;
+    background: rgba(121,226,173,.09);
+    border: 1px solid rgba(121,226,173,.12);
+    border-radius: 999px;
+}
+.book-progress-track span {
+    width: 0;
+    height: 100%;
+    display: block;
+    background: linear-gradient(90deg, #69dca2, var(--green-bright));
+    border-radius: inherit;
+    box-shadow: 0 0 12px rgba(121,226,173,.35);
+    transition: width .8s ease;
 }
 .book-progress-meta {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: baseline;
     gap: 8px;
     margin-top: 7px;
+    padding-inline: 1px;
 }
 .book-progress-label { color: #9fbcae; font-size: .64rem; }
-.book-progress-fraction { display: inline-flex; gap: 4px; color: #dffbed; font-size: .78rem; }
+.book-progress-fraction { display: inline-flex; gap: 4px; direction: ltr; color: #dffbed; font-size: .78rem; }
 .book-generation-status #status-title { margin: 2px 0 0; font-size: 1rem; line-height: 1.5; }
 .book-waiting-copy { margin: 0; color: #a9c5b7; font-size: .68rem; line-height: 1.65; }
 .working-models {
@@ -2144,37 +2201,84 @@ body::after { content: none !important; }
 .working-models strong { color: #dffbed; }
 .book-generation-actions { width: 100%; display: flex; justify-content: center; }
 .book-generation-actions #new-book-btn { width: auto !important; margin: 0; padding: 8px 14px !important; }
+.book-complete-summary { display: none; }
 
-/* عند اكتمال الكتاب تختفي الصورة المتحركة وتتحول البطاقة إلى تأكيد مدمج. */
+/* عند اكتمال الكتاب تختفي واجهة الانتظار وتبقى بطاقة صغيرة فقط. */
 .book-generation-status.is-complete {
-    aspect-ratio: auto;
     min-height: 0;
-    padding: 18px !important;
+    padding: 12px !important;
     background: linear-gradient(160deg, rgba(13,37,26,.98), rgba(4,13,8,.99)) !important;
 }
-.book-generation-status.is-complete .book-progress-shell { width: 96px; }
-.book-generation-status.is-complete .book-progress-media img,
-.book-generation-status.is-complete .book-progress-live { display: none; }
-.book-generation-status.is-complete .book-progress-complete { display: grid; }
+.book-generation-status.is-complete > .book-progress-title,
+.book-generation-status.is-complete > .book-progress-shell,
+.book-generation-status.is-complete > #status-title,
 .book-generation-status.is-complete .book-waiting-copy,
-.book-generation-status.is-complete .working-models { display: none; }
-.book-generation-status.is-complete .book-progress-meta { margin-top: 5px; }
-.book-generation-status.is-failed .book-progress-ring {
-    background: conic-gradient(#ef7373 0 360deg);
+.book-generation-status.is-complete .working-models,
+.book-generation-status.is-complete .book-generation-actions { display: none; }
+.book-generation-status.is-complete .book-complete-summary {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 42px minmax(0,1fr) auto;
+    align-items: center;
+    gap: 10px;
+    text-align: right;
 }
+.book-complete-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    color: #062017;
+    background: linear-gradient(145deg, #c1f9dd, var(--green-bright));
+    border-radius: 11px;
+    box-shadow: 0 8px 24px rgba(121,226,173,.13);
+}
+.book-complete-copy { min-width: 0; display: grid; gap: 1px; }
+.book-complete-copy > span { color: var(--green-bright); font-size: .59rem; font-weight: 800; }
+.book-complete-copy > strong { overflow: hidden; color: #f1fff6; font-size: .77rem; text-overflow: ellipsis; white-space: nowrap; }
+.book-complete-copy > small { color: #8da99a; font-size: .56rem; }
+.book-complete-copy > small b { color: #cfeadb; }
+#open-completed-book-btn {
+    width: auto !important;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 10px !important;
+    color: #092117 !important;
+    background: var(--green-bright) !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    font-size: .63rem !important;
+    font-weight: 850;
+    cursor: pointer;
+}
+#open-completed-book-btn:hover { background: #aaf1cc !important; transform: translateY(-1px); }
+#open-completed-book-btn:disabled { opacity: .55; cursor: wait; transform: none; }
+.book-generation-status.is-failed .book-progress-ring {
+    border-color: rgba(239,115,115,.62);
+}
+.book-generation-status.is-failed .book-progress-track span { background: #ef7373; }
 .book-generation-status.is-failed .book-progress-live { display: none; }
 
 @media (max-width: 620px) {
+    #book-progress-chat-message .book-stage-content { width: calc(100% - 4px); max-width: calc(100% - 4px); }
     .book-generation-status {
         width: 100%;
         min-height: 0;
-        aspect-ratio: 1 / 1;
-        padding: 13px !important;
+        padding: 12px !important;
         gap: 6px;
     }
-    .book-progress-shell { width: min(145px, 48%); }
+    .book-progress-shell { width: min(260px, 100%); }
     .book-progress-title strong { font-size: .78rem; }
     .book-generation-status #status-title { font-size: .82rem; }
     .book-waiting-copy { display: none; }
-    .book-generation-status.is-complete { min-height: 0; aspect-ratio: auto; }
+    .book-generation-status.is-complete { min-height: 0; }
+    .book-complete-summary { grid-template-columns: 38px minmax(0,1fr) auto !important; gap: 8px !important; }
+    .book-complete-icon { width: 38px; height: 38px; }
+    #open-completed-book-btn span { display: none; }
+    #open-completed-book-btn { width: 36px !important; padding: 0 !important; }
+    .book-viewer-heading { padding: 8px; }
+    .book-viewer-heading small { display: none; }
 }
