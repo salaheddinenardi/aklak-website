@@ -780,7 +780,7 @@ function mountBookStagesInConversation() {
         source: 'مقدمة أنشأها مؤلف الكتب',
         bubbleClass: 'book-intro-bubble'
     });
-    mountBookStageMessage(document.getElementById('auto-generation-status'), {
+    const progressStageRow = mountBookStageMessage(document.getElementById('auto-generation-status'), {
         rowId: 'book-progress-chat-message',
         title: 'مراحل إنشاء الكتاب',
         description: 'التأليف مستمر في الخلفية ويمكنك متابعة المحادثة',
@@ -788,6 +788,8 @@ function mountBookStagesInConversation() {
         source: 'حالة التأليف المباشرة',
         bubbleClass: 'book-progress-bubble'
     });
+    progressStageRow?.querySelector('.book-stage-heading')?.remove();
+    progressStageRow?.querySelector('.message-source')?.remove();
 }
 
 function initBookIntroActions() {
@@ -1302,6 +1304,7 @@ let currentAutoBookId = null;
 let pollingInterval = null;
 let isGeneratingAutoBook = false;
 let completedBookReady = false;
+let lastRenderedBookProgressPages = 0;
 
 function getBookTargetPages() {
     return Math.min(MAX_BOOK_PAGES, Math.max(MIN_BOOK_PAGES, Number.parseInt(document.getElementById('b-pages')?.value, 10) || MIN_BOOK_PAGES));
@@ -1335,34 +1338,29 @@ function setBookProgressTitle(title) {
 
 function setBookGenerationStatusState(state) {
     const statusBox = document.getElementById('auto-generation-status');
-    const progressRing = document.getElementById('book-progress-ring');
     const openBookButton = document.getElementById('open-completed-book-btn');
     const states = ['is-generating', 'is-complete', 'is-failed'];
     statusBox?.classList.remove(...states);
-    progressRing?.classList.remove(...states);
     if (states.includes(state)) {
         statusBox?.classList.add(state);
-        progressRing?.classList.add(state);
     }
     if (openBookButton) openBookButton.disabled = state !== 'is-complete' || !completedBookReady;
 }
 
 function updateBookProgress(generatedPages, totalPages) {
     const total = Math.max(1, Number.parseInt(totalPages, 10) || getBookTargetPages());
-    const generated = Math.min(total, Math.max(0, Number.parseInt(generatedPages, 10) || 0));
+    const reportedPages = Math.max(0, Number.parseInt(generatedPages, 10) || 0);
+    const generated = Math.min(total, Math.max(lastRenderedBookProgressPages, reportedPages));
+    lastRenderedBookProgressPages = generated;
     const percent = Math.min(100, Math.round((generated / total) * 100));
     const progressCount = document.getElementById('progress-count');
     const progressTotal = document.getElementById('progress-total');
-    const progressRing = document.getElementById('book-progress-ring');
     const progressBar = document.getElementById('book-progress-bar');
     const progressTrack = document.querySelector('.book-progress-track');
     const completedPages = document.getElementById('completed-pages-count');
     if (progressCount) progressCount.innerText = String(generated);
     if (progressTotal) progressTotal.innerText = String(total);
     if (completedPages) completedPages.innerText = String(total);
-    if (progressRing) {
-        progressRing.setAttribute('aria-label', `تم إنشاء ${generated} من أصل ${total} صفحة`);
-    }
     if (progressBar) {
         progressBar.style.width = `${percent}%`;
         progressBar.setAttribute('data-progress', String(percent));
@@ -1375,6 +1373,27 @@ function updateBookProgress(generatedPages, totalPages) {
         progressTrack.setAttribute('aria-valuenow', String(percent));
         progressTrack.setAttribute('aria-valuetext', `${generated} من ${total} صفحة، ${percent}%`);
     }
+}
+
+function getBookDocumentProgress(bookDoc, fallbackPages) {
+    const candidates = [
+        bookDoc?.generated_pages_count,
+        bookDoc?.generatedPagesCount,
+        bookDoc?.generated_pages,
+        bookDoc?.completed_pages,
+        bookDoc?.current_page
+    ].map(value => Number.parseInt(value, 10)).filter(Number.isFinite);
+
+    if (bookDoc?.content_pages) {
+        try {
+            const storedPages = JSON.parse(bookDoc.content_pages);
+            if (Array.isArray(storedPages)) candidates.push(storedPages.length);
+        } catch (_) {
+            // قد يكون المحتوى نصًا واحدًا أثناء الكتابة، لذلك نعتمد حينها على عداد الصفحات.
+        }
+    }
+
+    return Math.max(Number.parseInt(fallbackPages, 10) || 0, ...candidates, 0);
 }
 
 function updateWorkingModelName() {
@@ -1476,7 +1495,8 @@ document.addEventListener('click', async function(e) {
                 const statusTitle = document.getElementById('status-title');
                 if (statusTitle) statusTitle.textContent = 'يتم الآن تأليف كتابك في الخلفية';
                 setBookProgressTitle(responseData.title || currentBookDetails.title);
-                updateBookProgress(currentBookDetails.introPages, requestedBookPages);
+                lastRenderedBookProgressPages = 0;
+                updateBookProgress(Math.max(bookPagesData.length, currentBookDetails.introPages), requestedBookPages);
                 updateWorkingModelName();
                 startPolling();
                 document.getElementById('book-progress-chat-message')?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -1504,13 +1524,13 @@ window.toggleMainInputs = function() {
 
 function startPolling() {
     if (pollingInterval) clearInterval(pollingInterval);
-    pollingInterval = setInterval(async () => {
+    const pollCurrentBook = async () => {
         if (!currentAutoBookId) return;
         try {
             const bookDoc = await databases.getDocument(DB_ID, 'books', currentAutoBookId);
-            const generatedPages = Number.parseInt(bookDoc.generated_pages_count, 10);
             const storedTargetPages = normalizeBookDisplayPages(bookDoc.target_pages, getBookTargetPages());
-            updateBookProgress(Number.isFinite(generatedPages) ? generatedPages : bookPagesData.length, storedTargetPages);
+            const generatedPages = getBookDocumentProgress(bookDoc, Math.max(bookPagesData.length, lastRenderedBookProgressPages));
+            updateBookProgress(generatedPages, storedTargetPages);
             if (bookDoc.title) setBookProgressTitle(bookDoc.title);
 
             if (bookDoc.status === 'failed') {
@@ -1551,13 +1571,16 @@ function startPolling() {
         } catch (err) {
             console.error("خطأ في جلب حالة الكتاب:", err);
         }
-    }, 10000);
+    };
+    pollCurrentBook();
+    pollingInterval = setInterval(pollCurrentBook, 5000);
 }
 
 window.resetForNewBook = function() {
     if (pollingInterval) clearInterval(pollingInterval);
     currentAutoBookId = null;
     completedBookReady = false;
+    lastRenderedBookProgressPages = 0;
     const statusBox = document.getElementById('auto-generation-status');
     const newBtn = document.getElementById('new-book-btn');
     const mainInputs = document.getElementById('main-inputs-wrapper');
