@@ -1468,6 +1468,13 @@ const LANDING_MODEL_POINTS = Object.freeze({
     'gpt-4.1-mini': 40,
     'gpt-5.5': 60
 });
+const LANDING_MODEL_NAMES = Object.freeze({
+    'gpt-4o-mini': 'GPT-4o mini',
+    'gpt-4.1-mini': 'GPT-4.1 mini',
+    'gpt-5.5': 'GPT-5.5 القياسي'
+});
+const LANDING_REFERENCE_MAX_BYTES = 3 * 1024 * 1024;
+const LANDING_REFERENCE_TEXT_LIMIT = 60000;
 
 const landingState = {
     projects: [],
@@ -1476,7 +1483,9 @@ const landingState = {
     sourceBookId: '',
     selectedModel: 'gpt-4.1-mini',
     selectedPoints: 40,
-    busy: false
+    busy: false,
+    referenceAttachment: null,
+    previewOpen: false
 };
 
 const landingUI = {};
@@ -1489,7 +1498,16 @@ function cacheLandingUI() {
     Object.assign(landingUI, {
         studio: landingElement('landing-page-studio'),
         projectsList: landingElement('landing-projects-list'),
+        projectsPanel: landingElement('landing-projects-panel'),
+        projectsToggle: landingElement('landing-projects-toggle'),
         newProjectBtn: landingElement('landing-new-project-btn'),
+        conversation: landingElement('landing-conversation'),
+        generationCard: landingElement('landing-generation-card'),
+        progressProduct: landingElement('landing-progress-product'),
+        progressModel: landingElement('landing-progress-model'),
+        completeCard: landingElement('landing-complete-card'),
+        completeTitle: landingElement('landing-complete-title'),
+        openResultBtn: landingElement('landing-open-result-btn'),
         prompt: landingElement('landing-main-prompt'),
         productName: landingElement('landing-product-name'),
         audience: landingElement('landing-audience'),
@@ -1499,6 +1517,10 @@ function cacheLandingUI() {
         ctaUrl: landingElement('landing-cta-url'),
         language: landingElement('landing-language'),
         modelCards: landingElement('landing-model-cards'),
+        modelToggle: landingElement('landing-model-toggle'),
+        modelPopover: landingElement('landing-model-popover'),
+        closeModelBtn: landingElement('landing-close-model-btn'),
+        activeModel: landingElement('landing-active-model'),
         generateBtn: landingElement('landing-generate-btn'),
         generateCost: landingElement('landing-generate-cost'),
         status: landingElement('landing-status'),
@@ -1512,6 +1534,16 @@ function cacheLandingUI() {
         applyCodeBtn: landingElement('landing-apply-code-btn'),
         copyBtn: landingElement('landing-copy-code-btn'),
         downloadBtn: landingElement('landing-download-btn'),
+        closePreviewBtn: landingElement('landing-close-preview-btn'),
+        assistantToggle: landingElement('landing-assistant-toggle'),
+        assistantPanel: landingElement('landing-assistant-panel'),
+        referenceFile: landingElement('landing-reference-file'),
+        attachBtn: landingElement('landing-attach-btn'),
+        referencePreview: landingElement('landing-reference-preview'),
+        referenceIcon: landingElement('landing-reference-icon'),
+        referenceTitle: landingElement('landing-reference-title'),
+        referenceName: landingElement('landing-reference-name'),
+        removeReferenceBtn: landingElement('landing-remove-reference-btn'),
         revisionPanel: landingElement('landing-revision-panel'),
         revisionPrompt: landingElement('landing-revision-prompt'),
         reviseBtn: landingElement('landing-revise-btn'),
@@ -1519,6 +1551,142 @@ function cacheLandingUI() {
         nextVersionBtn: landingElement('landing-next-version-btn'),
         versionLabel: landingElement('landing-version-label')
     });
+}
+
+function setLandingAssistantOpen(open) {
+    const expanded = Boolean(open);
+    landingUI.assistantPanel?.classList.toggle('hidden', !expanded);
+    landingUI.assistantPanel?.setAttribute('aria-hidden', String(!expanded));
+    landingUI.assistantToggle?.classList.toggle('is-open', expanded);
+    landingUI.assistantToggle?.setAttribute('aria-expanded', String(expanded));
+}
+
+function setLandingProjectsOpen(open) {
+    const expanded = Boolean(open);
+    landingUI.projectsPanel?.classList.toggle('hidden', !expanded);
+    landingUI.projectsPanel?.setAttribute('aria-hidden', String(!expanded));
+    landingUI.projectsToggle?.setAttribute('aria-expanded', String(expanded));
+}
+
+function setLandingModelPopoverOpen(open) {
+    const expanded = Boolean(open);
+    landingUI.modelPopover?.classList.toggle('hidden', !expanded);
+    landingUI.modelPopover?.setAttribute('aria-hidden', String(!expanded));
+    landingUI.modelToggle?.setAttribute('aria-expanded', String(expanded));
+}
+
+function setLandingPreviewOpen(open) {
+    landingState.previewOpen = Boolean(open);
+    landingUI.output?.classList.toggle('hidden', !landingState.previewOpen);
+    if (landingState.previewOpen) {
+        showLandingView('preview');
+        requestAnimationFrame(function() {
+            landingUI.output?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+}
+
+function clearLandingDynamicMessages() {
+    landingUI.conversation?.querySelectorAll('[data-landing-dynamic="true"]').forEach(function(row) { row.remove(); });
+}
+
+function appendLandingUserMessage(message, attachment) {
+    if (!landingUI.conversation) return null;
+    const row = document.createElement('div');
+    row.className = 'message-row user-message landing-user-message';
+    row.dataset.landingDynamic = 'true';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.innerHTML = '<i class="far fa-user"></i>';
+    const content = document.createElement('div');
+    content.className = 'message-content';
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.textContent = message;
+    content.appendChild(bubble);
+    if (attachment) {
+        const source = document.createElement('div');
+        source.className = 'message-source';
+        source.textContent = 'مرفق: ' + attachment.name;
+        content.appendChild(source);
+    }
+    row.append(avatar, content);
+    landingUI.conversation.insertBefore(row, landingUI.generationCard || null);
+    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    return row;
+}
+
+function showLandingGeneration(visible, productName, label) {
+    landingUI.generationCard?.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    landingUI.completeCard?.classList.add('hidden');
+    if (landingUI.progressProduct) landingUI.progressProduct.textContent = productName || 'المنتج';
+    if (landingUI.progressModel) {
+        landingUI.progressModel.textContent = (label || 'إنشاء الصفحة') + ' · ' + (LANDING_MODEL_NAMES[landingState.selectedModel] || landingState.selectedModel);
+    }
+    landingUI.generationCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function showLandingComplete(productName, shouldScroll) {
+    showLandingGeneration(false);
+    const title = productName || getActiveLandingProject()?.title || 'صفحة الهبوط';
+    if (landingUI.completeTitle) landingUI.completeTitle.textContent = title;
+    landingUI.completeCard?.classList.remove('hidden');
+    if (shouldScroll !== false) landingUI.completeCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function clearLandingReference() {
+    landingState.referenceAttachment = null;
+    if (landingUI.referenceFile) landingUI.referenceFile.value = '';
+    landingUI.referencePreview?.classList.add('hidden');
+    landingUI.attachBtn?.classList.remove('active');
+}
+
+function landingFileToDataUrl(file) {
+    return new Promise(function(resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function() { resolve(String(reader.result || '')); };
+        reader.onerror = function() { reject(new Error('تعذر قراءة الملف المرفق.')); };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function setLandingReferenceFile(file) {
+    if (!file) return;
+    if (file.size > LANDING_REFERENCE_MAX_BYTES) {
+        setLandingStatus('حجم الملف المرجعي يجب ألا يتجاوز 3 ميغابايت.', 'error');
+        clearLandingReference();
+        return;
+    }
+    const extension = (file.name.split('.').pop() || '').toLowerCase();
+    const isText = file.type.startsWith('text/') || ['md', 'markdown', 'csv'].includes(extension);
+    const isImage = file.type.startsWith('image/');
+    try {
+        const attachment = {
+            name: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size,
+            kind: isImage ? 'image' : (isText ? 'text' : 'file')
+        };
+        if (isText) {
+            const text = await file.text();
+            attachment.text = text.slice(0, LANDING_REFERENCE_TEXT_LIMIT);
+            attachment.truncated = text.length > LANDING_REFERENCE_TEXT_LIMIT;
+        } else {
+            attachment.dataUrl = await landingFileToDataUrl(file);
+        }
+        landingState.referenceAttachment = attachment;
+        landingUI.referencePreview?.classList.remove('hidden');
+        landingUI.attachBtn?.classList.add('active');
+        if (landingUI.referenceTitle) landingUI.referenceTitle.textContent = isImage ? 'صورة مرجعية' : 'ملف مرجعي';
+        if (landingUI.referenceName) landingUI.referenceName.textContent = file.name + (attachment.truncated ? ' · تم اعتماد أول 60 ألف حرف' : '');
+        if (landingUI.referenceIcon) landingUI.referenceIcon.innerHTML = isImage ? '<i class="far fa-image"></i>' : '<i class="far fa-file"></i>';
+        setLandingStatus('تم إرفاق «' + file.name + '» وسيُرسل مع طلب إنشاء الصفحة.', 'success');
+    } catch (error) {
+        clearLandingReference();
+        setLandingStatus(error.message || 'تعذر قراءة الملف المرفق.', 'error');
+    }
 }
 
 function createLandingId(prefix) {
@@ -1655,10 +1823,10 @@ function setLandingBusy(isBusy, label) {
     });
     if (landingUI.generateBtn) {
         landingUI.generateBtn.classList.toggle('is-loading', landingState.busy);
-        const mainLabel = landingUI.generateBtn.querySelector('span');
-        if (mainLabel) mainLabel.innerHTML = landingState.busy
-            ? '<i class="fas fa-circle-notch fa-spin"></i> ' + (label || 'جاري الإنشاء...')
-            : '<i class="fas fa-wand-magic-sparkles"></i> إنشاء صفحة الهبوط';
+        landingUI.generateBtn.innerHTML = landingState.busy
+            ? '<i class="fas fa-circle-notch fa-spin"></i>'
+            : '<i class="fas fa-arrow-up"></i>';
+        landingUI.generateBtn.setAttribute('aria-label', landingState.busy ? (label || 'جاري الإنشاء...') : 'إرسال طلب إنشاء صفحة الهبوط');
     }
 }
 
@@ -1666,7 +1834,7 @@ function renderLandingProjects() {
     if (!landingUI.projectsList) return;
     landingUI.projectsList.innerHTML = '';
     if (!landingState.projects.length) {
-        landingUI.projectsList.innerHTML = '<div class="landing-projects-empty"><i class="far fa-folder-open"></i><strong>لا توجد صفحات بعد</strong><span>ابدأ مشروعك الأول من النموذج.</span></div>';
+        landingUI.projectsList.innerHTML = '<div class="landing-projects-empty"><i class="far fa-folder-open"></i><strong>لا توجد صفحات بعد</strong><span>ابدأ مشروعك الأول من خانة المحادثة.</span></div>';
         return;
     }
 
@@ -1707,12 +1875,20 @@ function startNewLandingProject() {
     landingState.activeProjectId = null;
     landingState.currentVersionIndex = -1;
     landingState.sourceBookId = '';
+    landingState.previewOpen = false;
     fillLandingForm({ language: 'العربية' });
+    clearLandingReference();
+    clearLandingDynamicMessages();
+    showLandingGeneration(false);
+    landingUI.completeCard?.classList.add('hidden');
+    setLandingPreviewOpen(false);
+    setLandingAssistantOpen(false);
+    setLandingModelPopoverOpen(false);
     setLandingModel('gpt-4.1-mini', 40);
     showLandingVersion(null);
-    setLandingStatus('مشروع جديد جاهز. اكتب وصف الصفحة للبدء.', 'info');
+    setLandingStatus('اكتب اسم المنتج ووصف الصفحة، ثم أرسل الطلب.', 'info');
     renderLandingProjects();
-    if (landingUI.prompt) landingUI.prompt.focus();
+    if (landingUI.productName) landingUI.productName.focus();
 }
 
 async function openLandingProject(projectId) {
@@ -1725,11 +1901,17 @@ async function openLandingProject(projectId) {
         return;
     }
     landingState.activeProjectId = project.id;
+    clearLandingReference();
+    clearLandingDynamicMessages();
+    showLandingGeneration(false);
     fillLandingForm(project.form || {});
     setLandingModel(project.model || 'gpt-4.1-mini', Number(project.points || 40));
     const versions = project.versions || [];
     landingState.currentVersionIndex = Math.max(0, versions.length - 1);
     showLandingVersion(versions[landingState.currentVersionIndex] || null);
+    setLandingPreviewOpen(false);
+    setLandingProjectsOpen(false);
+    if (versions.length) showLandingComplete(project.title);
     setLandingStatus('تم فتح «' + (project.title || 'صفحة هبوط') + '».', 'success');
     renderLandingProjects();
 }
@@ -1766,7 +1948,8 @@ function setLandingModel(model, points) {
             card.setAttribute('aria-checked', selected ? 'true' : 'false');
         });
     }
-    if (landingUI.generateCost) landingUI.generateCost.textContent = 'سيتم خصم ' + landingState.selectedPoints + ' نقطة';
+    if (landingUI.activeModel) landingUI.activeModel.textContent = LANDING_MODEL_NAMES[landingState.selectedModel] || landingState.selectedModel;
+    if (landingUI.generateCost) landingUI.generateCost.textContent = landingState.selectedPoints + ' نقطة';
     if (typeof ui !== 'undefined' && ui.action && ui.action.value === 'landing_page') {
         ui.source.value = SECOND_FUNCTION_ID;
         ui.provider.value = 'openai';
@@ -1775,6 +1958,15 @@ function setLandingModel(model, points) {
 }
 
 function buildLandingGenerationPrompt(form) {
+    const reference = landingState.referenceAttachment;
+    const referenceLines = reference ? [
+        '',
+        'REFERENCE ATTACHMENT:',
+        'Name: ' + reference.name,
+        'Type: ' + reference.mimeType,
+        reference.kind === 'image' ? 'Use the attached reference image as visual guidance when the backend makes it available to the model.' : '',
+        reference.kind === 'text' && reference.text ? 'Reference text:\n' + reference.text : ''
+    ].filter(Boolean) : [];
     return [
         form.prompt,
         '',
@@ -1785,6 +1977,7 @@ function buildLandingGenerationPrompt(form) {
         'WhatsApp: ' + (form.whatsapp || 'Not provided'),
         'Primary CTA URL: ' + (form.ctaUrl || '#'),
         'Page language: ' + form.language,
+        ...referenceLines,
         '',
         'Create a complete, polished, responsive HTML5 landing page. Return one self-contained index.html file with all CSS and JavaScript inline. Use semantic sections, persuasive copy, clear calls to action, accessible contrast, mobile-first responsive design, and professional visual hierarchy. Do not return Markdown, explanations, or code fences; return HTML only.'
     ].join('\n');
@@ -1846,6 +2039,17 @@ async function requestLandingPage(mode, form, instruction, currentHtml) {
         prompt: finalPrompt,
         landingPageDetails: form
     };
+    if (landingState.referenceAttachment) {
+        payload.referenceAttachment = Object.assign({}, landingState.referenceAttachment);
+        payload.landingPageDetails = Object.assign({}, form, {
+            referenceAttachment: {
+                name: landingState.referenceAttachment.name,
+                mimeType: landingState.referenceAttachment.mimeType,
+                size: landingState.referenceAttachment.size,
+                kind: landingState.referenceAttachment.kind
+            }
+        });
+    }
     if (activeProject && !activeProject.id.startsWith('landing-')) payload.projectId = activeProject.id;
     if (activeVersion?.id) payload.baseVersionId = activeVersion.id;
     if (mode === 'revise') {
@@ -1913,6 +2117,8 @@ function showLandingVersion(version) {
     if (landingUI.revisionPanel) landingUI.revisionPanel.classList.toggle('hidden', !hasVersion);
     if (landingUI.previewFrame) landingUI.previewFrame.srcdoc = hasVersion ? version.html : '';
     if (landingUI.codeEditor) landingUI.codeEditor.value = hasVersion ? version.html : '';
+    if (hasVersion) showLandingComplete(getActiveLandingProject()?.title, false);
+    else landingUI.completeCard?.classList.add('hidden');
     updateLandingVersionNavigation();
 }
 
@@ -1955,17 +2161,33 @@ function setLandingDevice(device) {
 async function generateLandingPage() {
     if (landingState.busy) return;
     const form = collectLandingForm();
+    const requiredNameField = landingUI.productName?.closest('.landing-required-name');
+    requiredNameField?.classList.remove('has-error');
+    if (!form.productName) {
+        requiredNameField?.classList.add('has-error');
+        setLandingStatus('اكتب اسم المنتج أو العنصر أولاً؛ سيُستخدم لحفظ صفحة الهبوط وتعريفها.', 'error');
+        landingUI.productName?.focus();
+        return;
+    }
     if (!form.prompt) {
         setLandingStatus('اكتب وصف الصفحة التي تريد إنشاءها أولاً.', 'error');
         if (landingUI.prompt) landingUI.prompt.focus();
         return;
     }
+    appendLandingUserMessage(form.prompt, landingState.referenceAttachment);
+    setLandingPreviewOpen(false);
+    showLandingGeneration(true, form.productName, 'إنشاء الصفحة');
+    setLandingAssistantOpen(false);
+    setLandingModelPopoverOpen(false);
     setLandingBusy(true, 'النموذج يبني الصفحة...');
-    setLandingStatus('يتم الآن إرسال التفاصيل إلى النموذج عبر الكود الوظيفي الثاني.', 'loading');
+    setLandingStatus('', 'loading');
     try {
         const previousProjectId = landingState.activeProjectId;
         const responseData = await requestLandingPage('generate', form, '', '');
-        if (!responseData) return;
+        if (!responseData) {
+            showLandingGeneration(false);
+            return;
+        }
         if (!responseData.success) throw new Error(responseData.error || 'لم ينجح إنشاء الصفحة.');
         const html = extractLandingHtml(responseData);
         if (!html) throw new Error('وصل رد من الخادم لكنه لا يحتوي على كود HTML صالح.');
@@ -1974,8 +2196,15 @@ async function generateLandingPage() {
         }
         if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(responseData.remainingTokens);
         showLandingView('preview');
+        showLandingComplete(form.productName);
+        if (landingUI.prompt) {
+            landingUI.prompt.value = '';
+            landingUI.prompt.style.height = 'auto';
+        }
+        clearLandingReference();
         setLandingStatus(responseData.storageWarning || 'تم إنشاء الصفحة وحفظ النسخة الأولى بنجاح.', responseData.storageWarning ? 'info' : 'success');
     } catch (error) {
+        showLandingGeneration(false);
         setLandingStatus(error.message || 'تعذر إنشاء الصفحة.', 'error');
     } finally {
         setLandingBusy(false);
@@ -1997,12 +2226,19 @@ async function reviseLandingPage() {
         return;
     }
     const form = collectLandingForm();
+    if (!form.prompt && project.form?.prompt) form.prompt = project.form.prompt;
+    appendLandingUserMessage(instruction, null);
+    setLandingPreviewOpen(false);
+    showLandingGeneration(true, form.productName || project.title, 'تعديل الصفحة');
     setLandingBusy(true, 'يتم تعديل الصفحة...');
     setLandingStatus('يعدّل النموذج المطلوب فقط مع الحفاظ على بقية الصفحة.', 'loading');
     try {
         const previousProjectId = landingState.activeProjectId;
         const responseData = await requestLandingPage('revise', form, instruction, version.html);
-        if (!responseData) return;
+        if (!responseData) {
+            showLandingGeneration(false);
+            return;
+        }
         if (!responseData.success) throw new Error(responseData.error || 'لم ينجح تعديل الصفحة.');
         const html = extractLandingHtml(responseData);
         if (!html) throw new Error('لم يُرجع الخادم كود HTML صالحًا بعد التعديل.');
@@ -2012,8 +2248,11 @@ async function reviseLandingPage() {
         if (landingUI.revisionPrompt) landingUI.revisionPrompt.value = '';
         if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(responseData.remainingTokens);
         showLandingView('preview');
+        showLandingComplete(form.productName || project.title);
         setLandingStatus(responseData.storageWarning || 'تم حفظ التعديل كنسخة جديدة، والنسخة القديمة ما زالت متاحة.', responseData.storageWarning ? 'info' : 'success');
     } catch (error) {
+        showLandingGeneration(false);
+        showLandingComplete(form.productName || project.title);
         setLandingStatus(error.message || 'تعذر تعديل الصفحة.', 'error');
     } finally {
         setLandingBusy(false);
@@ -2124,10 +2363,34 @@ function initLandingPageStudio() {
     if (currentUser) syncLandingProjectsFromServer();
 
     if (landingUI.newProjectBtn) landingUI.newProjectBtn.addEventListener('click', startNewLandingProject);
+    if (landingUI.projectsToggle) landingUI.projectsToggle.addEventListener('click', function() {
+        setLandingProjectsOpen(landingUI.projectsPanel?.classList.contains('hidden'));
+    });
+    if (landingUI.assistantToggle) landingUI.assistantToggle.addEventListener('click', function() {
+        setLandingAssistantOpen(landingUI.assistantPanel?.classList.contains('hidden'));
+    });
+    if (landingUI.modelToggle) landingUI.modelToggle.addEventListener('click', function() {
+        setLandingModelPopoverOpen(landingUI.modelPopover?.classList.contains('hidden'));
+    });
+    if (landingUI.closeModelBtn) landingUI.closeModelBtn.addEventListener('click', function() { setLandingModelPopoverOpen(false); });
+    if (landingUI.openResultBtn) landingUI.openResultBtn.addEventListener('click', function() { setLandingPreviewOpen(true); });
+    if (landingUI.closePreviewBtn) landingUI.closePreviewBtn.addEventListener('click', function() {
+        setLandingPreviewOpen(false);
+        landingUI.completeCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    if (landingUI.attachBtn) landingUI.attachBtn.addEventListener('click', function() { landingUI.referenceFile?.click(); });
+    if (landingUI.referenceFile) landingUI.referenceFile.addEventListener('change', function() {
+        if (landingUI.referenceFile.files && landingUI.referenceFile.files[0]) setLandingReferenceFile(landingUI.referenceFile.files[0]);
+    });
+    if (landingUI.removeReferenceBtn) landingUI.removeReferenceBtn.addEventListener('click', clearLandingReference);
+    if (landingUI.productName) landingUI.productName.addEventListener('input', function() {
+        landingUI.productName.closest('.landing-required-name')?.classList.remove('has-error');
+    });
     if (landingUI.modelCards) {
         landingUI.modelCards.querySelectorAll('[data-landing-model]').forEach(function(card) {
             card.addEventListener('click', function() {
                 setLandingModel(card.dataset.landingModel, Number(card.dataset.points));
+                setLandingModelPopoverOpen(false);
             });
         });
     }
@@ -2153,8 +2416,24 @@ function initLandingPageStudio() {
             }
         });
     }
+    if (landingUI.prompt) {
+        landingUI.prompt.addEventListener('input', function() {
+            landingUI.prompt.style.height = 'auto';
+            landingUI.prompt.style.height = Math.min(landingUI.prompt.scrollHeight, 180) + 'px';
+        });
+        landingUI.prompt.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                generateLandingPage();
+            }
+        });
+    }
 
     setLandingModel('gpt-4.1-mini', 40);
+    setLandingAssistantOpen(false);
+    setLandingProjectsOpen(false);
+    setLandingModelPopoverOpen(false);
+    setLandingPreviewOpen(false);
     renderLandingProjects();
     if (landingState.projects.length) openLandingProject(landingState.projects[0].id);
     else startNewLandingProject();

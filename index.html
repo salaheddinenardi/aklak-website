@@ -306,97 +306,50 @@
         </section>
 
         <section id="landing-page-studio" class="landing-page-studio hidden" aria-label="مولد صفحات الهبوط">
-            <div class="landing-studio-head">
-                <div class="landing-title-block">
-                    <span class="landing-title-icon"><i class="fas fa-window-maximize"></i></span>
-                    <div>
-                        <span class="panel-eyebrow">AKLAKE LANDING LAB</span>
-                        <h3>أنشئ صفحة هبوط كاملة من وصف واحد</h3>
-                        <p>أدخل تفاصيل مشروعك، اختر قوة النموذج، ثم عاين الصفحة وعدّلها مع الاحتفاظ بكل النسخ السابقة.</p>
-                    </div>
-                </div>
-                <div class="landing-function-badge"><i class="fas fa-code-branch"></i><span>المسار الثابت</span><strong>الكود الوظيفي الثاني</strong></div>
+            <div class="landing-chat-toolbar">
+                <button id="landing-projects-toggle" type="button" aria-expanded="false" aria-controls="landing-projects-panel"><i class="far fa-folder-open"></i><span>صفحاتي</span></button>
+                <button id="landing-new-project-btn" type="button"><i class="fas fa-plus"></i><span>صفحة جديدة</span></button>
             </div>
 
-            <div class="landing-workbench">
-                <aside class="landing-projects-panel">
-                    <div class="landing-panel-title">
-                        <div><span class="panel-eyebrow">PROJECTS</span><h4>صفحاتي</h4></div>
-                        <button id="landing-new-project-btn" type="button" aria-label="صفحة جديدة" title="صفحة جديدة"><i class="fas fa-plus"></i></button>
-                    </div>
-                    <div id="landing-projects-list" class="landing-projects-list"></div>
-                    <div class="landing-storage-note"><i class="fas fa-cloud-arrow-up"></i><span>تُحفظ الصفحات ونسخها في حسابك، مع نسخة محلية احتياطية.</span></div>
-                </aside>
+            <aside id="landing-projects-panel" class="landing-projects-panel hidden" aria-hidden="true">
+                <div class="landing-panel-title"><div><span class="panel-eyebrow">PROJECTS</span><h4>صفحات الهبوط المحفوظة</h4></div></div>
+                <div id="landing-projects-list" class="landing-projects-list"></div>
+                <div class="landing-storage-note"><i class="fas fa-cloud-arrow-up"></i><span>تُحفظ الصفحات ونسخها في حسابك، مع نسخة محلية احتياطية.</span></div>
+            </aside>
 
-                <div class="landing-builder-panel">
-                    <div class="landing-step-heading">
-                        <span>01</span>
-                        <div><h4>معلومات الصفحة</h4><p>كلما كانت التفاصيل أوضح، أصبحت النتيجة أقرب لما تتخيله.</p></div>
+            <div id="landing-conversation" class="landing-conversation" aria-live="polite">
+                <div class="message-row assistant-message landing-welcome-message">
+                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل صفحات الهبوط"></div>
+                    <div class="message-content">
+                        <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
+                        <div class="message-source">مصمم صفحات الهبوط · AKLAKE</div>
                     </div>
-
-                    <div class="landing-form-grid">
-                        <label class="landing-field landing-field-wide">
-                            <span>وصف الصفحة المطلوبة <b>*</b></span>
-                            <textarea id="landing-main-prompt" rows="4" placeholder="مثال: صفحة هبوط عربية راقية لخدمة تصميم الكتب بالذكاء الاصطناعي، بتصميم داكن وقسم أسعار وشهادات عملاء..."></textarea>
-                        </label>
-                        <label class="landing-field">
-                            <span>اسم المنتج أو المشروع</span>
-                            <input id="landing-product-name" type="text" placeholder="مثال: AKLAKE Books">
-                        </label>
-                        <label class="landing-field">
-                            <span>الجمهور المستهدف</span>
-                            <input id="landing-audience" type="text" placeholder="مثال: الكتّاب وصنّاع المحتوى">
-                        </label>
-                        <label class="landing-field landing-field-wide">
-                            <span>وصف المنتج ومميزاته</span>
-                            <textarea id="landing-product-details" rows="3" placeholder="اكتب المميزات، السعر، العرض، والنتيجة التي يحصل عليها العميل..."></textarea>
-                        </label>
-                        <label class="landing-field">
-                            <span>رقم الهاتف</span>
-                            <input id="landing-phone" type="tel" dir="ltr" placeholder="+212 ...">
-                        </label>
-                        <label class="landing-field">
-                            <span>رقم واتساب</span>
-                            <input id="landing-whatsapp" type="tel" dir="ltr" placeholder="+212 ...">
-                        </label>
-                        <label class="landing-field">
-                            <span>رابط الزر الرئيسي</span>
-                            <input id="landing-cta-url" type="url" dir="ltr" placeholder="https://example.com/order">
-                        </label>
-                        <label class="landing-field">
-                            <span>لغة الصفحة</span>
-                            <select id="landing-language">
-                                <option value="العربية" selected>العربية</option>
-                                <option value="English">English</option>
-                                <option value="Français">Français</option>
-                            </select>
-                        </label>
-                    </div>
-
-                    <div class="landing-step-heading model-step-heading">
-                        <span>02</span>
-                        <div><h4>اختر نموذج التوليد</h4><p>السعر يثبته الخادم، وكل تعديل ذكي يُحفظ كنسخة جديدة.</p></div>
-                    </div>
-                    <div id="landing-model-cards" class="landing-model-cards" role="radiogroup" aria-label="نموذج إنشاء صفحة الهبوط">
-                        <button class="landing-model-card" type="button" data-landing-model="gpt-4o-mini" data-points="20" role="radio" aria-checked="false">
-                            <span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-4o mini</strong><small>اقتصادي للمسودات والصفحات المباشرة</small></span><b>20 نقطة</b>
-                        </button>
-                        <button class="landing-model-card selected" type="button" data-landing-model="gpt-4.1-mini" data-points="40" role="radio" aria-checked="true">
-                            <span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-4.1 mini</strong><small>أفضل توازن للنسخة التسويقية والتصميم</small></span><b>40 نقطة</b>
-                        </button>
-                        <button class="landing-model-card premium" type="button" data-landing-model="gpt-5.5" data-points="60" role="radio" aria-checked="false">
-                            <span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5.5 القياسي</strong><small>لصفحات البيع المعقدة والعمل المتقن</small></span><b>60 نقطة</b>
-                        </button>
-                    </div>
-
-                    <button id="landing-generate-btn" class="landing-generate-btn" type="button">
-                        <span><i class="fas fa-wand-magic-sparkles"></i> إنشاء صفحة الهبوط</span>
-                        <small id="landing-generate-cost">سيتم خصم 40 نقطة</small>
-                    </button>
-                    <div id="landing-status" class="landing-status" aria-live="polite"></div>
                 </div>
 
-                <div id="landing-output-panel" class="landing-output-panel">
+                <div id="landing-generation-card" class="message-row assistant-message landing-state-row hidden">
+                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل صفحات الهبوط"></div>
+                    <div class="message-content landing-state-content">
+                        <div class="message-bubble landing-generation-bubble">
+                            <img class="landing-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يجري إنشاء صفحة الهبوط" loading="eager">
+                            <div class="landing-live-progress" role="progressbar" aria-label="يجري إنشاء صفحة الهبوط"><span></span></div>
+                            <div class="landing-progress-info"><span>يتم الآن إنشاء صفحة هبوط لـ</span><strong id="landing-progress-product">—</strong><small id="landing-progress-model">—</small></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="landing-complete-card" class="message-row assistant-message landing-state-row hidden">
+                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل صفحات الهبوط"></div>
+                    <div class="message-content landing-state-content">
+                        <div class="message-bubble landing-complete-bubble">
+                            <span class="landing-complete-icon"><i class="fas fa-check"></i></span>
+                            <div><span>اكتملت صفحة الهبوط</span><strong id="landing-complete-title">—</strong><small>جاهزة للمعاينة أو تنزيل ملف HTML</small></div>
+                            <button id="landing-open-result-btn" type="button" aria-label="عرض صفحة الهبوط" title="عرض صفحة الهبوط"><i class="far fa-eye"></i><span>عرض</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="landing-output-panel" class="landing-output-panel hidden">
                     <div class="landing-output-toolbar">
                         <div class="landing-view-tabs" role="tablist">
                             <button class="active" type="button" data-landing-view="preview"><i class="far fa-eye"></i> المعاينة</button>
@@ -409,12 +362,13 @@
                         <div class="landing-code-actions">
                             <button id="landing-copy-code-btn" type="button" title="نسخ الكود"><i class="far fa-copy"></i></button>
                             <button id="landing-download-btn" type="button" title="تنزيل HTML"><i class="fas fa-download"></i></button>
+                            <button id="landing-close-preview-btn" type="button" title="إغلاق المعاينة"><i class="fas fa-xmark"></i></button>
                         </div>
                     </div>
 
                     <div id="landing-preview-view" class="landing-preview-view">
                         <div id="landing-empty-preview" class="landing-empty-preview">
-                            <span><i class="fas fa-window-maximize"></i></span><strong>ستظهر صفحتك هنا</strong><p>املأ المعلومات واختر النموذج ثم اضغط على «إنشاء صفحة الهبوط».</p>
+                            <span><i class="fas fa-window-maximize"></i></span><strong>ستظهر صفحتك هنا</strong><p>اكتب اسم المنتج ووصف الصفحة، ثم أرسل الطلب من خانة المحادثة.</p>
                         </div>
                         <div id="landing-preview-shell" class="landing-preview-shell hidden" data-device="desktop">
                             <div class="landing-browser-bar"><i></i><i></i><i></i><span>معاينة آمنة للصفحة</span></div>
@@ -442,7 +396,52 @@
                         </div>
                         <p class="landing-revision-note"><i class="fas fa-clock-rotate-left"></i> كل تعديل يُحفظ كنسخة جديدة، ويمكنك العودة إلى أي نسخة سابقة.</p>
                     </div>
+            </div>
+
+            <div class="landing-input-dock">
+                <div class="landing-required-row">
+                    <label class="landing-required-name" for="landing-product-name"><span><i class="fas fa-tag"></i> اسم المنتج أو العنصر <b>مطلوب</b></span><input id="landing-product-name" type="text" placeholder="مثال: AKLAKE Books" autocomplete="off" required></label>
+                    <button id="landing-assistant-toggle" class="landing-assistant-toggle" type="button" aria-expanded="false" aria-controls="landing-assistant-panel"><i class="fas fa-wand-magic-sparkles"></i><span>المساعد · تخصيص</span><i class="fas fa-chevron-down"></i></button>
                 </div>
+
+                <div id="landing-assistant-panel" class="landing-assistant-panel hidden" aria-hidden="true">
+                    <div class="landing-assistant-heading"><span><i class="fas fa-sliders"></i></span><div><strong>مساعد تصميم صفحة الهبوط</strong><small>كل الحقول اختيارية؛ اترك ما لا تحتاجه وسيستنتجه المصمم من البرومنت.</small></div></div>
+                    <div class="landing-form-grid">
+                        <label class="landing-field"><span>الجمهور المستهدف</span><input id="landing-audience" type="text" placeholder="مثال: الكتّاب وصنّاع المحتوى"></label>
+                        <label class="landing-field"><span>لغة الصفحة</span><select id="landing-language"><option value="العربية" selected>العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
+                        <label class="landing-field landing-field-wide"><span>وصف المنتج ومميزاته</span><textarea id="landing-product-details" rows="3" placeholder="اكتب المميزات والسعر والعرض والنتيجة التي يحصل عليها العميل..."></textarea></label>
+                        <label class="landing-field"><span>رقم الهاتف</span><input id="landing-phone" type="tel" dir="ltr" placeholder="+212 ..."></label>
+                        <label class="landing-field"><span>رقم واتساب</span><input id="landing-whatsapp" type="tel" dir="ltr" placeholder="+212 ..."></label>
+                        <label class="landing-field landing-field-wide"><span>رابط الزر الرئيسي</span><input id="landing-cta-url" type="url" dir="ltr" placeholder="https://example.com/order"></label>
+                    </div>
+                </div>
+
+                <input id="landing-reference-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,text/plain,text/markdown,text/csv,application/pdf" hidden>
+                <div id="landing-reference-preview" class="landing-reference-preview hidden">
+                    <span id="landing-reference-icon"><i class="far fa-file"></i></span>
+                    <div><strong id="landing-reference-title">ملف مرجعي</strong><small id="landing-reference-name"></small></div>
+                    <button id="landing-remove-reference-btn" type="button" aria-label="إزالة الملف"><i class="far fa-trash-can"></i></button>
+                </div>
+
+                <div class="landing-chat-composer">
+                    <button id="landing-attach-btn" class="landing-composer-side-btn" type="button" aria-label="إضافة صورة أو ملف" title="إضافة صورة أو ملف"><i class="fas fa-plus"></i></button>
+                    <textarea id="landing-main-prompt" rows="1" placeholder="صف صفحة الهبوط التي تريد إنشاءها..."></textarea>
+                    <button id="landing-generate-btn" class="landing-generate-btn" type="button" aria-label="إرسال طلب إنشاء صفحة الهبوط"><i class="fas fa-arrow-up"></i></button>
+                </div>
+
+                <div class="landing-composer-tools">
+                    <button id="landing-model-toggle" type="button" aria-expanded="false" aria-controls="landing-model-popover"><i class="fas fa-microchip"></i><span id="landing-active-model">GPT-4.1 mini</span><small id="landing-generate-cost">40 نقطة</small><i class="fas fa-chevron-up"></i></button>
+                    <span><i class="fas fa-paperclip"></i> يمكنك إضافة صورة أو ملف مرجعي</span>
+                </div>
+                <div id="landing-model-popover" class="landing-model-popover hidden" aria-hidden="true">
+                    <div class="landing-popover-heading"><div><span class="panel-eyebrow">MODEL ROUTER</span><strong>اختر نموذج إنشاء الصفحة</strong></div><button id="landing-close-model-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
+                    <div id="landing-model-cards" class="landing-model-cards" role="radiogroup" aria-label="نموذج إنشاء صفحة الهبوط">
+                        <button class="landing-model-card" type="button" data-landing-model="gpt-4o-mini" data-points="20" role="radio" aria-checked="false"><span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-4o mini</strong><small>اقتصادي للمسودات والصفحات المباشرة</small></span><b>20 نقطة</b></button>
+                        <button class="landing-model-card selected" type="button" data-landing-model="gpt-4.1-mini" data-points="40" role="radio" aria-checked="true"><span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-4.1 mini</strong><small>أفضل توازن للنسخة التسويقية والتصميم</small></span><b>40 نقطة</b></button>
+                        <button class="landing-model-card premium" type="button" data-landing-model="gpt-5.5" data-points="60" role="radio" aria-checked="false"><span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5.5 القياسي</strong><small>لصفحات البيع المعقدة والعمل المتقن</small></span><b>60 نقطة</b></button>
+                    </div>
+                </div>
+                <div id="landing-status" class="landing-status" aria-live="polite"></div>
             </div>
         </section>
 
