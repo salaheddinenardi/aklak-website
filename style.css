@@ -2685,3 +2685,126 @@ body::after { content: none !important; }
     .landing-assistant-panel .landing-form-grid { grid-template-columns: 1fr; }
     .landing-assistant-panel .landing-field-wide { grid-column: auto; }
 }
+
+/* =========================================================
+   LANDING PAGE — مساحة تمرير مستقلة وشريط إدخال ثابت
+   يجب أن تبقى هذه القواعد في نهاية الملف.
+   ========================================================= */
+.app-shell[data-action="landing_page"] {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+.app-shell[data-action="landing_page"] .workspace-main {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+.app-shell[data-action="landing_page"] #main-inputs-wrapper {
+    min-height: 0;
+    overflow: hidden;
+}
+.app-shell[data-action="landing_page"] .landing-page-studio {
+    width: min(820px, 100%);
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    margin: 0 auto;
+    padding: 0;
+    overflow: hidden;
+}
+.landing-scroll-area {
+    min-height: 0;
+    flex: 1 1 auto;
+    padding: 10px 4px 24px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+.landing-input-dock {
+    position: relative;
+    bottom: auto;
+    flex: 0 0 auto;
+    z-index: 40;
+    padding: 12px 4px 10px;
+    background: linear-gradient(180deg, rgba(1,8,5,.25), rgba(1,8,5,.98) 16%, rgba(1,8,5,1));
+    border-top: 1px solid rgba(121,226,173,.1);
+    box-shadow: 0 -18px 42px rgba(0,0,0,.22);
+}
+.landing-input-dock .landing-assistant-panel {
+    max-height: min(46vh, 420px);
+    overflow-y: auto;
+}
+.landing-input-dock .landing-model-popover {
+    width: min(520px, calc(100% - 8px));
+    max-height: min(72vh, 610px);
+    position: absolute;
+    right: 4px;
+    bottom: calc(100% + 8px);
+    overflow-y: auto;
+}
+.landing-model-popover .landing-model-description {
+    margin: 8px 0 12px;
+    color: #a9c9b8;
+    font-size: .78rem;
+}
+.landing-model-popover .landing-model-cards {
+    max-height: 290px;
+}
+.landing-model-popover .landing-model-card {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    min-height: 54px;
+}
+.landing-model-popover .landing-model-card.selected {
+    background: rgba(121,226,173,.14);
+    border-color: var(--green-bright);
+}
+.landing-model-popover .landing-model-card.premium.selected {
+    border-color: rgba(255,174,98,.72);
+}
+.landing-remember-model-card {
+    grid-template-columns: 34px minmax(0,1fr) auto;
+}
+.landing-remember-toggle-icon {
+    color: #8b9691;
+    font-size: 1.7rem;
+    transition: color .2s ease, transform .2s ease;
+}
+.landing-remember-model-card:has(input:checked) {
+    background: rgba(255,174,98,.09);
+    border-color: rgba(255,174,98,.5);
+}
+.landing-remember-model-card:has(input:checked) .memory-card-icon,
+.landing-remember-model-card:has(input:checked) .landing-remember-toggle-icon {
+    color: var(--token-orange);
+}
+.landing-remember-model-card:has(input:checked) .landing-remember-toggle-icon {
+    transform: scale(1.04);
+}
+
+@media (max-width: 720px) {
+    .app-shell[data-action="landing_page"] .workspace-main {
+        padding-bottom: 0;
+    }
+    .app-shell[data-action="landing_page"] .landing-page-studio {
+        margin: 0 auto;
+        padding: 0;
+    }
+    .landing-scroll-area {
+        padding: 4px 0 16px;
+        scrollbar-gutter: auto;
+    }
+    .landing-input-dock {
+        padding: 9px 0 6px;
+    }
+    .landing-input-dock .landing-model-popover {
+        width: 100%;
+        right: 0;
+        bottom: calc(100% + 5px);
+        max-height: min(68vh, 560px);
+    }
+}

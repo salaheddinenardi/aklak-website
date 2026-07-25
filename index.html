@@ -306,6 +306,7 @@
         </section>
 
         <section id="landing-page-studio" class="landing-page-studio hidden" aria-label="مولد صفحات الهبوط">
+            <div class="landing-scroll-area">
             <div class="landing-chat-toolbar">
                 <button id="landing-projects-toggle" type="button" aria-expanded="false" aria-controls="landing-projects-panel"><i class="far fa-folder-open"></i><span>صفحاتي</span></button>
                 <button id="landing-new-project-btn" type="button"><i class="fas fa-plus"></i><span>صفحة جديدة</span></button>
@@ -397,6 +398,7 @@
                         <p class="landing-revision-note"><i class="fas fa-clock-rotate-left"></i> كل تعديل يُحفظ كنسخة جديدة، ويمكنك العودة إلى أي نسخة سابقة.</p>
                     </div>
             </div>
+            </div>
 
             <div class="landing-input-dock">
                 <div class="landing-required-row">
@@ -433,13 +435,21 @@
                     <button id="landing-model-toggle" type="button" aria-expanded="false" aria-controls="landing-model-popover"><i class="fas fa-microchip"></i><span id="landing-active-model">GPT-4.1 mini</span><small id="landing-generate-cost">40 نقطة</small><i class="fas fa-chevron-up"></i></button>
                     <span><i class="fas fa-paperclip"></i> يمكنك إضافة صورة أو ملف مرجعي</span>
                 </div>
-                <div id="landing-model-popover" class="landing-model-popover hidden" aria-hidden="true">
-                    <div class="landing-popover-heading"><div><span class="panel-eyebrow">MODEL ROUTER</span><strong>اختر نموذج إنشاء الصفحة</strong></div><button id="landing-close-model-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
-                    <div id="landing-model-cards" class="landing-model-cards" role="radiogroup" aria-label="نموذج إنشاء صفحة الهبوط">
-                        <button class="landing-model-card" type="button" data-landing-model="gpt-4o-mini" data-points="20" role="radio" aria-checked="false"><span class="landing-model-icon"><i class="fas fa-leaf"></i></span><span><strong>GPT-4o mini</strong><small>اقتصادي للمسودات والصفحات المباشرة</small></span><b>20 نقطة</b></button>
-                        <button class="landing-model-card selected" type="button" data-landing-model="gpt-4.1-mini" data-points="40" role="radio" aria-checked="true"><span class="landing-model-icon"><i class="fas fa-layer-group"></i></span><span><strong>GPT-4.1 mini</strong><small>أفضل توازن للنسخة التسويقية والتصميم</small></span><b>40 نقطة</b></button>
-                        <button class="landing-model-card premium" type="button" data-landing-model="gpt-5.5" data-points="60" role="radio" aria-checked="false"><span class="landing-model-icon"><i class="fas fa-gem"></i></span><span><strong>GPT-5.5 القياسي</strong><small>لصفحات البيع المعقدة والعمل المتقن</small></span><b>60 نقطة</b></button>
+                <div id="landing-model-popover" class="landing-model-popover model-chooser-popover hidden" aria-hidden="true">
+                    <div class="model-chooser-heading"><div><span class="panel-eyebrow">MODEL ROUTER</span><h3>اختر نموذج إنشاء الصفحة</h3></div><button id="landing-close-model-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
+                    <p class="landing-model-description">سيُستخدم النموذج المختار لإنشاء الصفحة وتعديلها عبر الكود الوظيفي الثاني.</p>
+                    <div id="landing-model-cards" class="landing-model-cards model-choices-list" role="radiogroup" aria-label="نموذج إنشاء صفحة الهبوط">
+                        <button class="landing-model-card model-choice-card" type="button" data-landing-model="gpt-4o-mini" data-points="20" role="radio" aria-checked="false"><span class="model-choice-icon"><i class="fas fa-leaf"></i></span><span class="model-choice-copy"><strong>GPT-4o mini</strong><small>اقتصادي للمسودات والصفحات المباشرة</small></span><span class="model-choice-cost">20 نقطة</span></button>
+                        <button class="landing-model-card model-choice-card selected" type="button" data-landing-model="gpt-4.1-mini" data-points="40" role="radio" aria-checked="true"><span class="model-choice-icon"><i class="fas fa-layer-group"></i></span><span class="model-choice-copy"><strong>GPT-4.1 mini</strong><small>أفضل توازن للنسخة التسويقية والتصميم</small></span><span class="model-choice-cost">40 نقطة</span></button>
+                        <button class="landing-model-card model-choice-card premium" type="button" data-landing-model="gpt-5.5" data-points="60" role="radio" aria-checked="false"><span class="model-choice-icon"><i class="fas fa-gem"></i></span><span class="model-choice-copy"><strong>GPT-5.5 القياسي</strong><small>لصفحات البيع المعقدة والعمل المتقن</small></span><span class="model-choice-cost">60 نقطة</span></button>
                     </div>
+                    <label class="remember-model-card landing-remember-model-card">
+                        <input id="landing-remember-model-toggle" type="checkbox">
+                        <span class="memory-card-icon"><i class="fas fa-memory"></i></span>
+                        <span><strong>تذكّر اختياري</strong></span>
+                        <i class="fas fa-toggle-off landing-remember-toggle-icon"></i>
+                    </label>
+                    <button id="landing-confirm-model-btn" class="confirm-model-choice-btn" type="button"><i class="fas fa-check"></i> اعتماد الاختيار</button>
                 </div>
                 <div id="landing-status" class="landing-status" aria-live="polite"></div>
             </div>
@@ -669,3 +679,4 @@
 <script src="app.js"></script>
 </body>
 </html>
+

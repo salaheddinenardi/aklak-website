@@ -1483,6 +1483,8 @@ const landingState = {
     sourceBookId: '',
     selectedModel: 'gpt-4.1-mini',
     selectedPoints: 40,
+    pendingModel: 'gpt-4.1-mini',
+    pendingPoints: 40,
     busy: false,
     referenceAttachment: null,
     previewOpen: false
@@ -1520,6 +1522,9 @@ function cacheLandingUI() {
         modelToggle: landingElement('landing-model-toggle'),
         modelPopover: landingElement('landing-model-popover'),
         closeModelBtn: landingElement('landing-close-model-btn'),
+        rememberModelToggle: landingElement('landing-remember-model-toggle'),
+        rememberModelIcon: document.querySelector('.landing-remember-toggle-icon'),
+        confirmModelBtn: landingElement('landing-confirm-model-btn'),
         activeModel: landingElement('landing-active-model'),
         generateBtn: landingElement('landing-generate-btn'),
         generateCost: landingElement('landing-generate-cost'),
@@ -1570,6 +1575,10 @@ function setLandingProjectsOpen(open) {
 
 function setLandingModelPopoverOpen(open) {
     const expanded = Boolean(open);
+    if (expanded) {
+        setLandingPendingModel(landingState.selectedModel);
+        syncLandingRememberModelUI();
+    }
     landingUI.modelPopover?.classList.toggle('hidden', !expanded);
     landingUI.modelPopover?.setAttribute('aria-hidden', String(!expanded));
     landingUI.modelToggle?.setAttribute('aria-expanded', String(expanded));
@@ -1699,7 +1708,9 @@ function createLandingId(prefix) {
 function loadLandingProjects() {
     try {
         const stored = JSON.parse(localStorage.getItem(LANDING_STORAGE_KEY) || '[]');
-        landingState.projects = Array.isArray(stored) ? stored : [];
+        landingState.projects = Array.isArray(stored)
+            ? stored.map(function(project) { return normalizeLandingProject(project); })
+            : [];
     } catch (error) {
         landingState.projects = [];
     }
@@ -1771,7 +1782,7 @@ async function ensureLandingProjectLoaded(project) {
     if (!response || !response.success || !response.project) {
         throw new Error(response?.error || 'تعذر تحميل نسخ صفحة الهبوط.');
     }
-    const loaded = Object.assign({}, response.project, { loadedFromServer: true });
+    const loaded = normalizeLandingProject(Object.assign({}, response.project, { loadedFromServer: true }));
     replaceLandingProject(loaded);
     persistLandingProjects();
     return loaded;
@@ -1884,7 +1895,8 @@ function startNewLandingProject() {
     setLandingPreviewOpen(false);
     setLandingAssistantOpen(false);
     setLandingModelPopoverOpen(false);
-    setLandingModel('gpt-4.1-mini', 40);
+    const rememberedModel = readLandingRememberedModel();
+    setLandingModel(rememberedModel ? rememberedModel.model : 'gpt-4.1-mini');
     showLandingVersion(null);
     setLandingStatus('اكتب اسم المنتج ووصف الصفحة، ثم أرسل الطلب.', 'info');
     renderLandingProjects();
@@ -1912,7 +1924,13 @@ async function openLandingProject(projectId) {
     setLandingPreviewOpen(false);
     setLandingProjectsOpen(false);
     if (versions.length) showLandingComplete(project.title);
-    setLandingStatus('تم فتح «' + (project.title || 'صفحة هبوط') + '».', 'success');
+    if (versions.length) {
+        setLandingStatus('تم فتح «' + (project.title || 'صفحة هبوط') + '».', 'success');
+    } else if (project.blockedVersionCount) {
+        setLandingStatus('تم فتح المشروع، لكن أُخفيت النسخة غير الآمنة لأنها تحتوي على واجهة AKLAKE الأصلية.', 'error');
+    } else {
+        setLandingStatus('تم فتح المشروع، ولا توجد نسخة HTML محفوظة فيه بعد.', 'info');
+    }
     renderLandingProjects();
 }
 
@@ -1938,9 +1956,73 @@ async function deleteLandingProject(projectId) {
     else renderLandingProjects();
 }
 
-function setLandingModel(model, points) {
+function readLandingRememberedModel() {
+    const remembered = readRememberedModels().landing_page;
+    if (!remembered || remembered.provider !== 'openai') return null;
+    return Object.prototype.hasOwnProperty.call(LANDING_MODEL_POINTS, remembered.model)
+        ? remembered
+        : null;
+}
+
+function syncLandingRememberModelUI() {
+    const remembered = readLandingRememberedModel();
+    if (landingUI.rememberModelToggle) landingUI.rememberModelToggle.checked = Boolean(remembered);
+    if (landingUI.rememberModelIcon) {
+        landingUI.rememberModelIcon.classList.toggle('fa-toggle-on', Boolean(remembered));
+        landingUI.rememberModelIcon.classList.toggle('fa-toggle-off', !remembered);
+    }
+}
+
+function updateLandingRememberModelIcon() {
+    const checked = Boolean(landingUI.rememberModelToggle?.checked);
+    if (landingUI.rememberModelIcon) {
+        landingUI.rememberModelIcon.classList.toggle('fa-toggle-on', checked);
+        landingUI.rememberModelIcon.classList.toggle('fa-toggle-off', !checked);
+    }
+}
+
+function setLandingPendingModel(model) {
+    landingState.pendingModel = Object.prototype.hasOwnProperty.call(LANDING_MODEL_POINTS, model)
+        ? model
+        : landingState.selectedModel;
+    landingState.pendingPoints = LANDING_MODEL_POINTS[landingState.pendingModel];
+    if (landingUI.modelCards) {
+        landingUI.modelCards.querySelectorAll('[data-landing-model]').forEach(function(card) {
+            const selected = card.dataset.landingModel === landingState.pendingModel;
+            card.classList.toggle('selected', selected);
+            card.setAttribute('aria-checked', selected ? 'true' : 'false');
+        });
+    }
+    if (landingUI.confirmModelBtn) landingUI.confirmModelBtn.disabled = !landingState.pendingModel;
+}
+
+function rememberLandingModelChoice() {
+    const rememberedModels = readRememberedModels();
+    if (landingUI.rememberModelToggle?.checked) {
+        rememberedModels.landing_page = {
+            provider: 'openai',
+            model: landingState.selectedModel,
+            source: SECOND_FUNCTION_ID
+        };
+    } else {
+        delete rememberedModels.landing_page;
+    }
+    writeRememberedModels(rememberedModels);
+    syncLandingRememberModelUI();
+}
+
+function confirmLandingModelChoice() {
+    setLandingModel(landingState.pendingModel || landingState.selectedModel);
+    rememberLandingModelChoice();
+    setLandingModelPopoverOpen(false);
+    setLandingStatus('تم اعتماد نموذج «' + (LANDING_MODEL_NAMES[landingState.selectedModel] || landingState.selectedModel) + '».', 'success');
+}
+
+function setLandingModel(model) {
     landingState.selectedModel = Object.prototype.hasOwnProperty.call(LANDING_MODEL_POINTS, model) ? model : 'gpt-4.1-mini';
     landingState.selectedPoints = LANDING_MODEL_POINTS[landingState.selectedModel];
+    landingState.pendingModel = landingState.selectedModel;
+    landingState.pendingPoints = landingState.selectedPoints;
     if (landingUI.modelCards) {
         landingUI.modelCards.querySelectorAll('[data-landing-model]').forEach(function(card) {
             const selected = card.dataset.landingModel === landingState.selectedModel;
@@ -2005,13 +2087,78 @@ function cleanLandingHtml(value) {
     return html.trim();
 }
 
+function validateLandingHtml(value) {
+    const html = cleanLandingHtml(value);
+    if (!html || !/<html[\s>]/i.test(html) || !/<body[\s>]/i.test(html)) {
+        return {
+            valid: false,
+            html: '',
+            error: 'النتيجة ليست وثيقة HTML كاملة، لذلك لم تُعرض داخل المعاينة.'
+        };
+    }
+
+    const aklakeShellMarkers = [
+        /id\s*=\s*["']app-shell["']/i,
+        /id\s*=\s*["']main-inputs-wrapper["']/i,
+        /id\s*=\s*["']landing-page-studio["']/i,
+        /id\s*=\s*["']source-select["']/i,
+        /<script[^>]+src\s*=\s*["'][^"']*(?:app|workspace)\.js(?:[?#][^"']*)?["']/i
+    ];
+    if (aklakeShellMarkers.some(function(marker) { return marker.test(html); })) {
+        return {
+            valid: false,
+            html: '',
+            error: 'تم منع هذه النسخة لأنها تحتوي على واجهة موقع AKLAKE الأصلية بدل كود صفحة الهبوط.'
+        };
+    }
+
+    return { valid: true, html: html, error: '' };
+}
+
 function extractLandingHtml(responseData) {
     if (!responseData) return '';
-    const candidate = responseData.html || responseData.code || responseData.data || responseData.result || '';
+    const candidate = responseData.html || responseData.code || responseData.content ||
+        responseData.output || responseData.data || responseData.result || '';
+    let value = candidate;
     if (candidate && typeof candidate === 'object') {
-        return cleanLandingHtml(candidate.html || candidate.code || candidate.content || '');
+        value = candidate.html || candidate.code || candidate.content || candidate.output || '';
     }
-    return cleanLandingHtml(candidate);
+    const validation = validateLandingHtml(value);
+    if (!validation.valid) throw new Error(validation.error);
+    return validation.html;
+}
+
+function normalizeLandingProject(sourceProject, fallbackHtml) {
+    const project = Object.assign({}, sourceProject || {});
+    const sourceVersions = Array.isArray(project.versions) ? project.versions : [];
+    const safeVersions = [];
+    let blockedVersionCount = 0;
+
+    sourceVersions.forEach(function(version) {
+        const validation = validateLandingHtml(version && version.html);
+        if (!validation.valid) {
+            blockedVersionCount += 1;
+            return;
+        }
+        safeVersions.push(Object.assign({}, version, { html: validation.html }));
+    });
+
+    const fallbackValidation = validateLandingHtml(fallbackHtml);
+    if (fallbackValidation.valid && !safeVersions.some(function(version) {
+        return version.html === fallbackValidation.html;
+    })) {
+        safeVersions.push({
+            id: createLandingId('version'),
+            html: fallbackValidation.html,
+            label: safeVersions.length ? 'النسخة الأحدث' : 'النسخة الأولى',
+            createdAt: Date.now()
+        });
+    }
+
+    project.versions = safeVersions;
+    project.versionCount = safeVersions.length;
+    project.blockedVersionCount = blockedVersionCount;
+    return project;
 }
 
 async function requestLandingPage(mode, form, instruction, currentHtml) {
@@ -2060,6 +2207,9 @@ async function requestLandingPage(mode, form, instruction, currentHtml) {
 }
 
 function saveLandingVersion(html, label, form) {
+    const validation = validateLandingHtml(html);
+    if (!validation.valid) throw new Error(validation.error);
+    html = validation.html;
     let project = getActiveLandingProject();
     const now = Date.now();
     if (!project) {
@@ -2095,9 +2245,13 @@ function saveLandingVersion(html, label, form) {
     showLandingVersion(project.versions[landingState.currentVersionIndex]);
 }
 
-function acceptLandingProjectFromServer(serverProject, previousProjectId) {
+function acceptLandingProjectFromServer(serverProject, previousProjectId, fallbackHtml) {
     if (!serverProject || !serverProject.id) return false;
-    const project = Object.assign({}, serverProject, { loadedFromServer: true });
+    const project = normalizeLandingProject(
+        Object.assign({}, serverProject, { loadedFromServer: true }),
+        fallbackHtml
+    );
+    if (!project.versions.length) return false;
     if (previousProjectId && previousProjectId !== project.id) {
         landingState.projects = landingState.projects.filter(function(item) { return item.id !== previousProjectId; });
     }
@@ -2111,14 +2265,18 @@ function acceptLandingProjectFromServer(serverProject, previousProjectId) {
 }
 
 function showLandingVersion(version) {
-    const hasVersion = Boolean(version && version.html);
+    const validation = validateLandingHtml(version && version.html);
+    const hasVersion = validation.valid;
     if (landingUI.emptyPreview) landingUI.emptyPreview.classList.toggle('hidden', hasVersion);
     if (landingUI.previewShell) landingUI.previewShell.classList.toggle('hidden', !hasVersion);
     if (landingUI.revisionPanel) landingUI.revisionPanel.classList.toggle('hidden', !hasVersion);
-    if (landingUI.previewFrame) landingUI.previewFrame.srcdoc = hasVersion ? version.html : '';
-    if (landingUI.codeEditor) landingUI.codeEditor.value = hasVersion ? version.html : '';
+    if (landingUI.previewFrame) landingUI.previewFrame.srcdoc = hasVersion ? validation.html : '';
+    if (landingUI.codeEditor) landingUI.codeEditor.value = hasVersion ? validation.html : '';
     if (hasVersion) showLandingComplete(getActiveLandingProject()?.title, false);
-    else landingUI.completeCard?.classList.add('hidden');
+    else {
+        landingUI.completeCard?.classList.add('hidden');
+        if (version && version.html) setLandingStatus(validation.error, 'error');
+    }
     updateLandingVersionNavigation();
 }
 
@@ -2191,7 +2349,7 @@ async function generateLandingPage() {
         if (!responseData.success) throw new Error(responseData.error || 'لم ينجح إنشاء الصفحة.');
         const html = extractLandingHtml(responseData);
         if (!html) throw new Error('وصل رد من الخادم لكنه لا يحتوي على كود HTML صالح.');
-        if (!acceptLandingProjectFromServer(responseData.project, previousProjectId)) {
+        if (!acceptLandingProjectFromServer(responseData.project, previousProjectId, html)) {
             saveLandingVersion(html, 'النسخة الأولى', form);
         }
         if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(responseData.remainingTokens);
@@ -2242,7 +2400,7 @@ async function reviseLandingPage() {
         if (!responseData.success) throw new Error(responseData.error || 'لم ينجح تعديل الصفحة.');
         const html = extractLandingHtml(responseData);
         if (!html) throw new Error('لم يُرجع الخادم كود HTML صالحًا بعد التعديل.');
-        if (!acceptLandingProjectFromServer(responseData.project, previousProjectId)) {
+        if (!acceptLandingProjectFromServer(responseData.project, previousProjectId, html)) {
             saveLandingVersion(html, 'تعديل: ' + instruction.slice(0, 55), form);
         }
         if (landingUI.revisionPrompt) landingUI.revisionPrompt.value = '';
@@ -2260,11 +2418,12 @@ async function reviseLandingPage() {
 }
 
 async function applyLandingCodeManually() {
-    const html = cleanLandingHtml(landingUI.codeEditor ? landingUI.codeEditor.value : '');
-    if (!html || !/<html[\s>]/i.test(html)) {
-        setLandingStatus('المحرر لا يحتوي على وثيقة HTML كاملة صالحة للمعاينة.', 'error');
+    const validation = validateLandingHtml(landingUI.codeEditor ? landingUI.codeEditor.value : '');
+    if (!validation.valid) {
+        setLandingStatus(validation.error, 'error');
         return;
     }
+    const html = validation.html;
     const form = collectLandingForm();
     const project = getActiveLandingProject();
     const baseVersion = project && project.versions ? project.versions[landingState.currentVersionIndex] : null;
@@ -2282,7 +2441,7 @@ async function applyLandingCodeManually() {
         if (baseVersion?.id) payload.baseVersionId = baseVersion.id;
         const response = await executeRequest(payload);
         setLandingBusy(false);
-        if (response && response.success && acceptLandingProjectFromServer(response.project, project?.id)) {
+        if (response && response.success && acceptLandingProjectFromServer(response.project, project?.id, html)) {
             showLandingView('preview');
             setLandingStatus('تم تطبيق الكود وحفظه كنسخة جديدة في حسابك.', 'success');
             return;
@@ -2389,11 +2548,14 @@ function initLandingPageStudio() {
     if (landingUI.modelCards) {
         landingUI.modelCards.querySelectorAll('[data-landing-model]').forEach(function(card) {
             card.addEventListener('click', function() {
-                setLandingModel(card.dataset.landingModel, Number(card.dataset.points));
-                setLandingModelPopoverOpen(false);
+                setLandingPendingModel(card.dataset.landingModel);
             });
         });
     }
+    if (landingUI.rememberModelToggle) {
+        landingUI.rememberModelToggle.addEventListener('change', updateLandingRememberModelIcon);
+    }
+    if (landingUI.confirmModelBtn) landingUI.confirmModelBtn.addEventListener('click', confirmLandingModelChoice);
     if (landingUI.generateBtn) landingUI.generateBtn.addEventListener('click', generateLandingPage);
     if (landingUI.reviseBtn) landingUI.reviseBtn.addEventListener('click', reviseLandingPage);
     if (landingUI.applyCodeBtn) landingUI.applyCodeBtn.addEventListener('click', applyLandingCodeManually);
@@ -2429,7 +2591,9 @@ function initLandingPageStudio() {
         });
     }
 
-    setLandingModel('gpt-4.1-mini', 40);
+    const rememberedModel = readLandingRememberedModel();
+    setLandingModel(rememberedModel ? rememberedModel.model : 'gpt-4.1-mini');
+    syncLandingRememberModelUI();
     setLandingAssistantOpen(false);
     setLandingProjectsOpen(false);
     setLandingModelPopoverOpen(false);
