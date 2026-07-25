@@ -2358,7 +2358,7 @@ async function generateLandingPage() {
     requiredNameField?.classList.remove('has-error');
     if (!form.productName) {
         requiredNameField?.classList.add('has-error');
-        setLandingStatus('اكتب اسم المنتج أو العنصر أولاً؛ سيُستخدم لحفظ صفحة الهبوط وتعريفها.', 'error');
+        setLandingStatus('', '');
         landingUI.productName?.focus();
         return;
     }
