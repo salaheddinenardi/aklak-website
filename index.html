@@ -400,7 +400,7 @@
             </div>
             </div>
 
-            <div class="landing-input-dock">
+            <div class="landing-input-dock composer-wrap">
                 <div class="landing-required-row">
                     <label class="landing-required-name" for="landing-product-name"><span><i class="fas fa-tag"></i> اسم المنتج أو العنصر <b>مطلوب</b></span><input id="landing-product-name" type="text" placeholder="مثال: AKLAKE Books" autocomplete="off" required></label>
                     <button id="landing-assistant-toggle" class="landing-assistant-toggle" type="button" aria-expanded="false" aria-controls="landing-assistant-panel"><i class="fas fa-wand-magic-sparkles"></i><span>المساعد · تخصيص</span><i class="fas fa-chevron-down"></i></button>
@@ -425,13 +425,13 @@
                     <button id="landing-remove-reference-btn" type="button" aria-label="إزالة الملف"><i class="far fa-trash-can"></i></button>
                 </div>
 
-                <div class="landing-chat-composer">
-                    <button id="landing-attach-btn" class="landing-composer-side-btn" type="button" aria-label="إضافة صورة أو ملف" title="إضافة صورة أو ملف"><i class="fas fa-plus"></i></button>
+                <div class="landing-chat-composer composer">
+                    <button id="landing-attach-btn" class="landing-composer-side-btn composer-side-btn" type="button" aria-label="إضافة صورة أو ملف" title="إضافة صورة أو ملف"><i class="fas fa-plus"></i></button>
                     <textarea id="landing-main-prompt" rows="1" placeholder="صف صفحة الهبوط التي تريد إنشاءها..."></textarea>
-                    <button id="landing-generate-btn" class="landing-generate-btn" type="button" aria-label="إرسال طلب إنشاء صفحة الهبوط"><i class="fas fa-arrow-up"></i></button>
+                    <button id="landing-generate-btn" class="landing-generate-btn composer-send-btn" type="button" aria-label="إرسال طلب إنشاء صفحة الهبوط"><i class="fas fa-arrow-up"></i></button>
                 </div>
 
-                <div class="landing-composer-tools">
+                <div class="landing-composer-tools composer-tools">
                     <button id="landing-model-toggle" type="button" aria-expanded="false" aria-controls="landing-model-popover"><i class="fas fa-microchip"></i><span id="landing-active-model">GPT-4.1 mini</span><small id="landing-generate-cost">40 نقطة</small><i class="fas fa-chevron-up"></i></button>
                     <span><i class="fas fa-paperclip"></i> يمكنك إضافة صورة أو ملف مرجعي</span>
                 </div>
@@ -488,7 +488,7 @@
             <div class="composer">
                 <button id="composer-attach-btn" class="composer-side-btn" type="button" aria-label="إرفاق صورة للتعديل" title="إرفاق صورة"><i class="fas fa-plus"></i></button>
                 <textarea id="main-prompt" rows="1" placeholder="اكتب رسالتك هنا..."></textarea>
-                <button id="send-btn" type="button" aria-label="إرسال الطلب"><i class="fas fa-arrow-up"></i></button>
+                <button id="send-btn" class="composer-send-btn" type="button" aria-label="إرسال الطلب"><i class="fas fa-arrow-up"></i></button>
             </div>
             <div class="composer-tools">
                 <button id="composer-model-btn" type="button"><i class="fas fa-microchip"></i><span id="active-model-label">اختيار النموذج</span><i class="fas fa-chevron-up"></i></button>

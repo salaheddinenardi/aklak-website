@@ -600,9 +600,9 @@ window.selectAITool = function(action) {
 const ARTWORKS_STORAGE_KEY = 'aklake_artworks_v1';
 const ART_CART_STORAGE_KEY = 'aklake_art_cart_v1';
 const ART_SIZE_INFO = {
-    large: { label: 'لوحة كبيرة', width: 44, height: 60, verticalWidth: 21, verticalHeight: 73, price: 79 },
-    medium: { label: 'لوحة متوسطة', width: 36, height: 49, verticalWidth: 18, verticalHeight: 63, price: 59 },
-    small: { label: 'لوحة صغيرة', width: 30, height: 41, verticalWidth: 15, verticalHeight: 52, price: 39 }
+    large: { label: 'لوحة كبيرة', width: 44, height: 60, verticalWidth: 27.5, verticalHeight: 96, price: 79 },
+    medium: { label: 'لوحة متوسطة', width: 36, height: 49, verticalWidth: 22.5, verticalHeight: 78.4, price: 59 },
+    small: { label: 'لوحة صغيرة', width: 30, height: 41, verticalWidth: 18.75, verticalHeight: 65.6, price: 39 }
 };
 
 let artFrames = [];
@@ -663,17 +663,17 @@ function getArtFrameMetrics(frameOrSize, orientation) {
 
     if (window.innerWidth <= 720) {
         const mobile = {
-            large: { horizontal: [60, 33], vertical: [33, 44] },
-            medium: { horizontal: [52, 28], vertical: [28, 38] },
-            small: { horizontal: [44, 24], vertical: [24, 33] }
+            large: { horizontal: [60, 33], vertical: [37.5, 52.8] },
+            medium: { horizontal: [52, 28], vertical: [32.5, 44.8] },
+            small: { horizontal: [44, 24], vertical: [27.5, 38.4] }
         }[size];
         return { width: mobile[direction][0], height: mobile[direction][1] };
     }
     if (window.innerWidth <= 980) {
         const tablet = {
-            large: { horizontal: [52, 55], vertical: [30, 82] },
-            medium: { horizontal: [44, 47], vertical: [25, 69] },
-            small: { horizontal: [36, 38], vertical: [21, 58] }
+            large: { horizontal: [52, 55], vertical: [32.5, 88] },
+            medium: { horizontal: [44, 47], vertical: [27.5, 75.2] },
+            small: { horizontal: [36, 38], vertical: [22.5, 60.8] }
         }[size];
         return { width: tablet[direction][0], height: tablet[direction][1] };
     }
@@ -957,16 +957,20 @@ function rotateArtFrame(frame) {
     const previousOrientation = frame.orientation;
     const previousX = frame.x;
     const previousY = frame.y;
+    const previousMetrics = getArtFrameMetrics(frame);
+    const centerX = frame.x + (previousMetrics.width / 2);
+    const centerY = frame.y + (previousMetrics.height / 2);
     frame.orientation = frame.orientation === 'horizontal' ? 'vertical' : 'horizontal';
     renderArtFrame(frame);
 
     requestAnimationFrame(function() {
         const metrics = getArtFrameMetrics(frame);
-        frame.x = Math.max(0, Math.min(100 - metrics.width, frame.x));
-        frame.y = Math.max(0, Math.min(100 - metrics.height, frame.y));
+        const cannotFit = metrics.width > 100 || metrics.height > 100;
+        frame.x = Math.max(0, Math.min(100 - metrics.width, centerX - (metrics.width / 2)));
+        frame.y = Math.max(0, Math.min(100 - metrics.height, centerY - (metrics.height / 2)));
         frame.element.style.left = frame.x + '%';
         frame.element.style.top = frame.y + '%';
-        if (positionCollides(frame.id, frame.x, frame.y, frame.size, frame.orientation)) {
+        if (cannotFit || positionCollides(frame.id, frame.x, frame.y, frame.size, frame.orientation)) {
             frame.orientation = previousOrientation;
             frame.x = previousX;
             frame.y = previousY;
