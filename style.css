@@ -1258,7 +1258,7 @@ body::after {
     min-height: 760px;
     background-image:
         linear-gradient(180deg, rgba(5,12,9,.02), rgba(5,12,9,.08)),
-        url('background minimal plant.jpg'),
+        url('https://i.ibb.co/Jw0tXBgf/93434740ef44485e986903584f4076eb.jpg'),
         linear-gradient(180deg, #d7d2c8 0 78%, #756e64 78% 100%);
     background-size: cover;
     background-repeat: no-repeat;
@@ -1281,14 +1281,14 @@ body::after {
     box-shadow: none;
     cursor: default;
     overflow: visible;
-    transition: width .2s ease, left .15s ease, top .15s ease;
+    transition: left .15s ease, top .15s ease;
 }
 .art-frame.large { width: 44%; aspect-ratio: auto; }
 .art-frame.medium { width: 36%; aspect-ratio: auto; }
 .art-frame.small { width: 30%; aspect-ratio: auto; }
-.art-frame.orientation-vertical.large { width: 21%; }
-.art-frame.orientation-vertical.medium { width: 18%; }
-.art-frame.orientation-vertical.small { width: 15%; }
+.art-frame.orientation-vertical.large { width: 27.5%; }
+.art-frame.orientation-vertical.medium { width: 22.5%; }
+.art-frame.orientation-vertical.small { width: 18.75%; }
 .art-frame.selected { outline: 0; box-shadow: none; }
 .art-frame.selected .art-frame-canvas { outline: 2px solid var(--green-bright); outline-offset: 3px; }
 .art-frame.collision .art-frame-canvas { outline: 3px solid #ff7d86; outline-offset: 2px; }
@@ -1413,9 +1413,9 @@ body::after {
     .art-frame.large { width: 52%; }
     .art-frame.medium { width: 44%; }
     .art-frame.small { width: 36%; }
-    .art-frame.orientation-vertical.large { width: 30%; }
-    .art-frame.orientation-vertical.medium { width: 25%; }
-    .art-frame.orientation-vertical.small { width: 21%; }
+    .art-frame.orientation-vertical.large { width: 32.5%; }
+    .art-frame.orientation-vertical.medium { width: 27.5%; }
+    .art-frame.orientation-vertical.small { width: 22.5%; }
 }
 
 @media (max-width: 720px) {
@@ -1426,9 +1426,9 @@ body::after {
     .art-frame.large { width: 60%; }
     .art-frame.medium { width: 52%; }
     .art-frame.small { width: 44%; }
-    .art-frame.orientation-vertical.large { width: 33%; }
-    .art-frame.orientation-vertical.medium { width: 28%; }
-    .art-frame.orientation-vertical.small { width: 24%; }
+    .art-frame.orientation-vertical.large { width: 37.5%; }
+    .art-frame.orientation-vertical.medium { width: 32.5%; }
+    .art-frame.orientation-vertical.small { width: 27.5%; }
     .art-frame-toolbar button, .art-frame-actions button { padding: 4px 5px; font-size: .62rem; }
     .frame-size-picker { grid-template-columns: repeat(3,1fr); }
     .replace-choice-grid { grid-template-columns: 1fr; }
