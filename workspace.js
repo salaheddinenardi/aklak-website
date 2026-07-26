@@ -2996,6 +2996,86 @@ function showWebsiteView(view) {
     document.querySelectorAll('[data-website-view]').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.websiteView === view); });
 }
 
+function createWebsiteJobId() {
+    const stamp = Date.now().toString(36);
+    const random = Math.random().toString(36).slice(2, 10);
+    return ('web_' + stamp + '_' + random).slice(0, 36);
+}
+
+function waitWebsite(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+async function fetchWebsiteJobStatus(jobId) {
+    const statusExecution = await appwriteFunctions.createExecution(
+        FIRST_FUNCTION_ID,
+        JSON.stringify({
+            userId: currentUser.$id,
+            prompt: 'status',
+            provider: 'internal',
+            mode: 'website_job_status',
+            operation: 'status',
+            jobId: jobId
+        }),
+        false, '/', 'POST', { 'Content-Type': 'application/json' }
+    );
+    let data = null;
+    try { data = statusExecution.responseBody ? JSON.parse(statusExecution.responseBody) : null; }
+    catch (error) { throw new Error('تعذر قراءة حالة مهمة إنشاء الموقع.'); }
+    if (statusExecution.status === 'failed' || Number(statusExecution.responseStatusCode || 200) >= 400) {
+        throw new Error(data?.error || statusExecution.errors || 'تعذر فحص حالة مهمة إنشاء الموقع.');
+    }
+    return data || { success: true, jobStatus: 'waiting' };
+}
+
+async function waitForWebsiteJob(execution, jobId) {
+    const startedAt = Date.now();
+    const maxWaitMs = 8 * 60 * 1000;
+    let canPollExecution = typeof appwriteFunctions.getExecution === 'function' && Boolean(execution?.$id);
+    let lastStatus = execution?.status || 'waiting';
+
+    while (Date.now() - startedAt < maxWaitMs) {
+        if (canPollExecution) {
+            try {
+                const latest = await appwriteFunctions.getExecution(FIRST_FUNCTION_ID, execution.$id);
+                lastStatus = latest?.status || lastStatus;
+                if (lastStatus === 'failed') {
+                    const stored = await fetchWebsiteJobStatus(jobId).catch(function() { return null; });
+                    throw new Error(stored?.error || latest?.errors || 'فشلت مهمة إنشاء الموقع في الخلفية. راجع سجل الكود الوظيفي الأول.');
+                }
+                if (lastStatus === 'completed') break;
+            } catch (error) {
+                // إذا كانت نسخة SDK لا تسمح بقراءة execution، ننتقل لمراقبة job المحفوظ بدل تعطيل الأداة.
+                if (/فشلت مهمة إنشاء الموقع/.test(error.message || '')) throw error;
+                canPollExecution = false;
+            }
+        }
+
+        if (!canPollExecution) {
+            const stored = await fetchWebsiteJobStatus(jobId);
+            if (stored?.jobStatus === 'completed') return stored;
+            if (stored?.jobStatus === 'failed' || stored?.success === false) throw new Error(stored?.error || 'فشلت مهمة إنشاء الموقع.');
+        }
+
+        const elapsed = Date.now() - startedAt;
+        if (elapsed > 45000) setWebsiteStatus('لا يزال الوكيل يبني ملفات المشروع. يمكنك الانتظار؛ العملية تعمل في الخلفية ولن تتوقف عند 30 ثانية.', 'loading');
+        await waitWebsite(canPollExecution ? 2500 : 3500);
+    }
+
+    if (Date.now() - startedAt >= maxWaitMs) {
+        throw new Error('استغرقت مهمة إنشاء الموقع أكثر من 8 دقائق. راجع Timeout للكود الوظيفي الأول في Appwrite ثم حاول مجددًا.');
+    }
+
+    // بعد اكتمال execution تكون النتيجة محفوظة في مخزن jobs. نعيد المحاولة لثوانٍ قليلة تحسبًا لتأخر المزامنة.
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+        const stored = await fetchWebsiteJobStatus(jobId);
+        if (stored?.jobStatus === 'completed') return stored;
+        if (stored?.jobStatus === 'failed' || stored?.success === false) throw new Error(stored?.error || 'فشلت مهمة إنشاء الموقع.');
+        await waitWebsite(800 + (attempt * 300));
+    }
+    throw new Error('اكتملت المهمة لكن تعذر جلب ملفات المشروع المحفوظة. حاول فتح الإنشاء مرة أخرى.');
+}
+
 async function requestWebsiteFromFirstFunction(operation, prompt) {
     if (!currentUser) {
         alert('يرجى تسجيل الدخول أولاً. سيبقى البرومنت كما هو.');
@@ -3008,6 +3088,7 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
         mimeType: websiteState.referenceAttachment.mimeType,
         text: websiteState.referenceAttachment.text || ''
     } : null;
+    const jobId = createWebsiteJobId();
     const execution = await appwriteFunctions.createExecution(
         FIRST_FUNCTION_ID,
         JSON.stringify({
@@ -3018,16 +3099,18 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
             operation: operation,
             modelTier: websiteState.model,
             project: operation === 'revise' ? websiteState.project : undefined,
-            referenceAttachment: reference
+            referenceAttachment: reference,
+            jobId: jobId
         }),
-        false, '/', 'POST', { 'Content-Type': 'application/json' }
+        true, '/', 'POST', { 'Content-Type': 'application/json' }
     );
-    let data = null;
-    try { data = execution.responseBody ? JSON.parse(execution.responseBody) : null; }
-    catch (error) { throw new Error('رد الكود الوظيفي الأول ليس JSON صالحًا.'); }
-    if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400 || !data?.success) {
-        throw new Error(data?.error || execution.errors || 'تعذر تنفيذ طلب إنشاء الموقع.');
+
+    if (!execution || execution.status === 'failed') {
+        throw new Error(execution?.errors || 'تعذر بدء مهمة إنشاء الموقع في الخلفية.');
     }
+
+    const data = await waitForWebsiteJob(execution, jobId);
+    if (!data?.success || data?.jobStatus === 'failed') throw new Error(data?.error || 'تعذر تنفيذ طلب إنشاء الموقع.');
     if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(data.remainingTokens);
     return data;
 }
