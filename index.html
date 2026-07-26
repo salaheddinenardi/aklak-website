@@ -65,6 +65,7 @@
         <button type="button" data-welcome-tool="text"><i class="far fa-message"></i> محادثة</button>
         <button type="button" data-welcome-tool="book_outline"><i class="fas fa-book-open"></i> إنشاء كتاب</button>
         <button type="button" data-welcome-tool="landing_page"><i class="fas fa-window-maximize"></i> صفحة هبوط</button>
+        <button type="button" data-welcome-tool="website_builder"><i class="fas fa-code"></i> إنشاء موقع</button>
         <button type="button" data-welcome-tool="generate"><i class="far fa-image"></i> إنشاء صورة</button>
         <button type="button" data-welcome-tool="art_studio"><i class="fas fa-palette"></i> استوديو اللوحات</button>
     </div>
@@ -81,6 +82,9 @@
         </button>
         <button class="tool-button" type="button" data-tool="landing_page">
             <span class="tool-icon"><i class="fas fa-window-maximize"></i></span><span>صفحات الهبوط</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="website_builder">
+            <span class="tool-icon"><i class="fas fa-code"></i></span><span>إنشاء موقع</span>
         </button>
         <button class="tool-button" type="button" data-tool="art_studio">
             <span class="tool-icon"><i class="fas fa-palette"></i></span><span>رسم اللوحات</span>
@@ -139,6 +143,7 @@
                 <option value="art_studio">استوديو اللوحات</option>
                 <option value="book_outline">تأليف كتاب</option>
                 <option value="landing_page">صفحات الهبوط</option>
+                <option value="website_builder">إنشاء موقع</option>
             </select>
             <select id="provider-select" tabindex="-1"></select>
             <select id="model-select" tabindex="-1"></select>
@@ -452,6 +457,109 @@
                     <button id="landing-confirm-model-btn" class="confirm-model-choice-btn" type="button"><i class="fas fa-check"></i> اعتماد الاختيار</button>
                 </div>
                 <div id="landing-status" class="landing-status" aria-live="polite"></div>
+            </div>
+        </section>
+
+        <section id="website-builder-studio" class="website-builder-studio hidden" aria-label="منشئ المواقع بالذكاء الاصطناعي">
+            <div class="website-scroll-area">
+                <div class="website-chat-toolbar">
+                    <button id="website-new-project-btn" type="button"><i class="fas fa-plus"></i><span>موقع جديد</span></button>
+                </div>
+
+                <div id="website-conversation" class="website-conversation" aria-live="polite">
+                    <div class="message-row assistant-message website-welcome-message">
+                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
+                        <div class="message-content"><div class="message-bubble">صف الموقع الذي تريد بناءه، وسأحوّل البرومنت إلى موقع كامل قابل للمعاينة والتعديل.</div><div class="message-source">منشئ المواقع · الكود الوظيفي الأول</div></div>
+                    </div>
+                    <div id="website-generation-card" class="message-row assistant-message website-state-row hidden">
+                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
+                        <div class="message-content website-state-content">
+                            <div class="message-bubble website-generation-bubble">
+                                <img class="website-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يجري إنشاء الموقع" loading="eager">
+                                <div class="website-live-progress" role="progressbar" aria-label="يجري إنشاء الموقع"><span></span></div>
+                                <div class="website-progress-info"><span>يتم الآن إنشاء الموقع</span><strong id="website-progress-title">من البرومنت الذي أرسلته</strong><small id="website-progress-model">—</small></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="website-complete-card" class="message-row assistant-message website-state-row hidden">
+                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
+                        <div class="message-content website-state-content">
+                            <div class="message-bubble website-complete-bubble">
+                                <span class="website-complete-icon"><i class="fas fa-check"></i></span>
+                                <div><span>اكتمل الموقع</span><strong id="website-complete-title">موقع جديد</strong><small>جاهز للمعاينة أو تنزيل ملف HTML</small></div>
+                                <button id="website-open-result-btn" type="button" aria-label="عرض الموقع" title="عرض الموقع"><i class="far fa-eye"></i><span>عرض</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="website-output-panel" class="website-output-panel hidden">
+                    <div class="website-output-toolbar">
+                        <div class="website-view-tabs" role="tablist">
+                            <button class="active" type="button" data-website-view="preview"><i class="far fa-eye"></i> المعاينة</button>
+                            <button type="button" data-website-view="code"><i class="fas fa-code"></i> كود HTML</button>
+                        </div>
+                        <div class="website-device-switch" aria-label="حجم المعاينة">
+                            <button class="active" type="button" data-website-device="desktop" title="حاسوب"><i class="fas fa-desktop"></i></button>
+                            <button type="button" data-website-device="mobile" title="هاتف"><i class="fas fa-mobile-screen-button"></i></button>
+                        </div>
+                        <div class="website-code-actions">
+                            <button id="website-copy-code-btn" type="button" title="نسخ الكود"><i class="far fa-copy"></i></button>
+                            <button id="website-download-btn" type="button" title="تنزيل HTML"><i class="fas fa-download"></i></button>
+                            <button id="website-close-preview-btn" type="button" title="إغلاق المعاينة"><i class="fas fa-xmark"></i></button>
+                        </div>
+                    </div>
+                    <div id="website-preview-view" class="website-preview-view">
+                        <div id="website-preview-shell" class="website-preview-shell" data-device="desktop">
+                            <div class="website-browser-bar"><i></i><i></i><i></i><span>معاينة آمنة للموقع</span></div>
+                            <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms"></iframe>
+                        </div>
+                    </div>
+                    <div id="website-code-view" class="website-code-view hidden">
+                        <div class="website-code-head"><span><i class="fas fa-file-code"></i> index.html</span><small>يمكنك تعديل الكود يدويًا ثم تطبيقه على المعاينة</small></div>
+                        <textarea id="website-code-editor" dir="ltr" spellcheck="false" aria-label="محرر كود HTML"></textarea>
+                        <button id="website-apply-code-btn" type="button"><i class="fas fa-play"></i> تطبيق الكود على المعاينة</button>
+                    </div>
+                    <div id="website-revision-panel" class="website-revision-panel">
+                        <div class="website-revision-head"><div><span class="panel-eyebrow">AI REVISION</span><h4>اطلب تعديلًا على الموقع الحالي</h4></div></div>
+                        <div class="website-revision-composer">
+                            <textarea id="website-revision-prompt" rows="2" placeholder="مثال: عدّل الهيدر فقط وأضف زر تسجيل، واترك بقية الموقع كما هو..."></textarea>
+                            <button id="website-revise-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i><span>تعديل الموقع</span></button>
+                        </div>
+                        <p class="website-revision-note"><i class="fas fa-code-branch"></i> واجهة التعديل جاهزة الآن؛ وسيتم ربط آلية التعديلات الجزئية الاحترافية في الكود الوظيفي في المرحلة التالية.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="website-input-dock">
+                <input id="website-reference-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,text/plain,text/markdown,text/csv,application/pdf,.html,.css,.js,.jsx,.ts,.tsx,.json" hidden>
+                <div id="website-reference-preview" class="website-reference-preview hidden">
+                    <span id="website-reference-icon"><i class="far fa-file"></i></span>
+                    <div><strong id="website-reference-title">ملف مرفق</strong><small id="website-reference-name"></small></div>
+                    <button id="website-remove-reference-btn" type="button" aria-label="إزالة الملف"><i class="far fa-trash-can"></i></button>
+                </div>
+                <div class="website-chat-composer">
+                    <button id="website-attach-btn" class="website-composer-side-btn" type="button" aria-label="إضافة صورة أو ملف" title="إضافة صورة أو ملف"><i class="fas fa-plus"></i></button>
+                    <textarea id="website-main-prompt" rows="1" placeholder="صف الموقع الذي تريد إنشاءه..."></textarea>
+                    <button id="website-generate-btn" class="website-generate-btn" type="button" aria-label="إرسال طلب إنشاء الموقع"><i class="fas fa-arrow-up"></i></button>
+                </div>
+                <div class="website-composer-tools">
+                    <button id="website-model-toggle" type="button" aria-expanded="false" aria-controls="website-model-popover"><i class="fas fa-microchip"></i><span id="website-active-model">GPT-5.4 mini</span><small id="website-generate-cost">10 نقاط</small><i class="fas fa-chevron-up"></i></button>
+                    <span><i class="fas fa-paperclip"></i> يمكنك إضافة صورة أو ملف مرجعي</span>
+                </div>
+                <div id="website-model-popover" class="website-model-popover model-chooser-popover hidden" aria-hidden="true">
+                    <div class="model-chooser-heading"><div><span class="panel-eyebrow">MODEL ROUTER</span><h3>اختر نموذج إنشاء الموقع</h3></div><button id="website-close-model-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
+                    <p class="website-model-description">هذه الأداة تستخدم الكود الوظيفي الأول فقط.</p>
+                    <div id="website-model-cards" class="website-model-cards model-choices-list" role="radiogroup" aria-label="نموذج إنشاء الموقع">
+                        <button class="website-model-card model-choice-card" type="button" data-website-provider="cloudflare" data-website-model="llama" data-points="5" role="radio" aria-checked="false"><span class="model-choice-icon"><i class="fas fa-feather"></i></span><span class="model-choice-copy"><strong>LLaMA 3.3</strong><small>اقتصادي للمواقع البسيطة والمسودات</small></span><span class="model-choice-cost">5 نقاط</span></button>
+                        <button class="website-model-card model-choice-card" type="button" data-website-provider="openai" data-website-model="gpt-4o" data-points="8" role="radio" aria-checked="false"><span class="model-choice-icon"><i class="fas fa-bolt"></i></span><span class="model-choice-copy"><strong>GPT-4o</strong><small>سريع ومتوازن لإنشاء الواجهات</small></span><span class="model-choice-cost">8 نقاط</span></button>
+                        <button class="website-model-card model-choice-card selected" type="button" data-website-provider="openai" data-website-model="gpt-5.4-mini" data-points="10" role="radio" aria-checked="true"><span class="model-choice-icon"><i class="fas fa-code"></i></span><span class="model-choice-copy"><strong>GPT-5.4 mini</strong><small>الخيار الافتراضي لبناء المواقع</small></span><span class="model-choice-cost">10 نقاط</span></button>
+                        <button class="website-model-card model-choice-card premium" type="button" data-website-provider="openai" data-website-model="gpt-5.5" data-points="15" role="radio" aria-checked="false"><span class="model-choice-icon"><i class="fas fa-gem"></i></span><span class="model-choice-copy"><strong>GPT-5.5</strong><small>للمواقع المعقدة والعمل المتقن</small></span><span class="model-choice-cost">15 نقطة</span></button>
+                    </div>
+                    <label class="remember-model-card website-remember-model-card"><input id="website-remember-model-toggle" type="checkbox"><span class="memory-card-icon"><i class="fas fa-memory"></i></span><span><strong>تذكّر اختياري</strong></span><i class="fas fa-toggle-off website-remember-toggle-icon"></i></label>
+                    <button id="website-confirm-model-btn" class="confirm-model-choice-btn" type="button"><i class="fas fa-check"></i> اعتماد الاختيار</button>
+                </div>
+                <div id="website-status" class="website-status" aria-live="polite"></div>
             </div>
         </section>
 
