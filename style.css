@@ -2962,3 +2962,143 @@ body::after { content: none !important; }
     .website-composer-tools > span { display: none; }
     #website-preview-frame { height: 560px; }
 }
+
+/* =========================================================
+   WEBSITE BUILDER — شجرة ملفات المشروع والمحرر متعدد الملفات
+   ========================================================= */
+.website-files-view { width: 100%; }
+.website-project-workspace {
+    display: grid;
+    grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+    gap: 10px;
+    min-height: 540px;
+    direction: ltr;
+}
+.website-files-sidebar {
+    min-width: 0;
+    overflow: hidden;
+    background: #07100b;
+    border: 1px solid rgba(121,226,173,.14);
+    border-radius: 10px;
+    direction: rtl;
+}
+.website-files-sidebar-head {
+    display: grid;
+    gap: 3px;
+    padding: 11px 12px;
+    border-bottom: 1px solid rgba(121,226,173,.11);
+    background: rgba(121,226,173,.035);
+}
+.website-files-sidebar-head > span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #e5f9ed;
+    font-size: .72rem;
+    font-weight: 800;
+}
+.website-files-sidebar-head > span i { color: #79e2ad; }
+.website-files-sidebar-head > small { color: #718e7e; font-size: .56rem; }
+.website-file-tree {
+    max-height: 565px;
+    padding: 8px;
+    overflow: auto;
+    direction: ltr;
+    scrollbar-width: thin;
+}
+.website-tree-folder { min-width: 0; }
+.website-tree-folder-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 30px;
+    padding: 5px 7px;
+    color: #9fbbac;
+    font-size: .65rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.website-tree-folder-label i { width: 15px; color: #ffbd7b; text-align: center; }
+.website-tree-children {
+    margin-left: 11px;
+    padding-left: 7px;
+    border-left: 1px solid rgba(121,226,173,.12);
+}
+.website-tree-file {
+    width: 100%;
+    min-height: 31px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 8px;
+    color: #9ab5a6;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    text-align: left;
+    font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size: .62rem;
+    cursor: pointer;
+}
+.website-tree-file i { width: 15px; flex: 0 0 15px; color: #7fa892; text-align: center; }
+.website-tree-file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.website-tree-file:hover { color: #eafff2; background: rgba(121,226,173,.07); }
+.website-tree-file.active { color: #062017; background: #79e2ad; font-weight: 800; }
+.website-tree-file.active i { color: #062017; }
+.website-tree-file.changed:not(.active)::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #ffbd7b;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255,189,123,.45);
+}
+.website-file-editor-panel {
+    min-width: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0,1fr) auto;
+    gap: 9px;
+    direction: rtl;
+}
+.website-file-editor-panel .website-code-head {
+    min-height: 34px;
+    align-items: center;
+    padding: 0 2px;
+}
+.website-file-editor-panel .website-code-head > span {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+#website-active-file-path {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: ltr;
+    font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+#website-active-file-language {
+    padding: 3px 7px;
+    color: #ffbd7b;
+    background: rgba(255,189,123,.07);
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.website-file-editor-panel #website-code-editor {
+    min-height: 500px;
+    height: 100%;
+    resize: vertical;
+}
+
+@media (max-width: 760px) {
+    .website-project-workspace { grid-template-columns: 1fr; min-height: 0; }
+    .website-files-sidebar { max-height: 220px; }
+    .website-file-tree { max-height: 160px; }
+    .website-file-editor-panel #website-code-editor { min-height: 430px; }
+}

@@ -486,7 +486,7 @@
                         <div class="message-content website-state-content">
                             <div class="message-bubble website-complete-bubble">
                                 <span class="website-complete-icon"><i class="fas fa-check"></i></span>
-                                <div><span>اكتمل الموقع</span><strong id="website-complete-title">موقع جديد</strong><small>جاهز للمعاينة أو تنزيل ملف HTML</small></div>
+                                <div><span>اكتمل الموقع</span><strong id="website-complete-title">موقع جديد</strong><small id="website-complete-meta">جاهز للمعاينة وملفات المشروع</small></div>
                                 <button id="website-open-result-btn" type="button" aria-label="عرض الموقع" title="عرض الموقع"><i class="far fa-eye"></i><span>عرض</span></button>
                             </div>
                         </div>
@@ -497,15 +497,15 @@
                     <div class="website-output-toolbar">
                         <div class="website-view-tabs" role="tablist">
                             <button class="active" type="button" data-website-view="preview"><i class="far fa-eye"></i> المعاينة</button>
-                            <button type="button" data-website-view="code"><i class="fas fa-code"></i> كود HTML</button>
+                            <button type="button" data-website-view="files"><i class="fas fa-folder-tree"></i> ملفات المشروع</button>
                         </div>
                         <div class="website-device-switch" aria-label="حجم المعاينة">
                             <button class="active" type="button" data-website-device="desktop" title="حاسوب"><i class="fas fa-desktop"></i></button>
                             <button type="button" data-website-device="mobile" title="هاتف"><i class="fas fa-mobile-screen-button"></i></button>
                         </div>
                         <div class="website-code-actions">
-                            <button id="website-copy-code-btn" type="button" title="نسخ الكود"><i class="far fa-copy"></i></button>
-                            <button id="website-download-btn" type="button" title="تنزيل HTML"><i class="fas fa-download"></i></button>
+                            <button id="website-copy-code-btn" type="button" title="نسخ الملف المفتوح"><i class="far fa-copy"></i></button>
+                            <button id="website-download-btn" type="button" title="تنزيل الملف المفتوح"><i class="fas fa-download"></i></button>
                             <button id="website-close-preview-btn" type="button" title="إغلاق المعاينة"><i class="fas fa-xmark"></i></button>
                         </div>
                     </div>
@@ -515,10 +515,18 @@
                             <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms"></iframe>
                         </div>
                     </div>
-                    <div id="website-code-view" class="website-code-view hidden">
-                        <div class="website-code-head"><span><i class="fas fa-file-code"></i> index.html</span><small>يمكنك تعديل الكود يدويًا ثم تطبيقه على المعاينة</small></div>
-                        <textarea id="website-code-editor" dir="ltr" spellcheck="false" aria-label="محرر كود HTML"></textarea>
-                        <button id="website-apply-code-btn" type="button"><i class="fas fa-play"></i> تطبيق الكود على المعاينة</button>
+                    <div id="website-files-view" class="website-files-view hidden">
+                        <div class="website-project-workspace">
+                            <aside class="website-files-sidebar" aria-label="شجرة ملفات المشروع">
+                                <div class="website-files-sidebar-head"><span><i class="fas fa-folder-tree"></i> المشروع</span><small>اضغط على أي ملف لفتحه</small></div>
+                                <div id="website-file-tree" class="website-file-tree"></div>
+                            </aside>
+                            <section class="website-file-editor-panel">
+                                <div class="website-code-head"><span><i class="fas fa-file-code"></i> <b id="website-active-file-path">اختر ملفًا</b></span><small id="website-active-file-language">—</small></div>
+                                <textarea id="website-code-editor" dir="ltr" spellcheck="false" aria-label="محرر ملف المشروع"></textarea>
+                                <button id="website-apply-code-btn" type="button"><i class="fas fa-play"></i> حفظ الملف وتحديث المعاينة</button>
+                            </section>
+                        </div>
                     </div>
                     <div id="website-revision-panel" class="website-revision-panel">
                         <div class="website-revision-head"><div><span class="panel-eyebrow">AI REVISION</span><h4>اطلب تعديلًا على الموقع الحالي</h4></div></div>
@@ -526,7 +534,7 @@
                             <textarea id="website-revision-prompt" rows="2" placeholder="مثال: عدّل الهيدر فقط وأضف زر تسجيل، واترك بقية الموقع كما هو..."></textarea>
                             <button id="website-revise-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i><span>تعديل الموقع</span></button>
                         </div>
-                        <p class="website-revision-note"><i class="fas fa-code-branch"></i> واجهة التعديل جاهزة الآن؛ وسيتم ربط آلية التعديلات الجزئية الاحترافية في الكود الوظيفي في المرحلة التالية.</p>
+                        <p class="website-revision-note"><i class="fas fa-code-branch"></i> الوكيل يراجع ملفات المشروع ويعيد فقط التعديلات المطلوبة، بينما يحافظ الكود الوظيفي على بقية الملفات كما هي.</p>
                     </div>
                 </div>
             </div>

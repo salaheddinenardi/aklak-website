@@ -2644,7 +2644,7 @@ window.initLandingPageStudio = initLandingPageStudio;
 
 
 // ==========================================
-// منشئ المواقع — واجهة مستقلة تستخدم الكود الوظيفي الأول
+// منشئ المواقع — مشروع متعدد الملفات عبر الكود الوظيفي الأول
 // ==========================================
 const WEBSITE_MODEL_MEMORY_KEY = 'aklake_website_builder_model_v1';
 const websiteState = {
@@ -2653,7 +2653,9 @@ const websiteState = {
     provider: 'openai',
     model: 'gpt-5.4-mini',
     points: 10,
-    html: '',
+    project: null,
+    activeFilePath: '',
+    changedFiles: [],
     referenceAttachment: null
 };
 
@@ -2671,12 +2673,16 @@ function getWebsiteUI() {
         generationCard: document.getElementById('website-generation-card'),
         completeCard: document.getElementById('website-complete-card'),
         completeTitle: document.getElementById('website-complete-title'),
+        completeMeta: document.getElementById('website-complete-meta'),
         progressModel: document.getElementById('website-progress-model'),
         output: document.getElementById('website-output-panel'),
         previewView: document.getElementById('website-preview-view'),
-        codeView: document.getElementById('website-code-view'),
+        filesView: document.getElementById('website-files-view'),
         previewShell: document.getElementById('website-preview-shell'),
         previewFrame: document.getElementById('website-preview-frame'),
+        fileTree: document.getElementById('website-file-tree'),
+        activeFilePath: document.getElementById('website-active-file-path'),
+        activeFileLanguage: document.getElementById('website-active-file-language'),
         codeEditor: document.getElementById('website-code-editor'),
         prompt: document.getElementById('website-main-prompt'),
         generateBtn: document.getElementById('website-generate-btn'),
@@ -2772,94 +2778,201 @@ function restoreWebsiteModelChoice() {
     syncWebsiteModelUI();
 }
 
-function cleanWebsiteHtml(value) {
-    if (typeof value !== 'string') return '';
+function safeWebsitePath(path) {
+    const value = String(path || '').trim().replace(/\\/g, '/').replace(/^\.\//, '');
+    if (!value || value.startsWith('/') || value.split('/').some(function(part) { return !part || part === '.' || part === '..'; })) return '';
+    return value;
+}
+
+function normalizeWebsiteProject(candidate) {
+    if (!candidate || typeof candidate !== 'object' || !Array.isArray(candidate.files)) return null;
+    const seen = new Set();
+    const files = candidate.files.map(function(file) {
+        const path = safeWebsitePath(file?.path);
+        if (!path || seen.has(path)) return null;
+        seen.add(path);
+        return { path: path, content: String(file?.content ?? '') };
+    }).filter(Boolean);
+    if (!files.length) return null;
+    let entry = safeWebsitePath(candidate.entry || 'index.html');
+    if (!files.some(function(file) { return file.path === entry; })) {
+        entry = files.some(function(file) { return file.path === 'index.html'; }) ? 'index.html' : files[0].path;
+    }
+    return { name: String(candidate.name || 'aklake-website').slice(0, 80), entry: entry, files: files };
+}
+
+function legacyHtmlToWebsiteProject(value) {
+    if (typeof value !== 'string') return null;
     let html = value.trim().replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/i, '');
-    const doctype = html.search(/<!doctype\s+html/i);
-    const htmlTag = html.search(/<html[\s>]/i);
-    const start = doctype >= 0 ? doctype : htmlTag;
+    const start = html.search(/<!doctype\s+html|<html[\s>]/i);
+    if (start < 0 || !/<body[\s>]/i.test(html)) return null;
     if (start > 0) html = html.slice(start);
-    return html.trim();
+    const cssParts = [];
+    html = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, function(_all, css) { cssParts.push(css.trim()); return ''; });
+    const jsParts = [];
+    html = html.replace(/<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi, function(_all, js) { jsParts.push(js.trim()); return ''; });
+    if (!/href=["'](?:\.\/)?styles\/style\.css["']/i.test(html)) html = html.replace(/<\/head>/i, '\n<link rel="stylesheet" href="styles/style.css">\n</head>');
+    if (!/src=["'](?:\.\/)?scripts\/app\.js["']/i.test(html)) html = html.replace(/<\/body>/i, '\n<script src="scripts/app.js" defer></script>\n</body>');
+    return normalizeWebsiteProject({ name: 'aklake-website', entry: 'index.html', files: [
+        { path: 'index.html', content: html },
+        { path: 'styles/style.css', content: cssParts.join('\n\n') || '/* AKLAKE styles */\n' },
+        { path: 'scripts/app.js', content: jsParts.join('\n\n') || '// AKLAKE scripts\n' }
+    ] });
 }
 
-function validateWebsiteHtml(value) {
-    const html = cleanWebsiteHtml(value);
-    if (!html || !/<html[\s>]/i.test(html) || !/<body[\s>]/i.test(html)) {
-        return { valid: false, html: '', error: 'النموذج لم يرجع ملف HTML كاملًا للموقع.' };
+function extractWebsiteProject(responseData) {
+    const candidate = responseData?.data ?? responseData?.project ?? responseData?.content ?? responseData?.result;
+    const structured = normalizeWebsiteProject(candidate);
+    if (structured) return structured;
+    const legacy = legacyHtmlToWebsiteProject(typeof candidate === 'string' ? candidate : '');
+    if (legacy) return legacy;
+    throw new Error('الكود الوظيفي لم يرجع مشروع مواقع صالحًا متعدد الملفات.');
+}
+
+function getWebsiteFile(path) {
+    if (!websiteState.project) return null;
+    return websiteState.project.files.find(function(file) { return file.path === path; }) || null;
+}
+
+function getWebsiteLanguage(path) {
+    const ext = String(path || '').split('.').pop().toLowerCase();
+    const names = { html: 'HTML', htm: 'HTML', css: 'CSS', js: 'JavaScript', jsx: 'JSX', ts: 'TypeScript', tsx: 'TSX', json: 'JSON', svg: 'SVG', md: 'Markdown', txt: 'Text' };
+    return names[ext] || ext.toUpperCase() || 'Text';
+}
+
+function normalizeWebsiteAssetPath(value) {
+    try { value = decodeURIComponent(String(value || '')); } catch (error) {}
+    return safeWebsitePath(value.split('#')[0].split('?')[0].replace(/^\.\//, ''));
+}
+
+function buildWebsitePreviewDocument(project) {
+    const normalized = normalizeWebsiteProject(project);
+    if (!normalized) return '';
+    const entryFile = normalized.files.find(function(file) { return file.path === normalized.entry; });
+    if (!entryFile) return '';
+    const map = new Map(normalized.files.map(function(file) { return [file.path, file.content]; }));
+    let html = entryFile.content;
+    const usedCss = new Set();
+    const usedJs = new Set();
+
+    html = html.replace(/<link\b([^>]*?)href=["']([^"']+)["']([^>]*)>/gi, function(full, before, href) {
+        const path = normalizeWebsiteAssetPath(href);
+        if (!path || !map.has(path) || !/\.css$/i.test(path)) return full;
+        usedCss.add(path);
+        return '<style data-aklake-file="' + path.replace(/"/g, '&quot;') + '">\n' + map.get(path) + '\n</style>';
+    });
+
+    html = html.replace(/<script\b([^>]*?)src=["']([^"']+)["']([^>]*)>\s*<\/script>/gi, function(full, before, src) {
+        const path = normalizeWebsiteAssetPath(src);
+        if (!path || !map.has(path) || !/\.(?:js|mjs)$/i.test(path)) return full;
+        usedJs.add(path);
+        const js = String(map.get(path)).replace(/<\/script/gi, '<\\/script');
+        return '<script data-aklake-file="' + path.replace(/"/g, '&quot;') + '">\n' + js + '\n<\/script>';
+    });
+
+    const unusedCss = normalized.files.filter(function(file) { return /\.css$/i.test(file.path) && !usedCss.has(file.path); });
+    if (unusedCss.length) {
+        const styles = unusedCss.map(function(file) { return '<style data-aklake-file="' + file.path + '">\n' + file.content + '\n</style>'; }).join('\n');
+        html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, styles + '\n</head>') : styles + html;
     }
-    const blocked = [/id\s*=\s*["']app-shell["']/i, /id\s*=\s*["']website-builder-studio["']/i, /<script[^>]+src\s*=\s*["'][^"']*(?:app|workspace)\.js/i];
-    if (blocked.some(function(rule) { return rule.test(html); })) return { valid: false, html: '', error: 'تم منع النتيجة لأنها تحتوي على واجهة AKLAKE نفسها.' };
-    return { valid: true, html, error: '' };
-}
-
-function buildWebsitePrompt(userPrompt) {
-    const attachment = websiteState.referenceAttachment;
-    const reference = attachment ? [
-        '', 'REFERENCE ATTACHMENT:',
-        'Name: ' + attachment.name,
-        'Type: ' + attachment.mimeType,
-        attachment.text ? 'Reference content:\n' + attachment.text : 'A binary/image reference is attached in the interface; use its role and filename as guidance.'
-    ] : [];
-    return [
-        'You are the website-building agent inside AKLAKE.',
-        'Build the complete website requested by the user.',
-        'USER REQUEST:', userPrompt,
-        ...reference,
-        '',
-        'Return exactly one complete self-contained index.html document with inline CSS and JavaScript.',
-        'The result must be polished, responsive, accessible, production-looking, and fully usable on desktop and mobile.',
-        'Do not return explanations, Markdown, code fences, or anything outside the HTML document.'
-    ].join('\n');
-}
-
-function buildWebsiteRevisionPrompt(instruction, currentHtml) {
-    return [
-        'You are editing an existing website.',
-        'USER CHANGE REQUEST:', instruction,
-        '', 'CURRENT WEBSITE HTML:', currentHtml,
-        '',
-        'Preserve every unrelated part of the website. Modify only what is necessary for the requested change.',
-        'Return the complete updated self-contained index.html only, without Markdown or explanations.'
-    ].join('\n');
-}
-
-async function requestWebsiteFromFirstFunction(prompt) {
-    if (!currentUser) {
-        alert('يرجى تسجيل الدخول أولاً. سيبقى البرومنت كما هو.');
-        openModal();
-        return null;
+    const unusedJs = normalized.files.filter(function(file) { return /\.(?:js|mjs)$/i.test(file.path) && !usedJs.has(file.path); });
+    if (unusedJs.length) {
+        const scripts = unusedJs.map(function(file) { return '<script data-aklake-file="' + file.path + '">\n' + String(file.content).replace(/<\/script/gi, '<\\/script') + '\n<\/script>'; }).join('\n');
+        html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, scripts + '\n</body>') : html + scripts;
     }
-    ui.source.value = FIRST_FUNCTION_ID;
-    const execution = await appwriteFunctions.createExecution(
-        FIRST_FUNCTION_ID,
-        JSON.stringify({
-            userId: currentUser.$id,
-            prompt: prompt,
-            provider: websiteState.provider,
-            mode: 'text',
-            modelTier: websiteState.model
-        }),
-        false, '/', 'POST', { 'Content-Type': 'application/json' }
-    );
-    let data = null;
-    try { data = execution.responseBody ? JSON.parse(execution.responseBody) : null; }
-    catch (error) { throw new Error('رد الكود الوظيفي الأول ليس JSON صالحًا.'); }
-    if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400 || !data?.success) {
-        throw new Error(data?.error || execution.errors || 'تعذر تنفيذ طلب إنشاء الموقع.');
-    }
-    if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(data.remainingTokens);
-    return data;
+    return html;
 }
 
-function showWebsiteResult(html, title) {
+function createWebsiteTreeNode(label, iconClass, className) {
+    const row = document.createElement('div');
+    row.className = className;
+    const icon = document.createElement('i');
+    icon.className = iconClass;
+    const text = document.createElement('span');
+    text.textContent = label;
+    row.append(icon, text);
+    return row;
+}
+
+function renderWebsiteFileTree() {
     const w = getWebsiteUI();
-    websiteState.html = html;
-    if (w.previewFrame) w.previewFrame.srcdoc = html;
-    if (w.codeEditor) w.codeEditor.value = html;
+    if (!w.fileTree) return;
+    w.fileTree.innerHTML = '';
+    const project = websiteState.project;
+    if (!project) return;
+
+    const root = { folders: {}, files: [] };
+    project.files.forEach(function(file) {
+        const parts = file.path.split('/');
+        let node = root;
+        parts.slice(0, -1).forEach(function(folder) {
+            node.folders[folder] = node.folders[folder] || { folders: {}, files: [] };
+            node = node.folders[folder];
+        });
+        node.files.push({ name: parts[parts.length - 1], path: file.path });
+    });
+
+    function renderNode(node, parent) {
+        Object.keys(node.folders).sort().forEach(function(folderName) {
+            const item = document.createElement('div');
+            item.className = 'website-tree-folder';
+            item.appendChild(createWebsiteTreeNode(folderName, 'far fa-folder-open', 'website-tree-folder-label'));
+            const children = document.createElement('div');
+            children.className = 'website-tree-children';
+            renderNode(node.folders[folderName], children);
+            item.appendChild(children);
+            parent.appendChild(item);
+        });
+        node.files.sort(function(a, b) { return a.name.localeCompare(b.name); }).forEach(function(file) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'website-tree-file';
+            button.dataset.websiteFile = file.path;
+            button.classList.toggle('active', file.path === websiteState.activeFilePath);
+            button.classList.toggle('changed', websiteState.changedFiles.includes(file.path));
+            const icon = document.createElement('i');
+            icon.className = /\.html?$/i.test(file.path) ? 'fab fa-html5' : (/\.css$/i.test(file.path) ? 'fab fa-css3-alt' : (/\.(?:js|jsx|mjs)$/i.test(file.path) ? 'fab fa-js' : 'far fa-file-code'));
+            const label = document.createElement('span');
+            label.textContent = file.name;
+            button.append(icon, label);
+            button.addEventListener('click', function() { selectWebsiteFile(file.path); });
+            parent.appendChild(button);
+        });
+    }
+    renderNode(root, w.fileTree);
+}
+
+function selectWebsiteFile(path) {
+    const file = getWebsiteFile(path);
+    if (!file) return;
+    websiteState.activeFilePath = file.path;
+    const w = getWebsiteUI();
+    if (w.codeEditor) w.codeEditor.value = file.content;
+    if (w.activeFilePath) w.activeFilePath.textContent = file.path;
+    if (w.activeFileLanguage) w.activeFileLanguage.textContent = getWebsiteLanguage(file.path);
+    renderWebsiteFileTree();
+}
+
+function refreshWebsitePreview() {
+    const w = getWebsiteUI();
+    if (w.previewFrame) w.previewFrame.srcdoc = websiteState.project ? buildWebsitePreviewDocument(websiteState.project) : '';
+}
+
+function showWebsiteProject(project, title, changedFiles) {
+    const normalized = normalizeWebsiteProject(project);
+    if (!normalized) throw new Error('تعذر قراءة ملفات المشروع الناتج.');
+    websiteState.project = normalized;
+    websiteState.changedFiles = Array.isArray(changedFiles) ? changedFiles.filter(Boolean) : [];
+    if (!getWebsiteFile(websiteState.activeFilePath)) websiteState.activeFilePath = normalized.entry;
+    const w = getWebsiteUI();
+    renderWebsiteFileTree();
+    selectWebsiteFile(websiteState.activeFilePath || normalized.entry);
+    refreshWebsitePreview();
     w.output?.classList.remove('hidden');
     w.completeCard?.classList.remove('hidden');
     w.generationCard?.classList.add('hidden');
-    if (w.completeTitle) w.completeTitle.textContent = title || 'الموقع الجديد';
+    if (w.completeTitle) w.completeTitle.textContent = title || normalized.name || 'الموقع الجديد';
+    if (w.completeMeta) w.completeMeta.textContent = normalized.files.length + ' ملفات · جاهز للمعاينة والتعديل';
     showWebsiteView('preview');
 }
 
@@ -2877,10 +2990,46 @@ function appendWebsiteUserMessage(content, attachmentName) {
 
 function showWebsiteView(view) {
     const w = getWebsiteUI();
-    const isCode = view === 'code';
-    w.previewView?.classList.toggle('hidden', isCode);
-    w.codeView?.classList.toggle('hidden', !isCode);
+    const showFiles = view === 'files';
+    w.previewView?.classList.toggle('hidden', showFiles);
+    w.filesView?.classList.toggle('hidden', !showFiles);
     document.querySelectorAll('[data-website-view]').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.websiteView === view); });
+}
+
+async function requestWebsiteFromFirstFunction(operation, prompt) {
+    if (!currentUser) {
+        alert('يرجى تسجيل الدخول أولاً. سيبقى البرومنت كما هو.');
+        openModal();
+        return null;
+    }
+    ui.source.value = FIRST_FUNCTION_ID;
+    const reference = websiteState.referenceAttachment ? {
+        name: websiteState.referenceAttachment.name,
+        mimeType: websiteState.referenceAttachment.mimeType,
+        text: websiteState.referenceAttachment.text || ''
+    } : null;
+    const execution = await appwriteFunctions.createExecution(
+        FIRST_FUNCTION_ID,
+        JSON.stringify({
+            userId: currentUser.$id,
+            prompt: prompt,
+            provider: websiteState.provider,
+            mode: 'website',
+            operation: operation,
+            modelTier: websiteState.model,
+            project: operation === 'revise' ? websiteState.project : undefined,
+            referenceAttachment: reference
+        }),
+        false, '/', 'POST', { 'Content-Type': 'application/json' }
+    );
+    let data = null;
+    try { data = execution.responseBody ? JSON.parse(execution.responseBody) : null; }
+    catch (error) { throw new Error('رد الكود الوظيفي الأول ليس JSON صالحًا.'); }
+    if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400 || !data?.success) {
+        throw new Error(data?.error || execution.errors || 'تعذر تنفيذ طلب إنشاء الموقع.');
+    }
+    if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(data.remainingTokens);
+    return data;
 }
 
 async function generateWebsite() {
@@ -2891,16 +3040,15 @@ async function generateWebsite() {
     w.completeCard?.classList.add('hidden');
     w.output?.classList.add('hidden');
     w.generationCard?.classList.remove('hidden');
-    if (w.progressModel) w.progressModel.textContent = (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model) + ' · الكود الوظيفي الأول';
-    setWebsiteBusy(true, 'يتم إنشاء الموقع...');
-    setWebsiteStatus('يجري بناء الموقع ومعاينته...', 'loading');
+    if (w.progressModel) w.progressModel.textContent = (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model) + ' · مشروع متعدد الملفات';
+    setWebsiteBusy(true, 'يتم إنشاء ملفات المشروع...');
+    setWebsiteStatus('يجري بناء شجرة المشروع وملفات HTML وCSS وJavaScript...', 'loading');
     try {
-        const response = await requestWebsiteFromFirstFunction(buildWebsitePrompt(prompt));
+        const response = await requestWebsiteFromFirstFunction('generate', prompt);
         if (!response) return;
-        const validation = validateWebsiteHtml(response.data || response.content || '');
-        if (!validation.valid) throw new Error(validation.error);
-        showWebsiteResult(validation.html, prompt.slice(0, 55));
-        setWebsiteStatus('اكتمل الموقع وأصبح جاهزًا للمعاينة.', 'success');
+        const project = extractWebsiteProject(response);
+        showWebsiteProject(project, prompt.slice(0, 55), response.changedFiles);
+        setWebsiteStatus('اكتمل المشروع. يمكنك فتح أي ملف من شجرة الملفات وتعديله.', 'success');
     } catch (error) {
         w.generationCard?.classList.add('hidden');
         setWebsiteStatus(error.message || 'تعذر إنشاء الموقع.', 'error');
@@ -2910,22 +3058,23 @@ async function generateWebsite() {
 async function reviseWebsite() {
     const w = getWebsiteUI();
     const instruction = w.revisionPrompt?.value.trim() || '';
-    if (!websiteState.html) { setWebsiteStatus('أنشئ موقعًا أولًا قبل طلب التعديل.', 'error'); return; }
+    if (!websiteState.project) { setWebsiteStatus('أنشئ موقعًا أولًا قبل طلب التعديل.', 'error'); return; }
     if (!instruction) { setWebsiteStatus('اكتب التعديل المطلوب.', 'error'); w.revisionPrompt?.focus(); return; }
     appendWebsiteUserMessage(instruction, null);
     w.generationCard?.classList.remove('hidden');
     w.completeCard?.classList.add('hidden');
-    if (w.progressModel) w.progressModel.textContent = 'تعديل الموقع · ' + (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model);
-    setWebsiteBusy(true, 'يتم تعديل الموقع...');
-    setWebsiteStatus('يتم تطبيق التعديل مع الحفاظ على بقية الموقع.', 'loading');
+    if (w.progressModel) w.progressModel.textContent = 'تعديل جزئي · ' + (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model);
+    setWebsiteBusy(true, 'يتم تعديل ملفات المشروع...');
+    setWebsiteStatus('يبحث الوكيل عن الجزء المطلوب ويعدل الملفات المرتبطة فقط...', 'loading');
     try {
-        const response = await requestWebsiteFromFirstFunction(buildWebsiteRevisionPrompt(instruction, websiteState.html));
+        const response = await requestWebsiteFromFirstFunction('revise', instruction);
         if (!response) return;
-        const validation = validateWebsiteHtml(response.data || response.content || '');
-        if (!validation.valid) throw new Error(validation.error);
-        showWebsiteResult(validation.html, 'نسخة معدلة');
+        const project = extractWebsiteProject(response);
+        const changed = Array.isArray(response.changedFiles) ? response.changedFiles : [];
+        showWebsiteProject(project, 'نسخة معدلة', changed);
         if (w.revisionPrompt) w.revisionPrompt.value = '';
-        setWebsiteStatus('تم تطبيق التعديل. التعديل الجزئي Patch سيتم نقله للباك اند في الخطوة التالية.', 'success');
+        const label = changed.length ? ' تم تعديل: ' + changed.join('، ') : '';
+        setWebsiteStatus('تم تطبيق التعديل مع الحفاظ على الملفات غير المرتبطة.' + label, 'success');
     } catch (error) {
         w.generationCard?.classList.add('hidden');
         setWebsiteStatus(error.message || 'تعذر تعديل الموقع.', 'error');
@@ -2962,18 +3111,38 @@ function clearWebsiteReference() {
 
 function resetWebsiteBuilder() {
     const w = getWebsiteUI();
-    websiteState.html = '';
+    websiteState.project = null;
+    websiteState.activeFilePath = '';
+    websiteState.changedFiles = [];
     clearWebsiteReference();
     if (w.prompt) w.prompt.value = '';
     if (w.revisionPrompt) w.revisionPrompt.value = '';
     if (w.previewFrame) w.previewFrame.srcdoc = '';
     if (w.codeEditor) w.codeEditor.value = '';
+    if (w.fileTree) w.fileTree.innerHTML = '';
+    if (w.activeFilePath) w.activeFilePath.textContent = 'اختر ملفًا';
     w.output?.classList.add('hidden');
     w.completeCard?.classList.add('hidden');
     w.generationCard?.classList.add('hidden');
     w.conversation?.querySelectorAll('[data-website-dynamic="true"]').forEach(function(row) { row.remove(); });
     setWebsiteStatus('', '');
     w.prompt?.focus();
+}
+
+function updateActiveWebsiteFileFromEditor() {
+    const w = getWebsiteUI();
+    if (!websiteState.project || !websiteState.activeFilePath) return setWebsiteStatus('اختر ملفًا أولًا.', 'error');
+    const file = getWebsiteFile(websiteState.activeFilePath);
+    if (!file) return setWebsiteStatus('تعذر العثور على الملف المحدد.', 'error');
+    const nextContent = w.codeEditor?.value ?? '';
+    if (file.path === websiteState.project.entry && (!/<html[\s>]/i.test(nextContent) || !/<body[\s>]/i.test(nextContent))) {
+        return setWebsiteStatus('ملف الدخول الرئيسي يجب أن يبقى وثيقة HTML صالحة.', 'error');
+    }
+    file.content = nextContent;
+    websiteState.changedFiles = [file.path];
+    renderWebsiteFileTree();
+    refreshWebsitePreview();
+    setWebsiteStatus('تم حفظ تعديل ' + file.path + ' وتحديث المعاينة.', 'success');
 }
 
 window.initWebsiteBuilder = function() {
@@ -3017,9 +3186,23 @@ window.initWebsiteBuilder = function() {
     });
     w.openResultBtn?.addEventListener('click', function() { w.output?.classList.remove('hidden'); showWebsiteView('preview'); w.output?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
     w.closePreviewBtn?.addEventListener('click', function() { w.output?.classList.add('hidden'); });
-    w.copyCodeBtn?.addEventListener('click', async function() { if (!websiteState.html) return setWebsiteStatus('لا يوجد كود لنسخه.', 'error'); try { await navigator.clipboard.writeText(websiteState.html); setWebsiteStatus('تم نسخ كود الموقع.', 'success'); } catch (e) { if (w.codeEditor) { w.codeEditor.focus(); w.codeEditor.select(); document.execCommand('copy'); } } });
-    w.downloadBtn?.addEventListener('click', function() { if (!websiteState.html) return setWebsiteStatus('لا يوجد موقع لتنزيله.', 'error'); const blob = new Blob([websiteState.html], { type: 'text/html;charset=utf-8' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'aklake-website.html'; document.body.appendChild(link); link.click(); link.remove(); setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000); });
-    w.applyCodeBtn?.addEventListener('click', function() { const validation = validateWebsiteHtml(w.codeEditor?.value || ''); if (!validation.valid) return setWebsiteStatus(validation.error, 'error'); showWebsiteResult(validation.html, 'تعديل يدوي'); setWebsiteStatus('تم تطبيق الكود على المعاينة.', 'success'); });
+    w.copyCodeBtn?.addEventListener('click', async function() {
+        const file = getWebsiteFile(websiteState.activeFilePath || websiteState.project?.entry);
+        if (!file) return setWebsiteStatus('لا يوجد ملف لنسخه.', 'error');
+        try { await navigator.clipboard.writeText(file.content); setWebsiteStatus('تم نسخ ' + file.path + '.', 'success'); }
+        catch (e) { if (w.codeEditor) { w.codeEditor.focus(); w.codeEditor.select(); document.execCommand('copy'); } }
+    });
+    w.downloadBtn?.addEventListener('click', function() {
+        const file = getWebsiteFile(websiteState.activeFilePath || websiteState.project?.entry);
+        if (!file) return setWebsiteStatus('لا يوجد ملف لتنزيله.', 'error');
+        const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = file.path.split('/').pop() || 'website-file.txt';
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
+    });
+    w.applyCodeBtn?.addEventListener('click', updateActiveWebsiteFileFromEditor);
     w.reviseBtn?.addEventListener('click', reviseWebsite);
     w.newProjectBtn?.addEventListener('click', resetWebsiteBuilder);
 };
