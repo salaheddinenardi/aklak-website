@@ -508,8 +508,8 @@ function updateModels() {
         ui.model.innerHTML = '<option value="gpt-4o-mini">GPT-4o mini — اقتصادي (20 نقطة)</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — متوازن (40 نقطة)</option><option value="gpt-5.5">GPT-5.5 — قياسي قوي (60 نقطة)</option>';
     } else if (action === 'website_builder') {
         ui.model.innerHTML = provider === 'cloudflare'
-            ? '<option value="llama">LLaMA 3.3 (5 نقاط)</option>'
-            : '<option value="gpt-4o">GPT-4o — سريع (8 نقاط)</option><option value="gpt-5.4-mini" selected>GPT-5.4 mini — متوازن (10 نقاط)</option><option value="gpt-5.5">GPT-5.5 — قوي (15 نقطة)</option>';
+            ? '<option value="llama">LLaMA 3.3 — 5 نقاط</option>'
+            : '<option value="gpt-4o">GPT-4o — 8 نقاط</option><option value="gpt-5.4-mini" selected>GPT-5.4 mini — 10 نقاط</option><option value="gpt-5.5">GPT-5.5 — 15 نقطة</option>';
     } else if (action === 'text' || action === 'book_outline') {
         if (provider === 'gemini') {
             ui.model.innerHTML = '<option value="gemini-3.5-flash">Gemini 3.5 Flash</option>';

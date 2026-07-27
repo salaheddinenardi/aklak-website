@@ -2784,21 +2784,81 @@ function safeWebsitePath(path) {
     return value;
 }
 
+function ensureWebsiteIndexLinks(inputHtml) {
+    let html = String(inputHtml || '').trim();
+    html = html.replace(/href=(["'])(?:\.\/)?(?:styles\/)?style\.css\1/ig, 'href="style.css"');
+    html = html.replace(/src=(["'])(?:\.\/)?(?:scripts\/)?app\.js\1/ig, 'src="app.js"');
+    if (!/href=["']style\.css["']/i.test(html)) {
+        const link = '\n<link rel="stylesheet" href="style.css">\n';
+        html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, link + '</head>') : link + html;
+    }
+    if (!/src=["']app\.js["']/i.test(html)) {
+        const script = '\n<script src="app.js" defer></script>\n';
+        html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, script + '</body>') : html + script;
+    }
+    return html;
+}
+
 function normalizeWebsiteProject(candidate) {
     if (!candidate || typeof candidate !== 'object' || !Array.isArray(candidate.files)) return null;
-    const seen = new Set();
-    const files = candidate.files.map(function(file) {
-        const path = safeWebsitePath(file?.path);
-        if (!path || seen.has(path)) return null;
-        seen.add(path);
-        return { path: path, content: String(file?.content ?? '') };
-    }).filter(Boolean);
-    if (!files.length) return null;
-    let entry = safeWebsitePath(candidate.entry || 'index.html');
-    if (!files.some(function(file) { return file.path === entry; })) {
-        entry = files.some(function(file) { return file.path === 'index.html'; }) ? 'index.html' : files[0].path;
+
+    function findFile(exactName, extensionRegex) {
+        return candidate.files.find(function(file) {
+            const path = safeWebsitePath(file?.path);
+            return path && path.split('/').pop().toLowerCase() === exactName.toLowerCase();
+        }) || candidate.files.find(function(file) {
+            return extensionRegex.test(safeWebsitePath(file?.path));
+        }) || null;
     }
-    return { name: String(candidate.name || 'aklake-website').slice(0, 80), entry: entry, files: files };
+
+    const htmlFile = findFile('index.html', /\.html?$/i);
+    const cssFile = findFile('style.css', /\.css$/i);
+    const jsFile = findFile('app.js', /\.(?:js|mjs)$/i);
+    if (!htmlFile || !cssFile || !jsFile) return null;
+
+    const html = ensureWebsiteIndexLinks(String(htmlFile.content ?? ''));
+    if (!/<html[\s>]/i.test(html) || !/<body[\s>]/i.test(html)) return null;
+
+    return {
+        name: String(candidate.name || 'aklake-website').slice(0, 80),
+        entry: 'index.html',
+        files: [
+            { path: 'index.html', content: html },
+            { path: 'style.css', content: String(cssFile.content ?? '') },
+            { path: 'app.js', content: String(jsFile.content ?? '') }
+        ]
+    };
+}
+
+function fencedTextToWebsiteProject(value) {
+    if (typeof value !== 'string') return null;
+    const blocks = [];
+    const regex = /```([A-Za-z0-9_+#.-]*)[^\S\r\n]*\r?\n([\s\S]*?)```/g;
+    let match;
+    while ((match = regex.exec(value)) !== null) {
+        blocks.push({ language: String(match[1] || '').toLowerCase(), content: String(match[2] || '').replace(/\s+$/, '') });
+    }
+
+    const byLang = function(names) { return blocks.find(function(block) { return names.includes(block.language); }); };
+    let html = byLang(['html', 'htm']);
+    let css = byLang(['css']);
+    let js = byLang(['javascript', 'js', 'mjs', 'ecmascript']);
+
+    if ((!html || !css || !js) && blocks.length === 3) {
+        html = html || blocks[0];
+        css = css || blocks[1];
+        js = js || blocks[2];
+    }
+    if (!html || !css || !js) return null;
+
+    return normalizeWebsiteProject({
+        name: 'aklake-website',
+        files: [
+            { path: 'index.html', content: html.content },
+            { path: 'style.css', content: css.content },
+            { path: 'app.js', content: js.content }
+        ]
+    });
 }
 
 function legacyHtmlToWebsiteProject(value) {
@@ -2807,26 +2867,41 @@ function legacyHtmlToWebsiteProject(value) {
     const start = html.search(/<!doctype\s+html|<html[\s>]/i);
     if (start < 0 || !/<body[\s>]/i.test(html)) return null;
     if (start > 0) html = html.slice(start);
+
     const cssParts = [];
-    html = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, function(_all, css) { cssParts.push(css.trim()); return ''; });
+    html = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, function(_all, css) {
+        cssParts.push(css.trim());
+        return '';
+    });
     const jsParts = [];
-    html = html.replace(/<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi, function(_all, js) { jsParts.push(js.trim()); return ''; });
-    if (!/href=["'](?:\.\/)?styles\/style\.css["']/i.test(html)) html = html.replace(/<\/head>/i, '\n<link rel="stylesheet" href="styles/style.css">\n</head>');
-    if (!/src=["'](?:\.\/)?scripts\/app\.js["']/i.test(html)) html = html.replace(/<\/body>/i, '\n<script src="scripts/app.js" defer></script>\n</body>');
-    return normalizeWebsiteProject({ name: 'aklake-website', entry: 'index.html', files: [
-        { path: 'index.html', content: html },
-        { path: 'styles/style.css', content: cssParts.join('\n\n') || '/* AKLAKE styles */\n' },
-        { path: 'scripts/app.js', content: jsParts.join('\n\n') || '// AKLAKE scripts\n' }
-    ] });
+    html = html.replace(/<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi, function(_all, js) {
+        jsParts.push(js.trim());
+        return '';
+    });
+
+    return normalizeWebsiteProject({
+        name: 'aklake-website',
+        files: [
+            { path: 'index.html', content: html },
+            { path: 'style.css', content: cssParts.join('\n\n') || '/* AKLAKE styles */\n' },
+            { path: 'app.js', content: jsParts.join('\n\n') || '// AKLAKE scripts\n' }
+        ]
+    });
 }
 
 function extractWebsiteProject(responseData) {
     const candidate = responseData?.data ?? responseData?.project ?? responseData?.content ?? responseData?.result;
     const structured = normalizeWebsiteProject(candidate);
     if (structured) return structured;
-    const legacy = legacyHtmlToWebsiteProject(typeof candidate === 'string' ? candidate : '');
-    if (legacy) return legacy;
-    throw new Error('الكود الوظيفي لم يرجع مشروع مواقع صالحًا متعدد الملفات.');
+
+    if (typeof candidate === 'string') {
+        const fenced = fencedTextToWebsiteProject(candidate);
+        if (fenced) return fenced;
+        const legacy = legacyHtmlToWebsiteProject(candidate);
+        if (legacy) return legacy;
+    }
+
+    throw new Error('لم يتم استلام الملفات الثلاثة المطلوبة: index.html و style.css و app.js.');
 }
 
 function getWebsiteFile(path) {
@@ -2901,45 +2976,29 @@ function renderWebsiteFileTree() {
     const project = websiteState.project;
     if (!project) return;
 
-    const root = { folders: {}, files: [] };
-    project.files.forEach(function(file) {
-        const parts = file.path.split('/');
-        let node = root;
-        parts.slice(0, -1).forEach(function(folder) {
-            node.folders[folder] = node.folders[folder] || { folders: {}, files: [] };
-            node = node.folders[folder];
-        });
-        node.files.push({ name: parts[parts.length - 1], path: file.path });
-    });
+    const order = ['index.html', 'style.css', 'app.js'];
+    order.forEach(function(path) {
+        const file = project.files.find(function(item) { return item.path === path; });
+        if (!file) return;
 
-    function renderNode(node, parent) {
-        Object.keys(node.folders).sort().forEach(function(folderName) {
-            const item = document.createElement('div');
-            item.className = 'website-tree-folder';
-            item.appendChild(createWebsiteTreeNode(folderName, 'far fa-folder-open', 'website-tree-folder-label'));
-            const children = document.createElement('div');
-            children.className = 'website-tree-children';
-            renderNode(node.folders[folderName], children);
-            item.appendChild(children);
-            parent.appendChild(item);
-        });
-        node.files.sort(function(a, b) { return a.name.localeCompare(b.name); }).forEach(function(file) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'website-tree-file';
-            button.dataset.websiteFile = file.path;
-            button.classList.toggle('active', file.path === websiteState.activeFilePath);
-            button.classList.toggle('changed', websiteState.changedFiles.includes(file.path));
-            const icon = document.createElement('i');
-            icon.className = /\.html?$/i.test(file.path) ? 'fab fa-html5' : (/\.css$/i.test(file.path) ? 'fab fa-css3-alt' : (/\.(?:js|jsx|mjs)$/i.test(file.path) ? 'fab fa-js' : 'far fa-file-code'));
-            const label = document.createElement('span');
-            label.textContent = file.name;
-            button.append(icon, label);
-            button.addEventListener('click', function() { selectWebsiteFile(file.path); });
-            parent.appendChild(button);
-        });
-    }
-    renderNode(root, w.fileTree);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'website-tree-file';
+        button.dataset.websiteFile = file.path;
+        button.classList.toggle('active', file.path === websiteState.activeFilePath);
+        button.classList.toggle('changed', websiteState.changedFiles.includes(file.path));
+
+        const icon = document.createElement('i');
+        icon.className = path === 'index.html'
+            ? 'fab fa-html5'
+            : (path === 'style.css' ? 'fab fa-css3-alt' : 'fab fa-js');
+
+        const label = document.createElement('span');
+        label.textContent = path;
+        button.append(icon, label);
+        button.addEventListener('click', function() { selectWebsiteFile(path); });
+        w.fileTree.appendChild(button);
+    });
 }
 
 function selectWebsiteFile(path) {
@@ -2996,86 +3055,6 @@ function showWebsiteView(view) {
     document.querySelectorAll('[data-website-view]').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.websiteView === view); });
 }
 
-function createWebsiteJobId() {
-    const stamp = Date.now().toString(36);
-    const random = Math.random().toString(36).slice(2, 10);
-    return ('web_' + stamp + '_' + random).slice(0, 36);
-}
-
-function waitWebsite(ms) {
-    return new Promise(function(resolve) { setTimeout(resolve, ms); });
-}
-
-async function fetchWebsiteJobStatus(jobId) {
-    const statusExecution = await appwriteFunctions.createExecution(
-        FIRST_FUNCTION_ID,
-        JSON.stringify({
-            userId: currentUser.$id,
-            prompt: 'status',
-            provider: 'internal',
-            mode: 'website_job_status',
-            operation: 'status',
-            jobId: jobId
-        }),
-        false, '/', 'POST', { 'Content-Type': 'application/json' }
-    );
-    let data = null;
-    try { data = statusExecution.responseBody ? JSON.parse(statusExecution.responseBody) : null; }
-    catch (error) { throw new Error('تعذر قراءة حالة مهمة إنشاء الموقع.'); }
-    if (statusExecution.status === 'failed' || Number(statusExecution.responseStatusCode || 200) >= 400) {
-        throw new Error(data?.error || statusExecution.errors || 'تعذر فحص حالة مهمة إنشاء الموقع.');
-    }
-    return data || { success: true, jobStatus: 'waiting' };
-}
-
-async function waitForWebsiteJob(execution, jobId) {
-    const startedAt = Date.now();
-    const maxWaitMs = 8 * 60 * 1000;
-    let canPollExecution = typeof appwriteFunctions.getExecution === 'function' && Boolean(execution?.$id);
-    let lastStatus = execution?.status || 'waiting';
-
-    while (Date.now() - startedAt < maxWaitMs) {
-        if (canPollExecution) {
-            try {
-                const latest = await appwriteFunctions.getExecution(FIRST_FUNCTION_ID, execution.$id);
-                lastStatus = latest?.status || lastStatus;
-                if (lastStatus === 'failed') {
-                    const stored = await fetchWebsiteJobStatus(jobId).catch(function() { return null; });
-                    throw new Error(stored?.error || latest?.errors || 'فشلت مهمة إنشاء الموقع في الخلفية. راجع سجل الكود الوظيفي الأول.');
-                }
-                if (lastStatus === 'completed') break;
-            } catch (error) {
-                // إذا كانت نسخة SDK لا تسمح بقراءة execution، ننتقل لمراقبة job المحفوظ بدل تعطيل الأداة.
-                if (/فشلت مهمة إنشاء الموقع/.test(error.message || '')) throw error;
-                canPollExecution = false;
-            }
-        }
-
-        if (!canPollExecution) {
-            const stored = await fetchWebsiteJobStatus(jobId);
-            if (stored?.jobStatus === 'completed') return stored;
-            if (stored?.jobStatus === 'failed' || stored?.success === false) throw new Error(stored?.error || 'فشلت مهمة إنشاء الموقع.');
-        }
-
-        const elapsed = Date.now() - startedAt;
-        if (elapsed > 45000) setWebsiteStatus('لا يزال الوكيل يبني ملفات المشروع. يمكنك الانتظار؛ العملية تعمل في الخلفية ولن تتوقف عند 30 ثانية.', 'loading');
-        await waitWebsite(canPollExecution ? 2500 : 3500);
-    }
-
-    if (Date.now() - startedAt >= maxWaitMs) {
-        throw new Error('استغرقت مهمة إنشاء الموقع أكثر من 8 دقائق. راجع Timeout للكود الوظيفي الأول في Appwrite ثم حاول مجددًا.');
-    }
-
-    // بعد اكتمال execution تكون النتيجة محفوظة في مخزن jobs. نعيد المحاولة لثوانٍ قليلة تحسبًا لتأخر المزامنة.
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-        const stored = await fetchWebsiteJobStatus(jobId);
-        if (stored?.jobStatus === 'completed') return stored;
-        if (stored?.jobStatus === 'failed' || stored?.success === false) throw new Error(stored?.error || 'فشلت مهمة إنشاء الموقع.');
-        await waitWebsite(800 + (attempt * 300));
-    }
-    throw new Error('اكتملت المهمة لكن تعذر جلب ملفات المشروع المحفوظة. حاول فتح الإنشاء مرة أخرى.');
-}
-
 async function requestWebsiteFromFirstFunction(operation, prompt) {
     if (!currentUser) {
         alert('يرجى تسجيل الدخول أولاً. سيبقى البرومنت كما هو.');
@@ -3088,7 +3067,6 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
         mimeType: websiteState.referenceAttachment.mimeType,
         text: websiteState.referenceAttachment.text || ''
     } : null;
-    const jobId = createWebsiteJobId();
     const execution = await appwriteFunctions.createExecution(
         FIRST_FUNCTION_ID,
         JSON.stringify({
@@ -3099,18 +3077,16 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
             operation: operation,
             modelTier: websiteState.model,
             project: operation === 'revise' ? websiteState.project : undefined,
-            referenceAttachment: reference,
-            jobId: jobId
+            referenceAttachment: reference
         }),
-        true, '/', 'POST', { 'Content-Type': 'application/json' }
+        false, '/', 'POST', { 'Content-Type': 'application/json' }
     );
-
-    if (!execution || execution.status === 'failed') {
-        throw new Error(execution?.errors || 'تعذر بدء مهمة إنشاء الموقع في الخلفية.');
+    let data = null;
+    try { data = execution.responseBody ? JSON.parse(execution.responseBody) : null; }
+    catch (error) { throw new Error('رد الكود الوظيفي الأول ليس JSON صالحًا.'); }
+    if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400 || !data?.success) {
+        throw new Error(data?.error || execution.errors || 'تعذر تنفيذ طلب إنشاء الموقع.');
     }
-
-    const data = await waitForWebsiteJob(execution, jobId);
-    if (!data?.success || data?.jobStatus === 'failed') throw new Error(data?.error || 'تعذر تنفيذ طلب إنشاء الموقع.');
     if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(data.remainingTokens);
     return data;
 }
@@ -3123,15 +3099,15 @@ async function generateWebsite() {
     w.completeCard?.classList.add('hidden');
     w.output?.classList.add('hidden');
     w.generationCard?.classList.remove('hidden');
-    if (w.progressModel) w.progressModel.textContent = (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model) + ' · مشروع متعدد الملفات';
-    setWebsiteBusy(true, 'يتم إنشاء ملفات المشروع...');
-    setWebsiteStatus('يجري بناء شجرة المشروع وملفات HTML وCSS وJavaScript...', 'loading');
+    if (w.progressModel) w.progressModel.textContent = (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model) + ' · 3 ملفات';
+    setWebsiteBusy(true, 'يتم إنشاء الملفات الثلاثة...');
+    setWebsiteStatus('يتم إنشاء index.html و style.css و app.js في رد واحد...', 'loading');
     try {
         const response = await requestWebsiteFromFirstFunction('generate', prompt);
         if (!response) return;
         const project = extractWebsiteProject(response);
         showWebsiteProject(project, prompt.slice(0, 55), response.changedFiles);
-        setWebsiteStatus('اكتمل المشروع. يمكنك فتح أي ملف من شجرة الملفات وتعديله.', 'success');
+        setWebsiteStatus('اكتمل الموقع. يمكنك التنقل بين index.html و style.css و app.js وتعديل أي ملف.', 'success');
     } catch (error) {
         w.generationCard?.classList.add('hidden');
         setWebsiteStatus(error.message || 'تعذر إنشاء الموقع.', 'error');

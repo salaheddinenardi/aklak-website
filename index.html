@@ -469,7 +469,7 @@
                 <div id="website-conversation" class="website-conversation" aria-live="polite">
                     <div class="message-row assistant-message website-welcome-message">
                         <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
-                        <div class="message-content"><div class="message-bubble">صف الموقع الذي تريد بناءه، وسأحوّل البرومنت إلى موقع كامل قابل للمعاينة والتعديل.</div><div class="message-source">منشئ المواقع · الكود الوظيفي الأول</div></div>
+                        <div class="message-content"><div class="message-bubble">صف الموقع الذي تريد بناءه، وسأنشئه في ثلاثة ملفات منفصلة تعمل معًا: index.html و style.css و app.js.</div><div class="message-source">منشئ المواقع · الكود الوظيفي الأول</div></div>
                     </div>
                     <div id="website-generation-card" class="message-row assistant-message website-state-row hidden">
                         <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
@@ -486,7 +486,7 @@
                         <div class="message-content website-state-content">
                             <div class="message-bubble website-complete-bubble">
                                 <span class="website-complete-icon"><i class="fas fa-check"></i></span>
-                                <div><span>اكتمل الموقع</span><strong id="website-complete-title">موقع جديد</strong><small id="website-complete-meta">جاهز للمعاينة وملفات المشروع</small></div>
+                                <div><span>اكتمل الموقع</span><strong id="website-complete-title">موقع جديد</strong><small id="website-complete-meta">جاهز للمعاينة وتصفح الملفات الثلاثة</small></div>
                                 <button id="website-open-result-btn" type="button" aria-label="عرض الموقع" title="عرض الموقع"><i class="far fa-eye"></i><span>عرض</span></button>
                             </div>
                         </div>
@@ -497,7 +497,7 @@
                     <div class="website-output-toolbar">
                         <div class="website-view-tabs" role="tablist">
                             <button class="active" type="button" data-website-view="preview"><i class="far fa-eye"></i> المعاينة</button>
-                            <button type="button" data-website-view="files"><i class="fas fa-folder-tree"></i> ملفات المشروع</button>
+                            <button type="button" data-website-view="files"><i class="fas fa-file-code"></i> الملفات الثلاثة</button>
                         </div>
                         <div class="website-device-switch" aria-label="حجم المعاينة">
                             <button class="active" type="button" data-website-device="desktop" title="حاسوب"><i class="fas fa-desktop"></i></button>
@@ -517,8 +517,8 @@
                     </div>
                     <div id="website-files-view" class="website-files-view hidden">
                         <div class="website-project-workspace">
-                            <aside class="website-files-sidebar" aria-label="شجرة ملفات المشروع">
-                                <div class="website-files-sidebar-head"><span><i class="fas fa-folder-tree"></i> المشروع</span><small>اضغط على أي ملف لفتحه</small></div>
+                            <aside class="website-files-sidebar" aria-label="ملفات الموقع">
+                                <div class="website-files-sidebar-head"><span><i class="fas fa-file-code"></i> ملفات الموقع</span><small>index.html · style.css · app.js</small></div>
                                 <div id="website-file-tree" class="website-file-tree"></div>
                             </aside>
                             <section class="website-file-editor-panel">
