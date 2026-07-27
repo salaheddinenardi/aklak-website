@@ -3175,6 +3175,35 @@ function waitWebsiteMs(ms) {
     return new Promise(function(resolve) { setTimeout(resolve, ms); });
 }
 
+async function prepareWebsiteJob(jobId, operation) {
+    const execution = await appwriteFunctions.createExecution(
+        FIRST_FUNCTION_ID,
+        JSON.stringify({
+            userId: currentUser.$id,
+            mode: 'website_job_prepare',
+            operation: operation,
+            jobId: jobId
+        }),
+        false,
+        '/',
+        'POST',
+        { 'Content-Type': 'application/json' }
+    );
+
+    let data = null;
+    try {
+        data = execution.responseBody ? JSON.parse(execution.responseBody) : null;
+    } catch (_) {
+        throw new Error('تعذر قراءة نتيجة تجهيز مهمة الموقع.');
+    }
+
+    if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400 || data?.success === false) {
+        throw new Error(data?.error || execution.errors || 'تعذر تجهيز مهمة إنشاء الموقع.');
+    }
+
+    return data || {};
+}
+
 async function readWebsiteJobStatus(jobId) {
     const statusExecution = await appwriteFunctions.createExecution(
         FIRST_FUNCTION_ID,
@@ -3205,51 +3234,53 @@ async function readWebsiteJobStatus(jobId) {
 async function waitForWebsiteJob(jobId, executionId) {
     const startedAt = Date.now();
     const maxWaitMs = 6 * 60 * 1000;
-    let consecutiveStatusErrors = 0;
+    let completedExecutionSeenAt = 0;
 
     while (Date.now() - startedAt < maxWaitMs) {
-        // إذا كانت نسخة Appwrite SDK الحالية توفر getExecution، نستفيد منها لاكتشاف فشل التنفيذ الحقيقي مبكرًا.
         if (executionId && typeof appwriteFunctions.getExecution === 'function') {
             try {
                 const execution = await appwriteFunctions.getExecution(FIRST_FUNCTION_ID, executionId);
+
                 if (execution?.status === 'failed') {
                     throw new Error(execution.errors || 'فشل تنفيذ الكود الوظيفي أثناء إنشاء الموقع.');
                 }
+
+                if (execution?.status === 'completed' && !completedExecutionSeenAt) {
+                    completedExecutionSeenAt = Date.now();
+                }
             } catch (error) {
-                // أخطاء getExecution غير الحاسمة لا توقف polling الخاص بنتيجة المشروع.
                 if (/فشل تنفيذ الكود الوظيفي/.test(String(error?.message || ''))) throw error;
             }
         }
 
-        try {
-            const data = await readWebsiteJobStatus(jobId);
-            consecutiveStatusErrors = 0;
+        const data = await readWebsiteJobStatus(jobId);
 
-            if (data.jobStatus === 'completed') {
-                if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') {
-                    syncCreditDisplays(data.remainingTokens);
-                }
-                return data;
+        if (data.jobStatus === 'completed') {
+            if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') {
+                syncCreditDisplays(data.remainingTokens);
             }
-
-            if (data.jobStatus === 'failed' || data.success === false) {
-                throw new Error(data.error || 'فشلت مهمة إنشاء الموقع.');
-            }
-
-            if (data.stage === 'calling_model') {
-                setWebsiteStatus('النموذج يكتب الآن ملفات index.html و style.css و app.js...', 'loading');
-            } else if (data.stage === 'saving_result') {
-                setWebsiteStatus('اكتمل التوليد، يتم الآن تنظيم الملفات الثلاثة...', 'loading');
-            } else {
-                setWebsiteStatus('يتم تجهيز مهمة إنشاء الموقع...', 'loading');
-            }
-        } catch (error) {
-            if (/فشلت مهمة|توقفت مهمة|فشل تنفيذ/.test(String(error?.message || ''))) throw error;
-            consecutiveStatusErrors += 1;
-            if (consecutiveStatusErrors >= 4) throw error;
+            return data;
         }
 
-        await waitWebsiteMs(1600);
+        if (data.jobStatus === 'failed' || data.success === false) {
+            throw new Error(data.error || 'فشلت مهمة إنشاء الموقع.');
+        }
+
+        if (completedExecutionSeenAt && Date.now() - completedExecutionSeenAt > 12000) {
+            throw new Error('انتهى تنفيذ الكود الوظيفي لكن لم يتم حفظ نتيجة الموقع. تحقق من سجل التنفيذ في Appwrite.');
+        }
+
+        if (data.stage === 'calling_model') {
+            setWebsiteStatus('النموذج يكتب الآن ملفات index.html و style.css و app.js...', 'loading');
+        } else if (data.stage === 'saving_result') {
+            setWebsiteStatus('اكتمل التوليد، يتم الآن حفظ الملفات الثلاثة...', 'loading');
+        } else if (data.jobStatus === 'processing') {
+            setWebsiteStatus('بدأ تنفيذ مهمة إنشاء الموقع...', 'loading');
+        } else {
+            setWebsiteStatus('تم وضع المهمة في قائمة التنفيذ...', 'loading');
+        }
+
+        await waitWebsiteMs(2200);
     }
 
     throw new Error('استغرقت مهمة إنشاء الموقع وقتًا أطول من 6 دقائق وتم إيقاف الانتظار.');
@@ -3272,7 +3303,12 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
 
     const jobId = createWebsiteJobId();
 
-    // إنشاء المواقع فقط يعمل Async حتى لا يصطدم بحد 30 ثانية.
+    // أولاً ننشئ سجل المهمة في طلب قصير ومؤكد.
+    setWebsiteStatus('يتم تجهيز سجل مهمة الموقع...', 'loading');
+    await prepareWebsiteJob(jobId, operation);
+
+    // بعدها فقط نطلق عملية التوليد الطويلة Async.
+    setWebsiteStatus('تم تجهيز المهمة، جارٍ بدء النموذج...', 'loading');
     const execution = await appwriteFunctions.createExecution(
         FIRST_FUNCTION_ID,
         JSON.stringify({
