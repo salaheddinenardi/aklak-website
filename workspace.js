@@ -579,6 +579,16 @@ window.selectAITool = function(action) {
     openWorkspace();
     if (!ui.action || !ui.source) return;
 
+    if (action === 'website_builder' && ui.action.value === 'website_builder' &&
+        typeof window.restoreWebsiteChatPanel === 'function' && window.restoreWebsiteChatPanel()) {
+        return;
+    }
+
+    if (action !== 'website_builder' && ui.action.value === 'website_builder' &&
+        typeof window.closeWebsitePreviewWorkspace === 'function') {
+        window.closeWebsitePreviewWorkspace();
+    }
+
     if (action !== 'edit' && ui.imageFile && ui.imageFile.files && ui.imageFile.files.length > 0) {
         clearComposerAttachment(false);
     }
@@ -2656,7 +2666,10 @@ const websiteState = {
     project: null,
     activeFilePath: '',
     changedFiles: [],
-    referenceAttachment: null
+    referenceAttachment: null,
+    previewOpen: false,
+    chatCollapsed: false,
+    activeView: 'preview'
 };
 
 const WEBSITE_MODEL_INFO = {
@@ -2705,7 +2718,9 @@ function getWebsiteUI() {
         status: document.getElementById('website-status'),
         newProjectBtn: document.getElementById('website-new-project-btn'),
         openResultBtn: document.getElementById('website-open-result-btn'),
+        closeChatBtn: document.getElementById('website-close-chat-btn'),
         closePreviewBtn: document.getElementById('website-close-preview-btn'),
+        refreshPreviewBtn: document.getElementById('website-refresh-preview-btn'),
         copyCodeBtn: document.getElementById('website-copy-code-btn'),
         downloadBtn: document.getElementById('website-download-btn'),
         applyCodeBtn: document.getElementById('website-apply-code-btn'),
@@ -2731,6 +2746,67 @@ function setWebsiteBusy(value, label) {
         w.generateBtn.setAttribute('aria-label', websiteState.busy ? (label || 'جاري الإنشاء...') : 'إرسال طلب إنشاء الموقع');
     }
 }
+
+function syncWebsiteWorkspaceLayout() {
+    const w = getWebsiteUI();
+    const active = Boolean(
+        websiteState.previewOpen &&
+        websiteState.project &&
+        ui?.action?.value === 'website_builder'
+    );
+
+    ui?.appShell?.classList.toggle('website-preview-layout', active);
+    w.studio?.classList.toggle('is-preview-mode', active);
+    w.studio?.classList.toggle('is-chat-collapsed', active && websiteState.chatCollapsed);
+    document.body.classList.toggle('website-preview-open', active);
+
+    if (w.closeChatBtn) {
+        w.closeChatBtn.setAttribute('aria-hidden', String(!active));
+        w.closeChatBtn.tabIndex = active ? 0 : -1;
+    }
+}
+
+function openWebsitePreviewWorkspace(view) {
+    if (!websiteState.project) {
+        setWebsiteStatus('أنشئ موقعًا أولًا قبل فتح المعاينة.', 'error');
+        return false;
+    }
+    const w = getWebsiteUI();
+    websiteState.previewOpen = true;
+    websiteState.chatCollapsed = false;
+    websiteState.activeView = view === 'files' ? 'files' : 'preview';
+    w.output?.classList.remove('hidden');
+    showWebsiteView(websiteState.activeView);
+    syncWebsiteWorkspaceLayout();
+    requestAnimationFrame(function() { refreshWebsitePreview(); });
+    return true;
+}
+
+function closeWebsitePreviewWorkspace() {
+    const w = getWebsiteUI();
+    websiteState.previewOpen = false;
+    websiteState.chatCollapsed = false;
+    w.output?.classList.add('hidden');
+    syncWebsiteWorkspaceLayout();
+}
+
+function collapseWebsiteChatPanel() {
+    if (!websiteState.previewOpen || !websiteState.project) return false;
+    websiteState.chatCollapsed = true;
+    syncWebsiteWorkspaceLayout();
+    return true;
+}
+
+window.restoreWebsiteChatPanel = function() {
+    if (!websiteState.previewOpen || !websiteState.chatCollapsed) return false;
+    websiteState.chatCollapsed = false;
+    syncWebsiteWorkspaceLayout();
+    const w = getWebsiteUI();
+    requestAnimationFrame(function() { w.prompt?.focus(); });
+    return true;
+};
+
+window.closeWebsitePreviewWorkspace = closeWebsitePreviewWorkspace;
 
 window.setWebsiteModelPopoverOpen = function(open) {
     const w = getWebsiteUI();
@@ -3027,12 +3103,18 @@ function showWebsiteProject(project, title, changedFiles) {
     renderWebsiteFileTree();
     selectWebsiteFile(websiteState.activeFilePath || normalized.entry);
     refreshWebsitePreview();
-    w.output?.classList.remove('hidden');
     w.completeCard?.classList.remove('hidden');
     w.generationCard?.classList.add('hidden');
     if (w.completeTitle) w.completeTitle.textContent = title || normalized.name || 'الموقع الجديد';
     if (w.completeMeta) w.completeMeta.textContent = normalized.files.length + ' ملفات · جاهز للمعاينة والتعديل';
-    showWebsiteView('preview');
+
+    if (websiteState.previewOpen) {
+        w.output?.classList.remove('hidden');
+        showWebsiteView(websiteState.activeView || 'preview');
+    } else {
+        w.output?.classList.add('hidden');
+    }
+    syncWebsiteWorkspaceLayout();
 }
 
 function appendWebsiteUserMessage(content, attachmentName) {
@@ -3049,10 +3131,14 @@ function appendWebsiteUserMessage(content, attachmentName) {
 
 function showWebsiteView(view) {
     const w = getWebsiteUI();
-    const showFiles = view === 'files';
+    const normalizedView = view === 'files' ? 'files' : 'preview';
+    websiteState.activeView = normalizedView;
+    const showFiles = normalizedView === 'files';
     w.previewView?.classList.toggle('hidden', showFiles);
     w.filesView?.classList.toggle('hidden', !showFiles);
-    document.querySelectorAll('[data-website-view]').forEach(function(btn) { btn.classList.toggle('active', btn.dataset.websiteView === view); });
+    document.querySelectorAll('[data-website-view]').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.websiteView === normalizedView);
+    });
 }
 
 async function requestWebsiteFromFirstFunction(operation, prompt) {
@@ -3095,6 +3181,11 @@ async function generateWebsite() {
     const w = getWebsiteUI();
     const prompt = w.prompt?.value.trim() || '';
     if (!prompt) { setWebsiteStatus('اكتب وصف الموقع الذي تريد إنشاءه.', 'error'); w.prompt?.focus(); return; }
+
+    if (websiteState.previewOpen && websiteState.project) {
+        return reviseWebsiteWithInstruction(prompt, w.prompt);
+    }
+
     appendWebsiteUserMessage(prompt, websiteState.referenceAttachment?.name);
     w.completeCard?.classList.add('hidden');
     w.output?.classList.add('hidden');
@@ -3114,30 +3205,55 @@ async function generateWebsite() {
     } finally { setWebsiteBusy(false); }
 }
 
-async function reviseWebsite() {
+async function reviseWebsiteWithInstruction(instruction, sourceInput) {
     const w = getWebsiteUI();
-    const instruction = w.revisionPrompt?.value.trim() || '';
-    if (!websiteState.project) { setWebsiteStatus('أنشئ موقعًا أولًا قبل طلب التعديل.', 'error'); return; }
-    if (!instruction) { setWebsiteStatus('اكتب التعديل المطلوب.', 'error'); w.revisionPrompt?.focus(); return; }
-    appendWebsiteUserMessage(instruction, null);
+    const cleanInstruction = String(instruction || '').trim();
+    if (!websiteState.project) {
+        setWebsiteStatus('أنشئ موقعًا أولًا قبل طلب التعديل.', 'error');
+        return;
+    }
+    if (!cleanInstruction) {
+        setWebsiteStatus('اكتب التعديل المطلوب.', 'error');
+        sourceInput?.focus();
+        return;
+    }
+
+    appendWebsiteUserMessage(cleanInstruction, null);
     w.generationCard?.classList.remove('hidden');
     w.completeCard?.classList.add('hidden');
-    if (w.progressModel) w.progressModel.textContent = 'تعديل جزئي · ' + (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model);
+    if (w.progressModel) {
+        w.progressModel.textContent = 'تعديل جزئي · ' +
+            (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model);
+    }
     setWebsiteBusy(true, 'يتم تعديل ملفات المشروع...');
-    setWebsiteStatus('يبحث الوكيل عن الجزء المطلوب ويعدل الملفات المرتبطة فقط...', 'loading');
+    setWebsiteStatus('يتم تطبيق التعديل على الموقع الحالي...', 'loading');
+
     try {
-        const response = await requestWebsiteFromFirstFunction('revise', instruction);
+        const response = await requestWebsiteFromFirstFunction('revise', cleanInstruction);
         if (!response) return;
         const project = extractWebsiteProject(response);
         const changed = Array.isArray(response.changedFiles) ? response.changedFiles : [];
         showWebsiteProject(project, 'نسخة معدلة', changed);
-        if (w.revisionPrompt) w.revisionPrompt.value = '';
+
+        if (sourceInput) {
+            sourceInput.value = '';
+            if (sourceInput === w.prompt) autoResizeTextarea(sourceInput);
+        }
+        if (w.revisionPrompt && w.revisionPrompt !== sourceInput) w.revisionPrompt.value = '';
+
         const label = changed.length ? ' تم تعديل: ' + changed.join('، ') : '';
-        setWebsiteStatus('تم تطبيق التعديل مع الحفاظ على الملفات غير المرتبطة.' + label, 'success');
+        setWebsiteStatus('تم تطبيق التعديل مع الحفاظ على بقية الموقع.' + label, 'success');
     } catch (error) {
         w.generationCard?.classList.add('hidden');
         setWebsiteStatus(error.message || 'تعذر تعديل الموقع.', 'error');
-    } finally { setWebsiteBusy(false); }
+    } finally {
+        setWebsiteBusy(false);
+    }
+}
+
+async function reviseWebsite() {
+    const w = getWebsiteUI();
+    return reviseWebsiteWithInstruction(w.revisionPrompt?.value || '', w.revisionPrompt);
 }
 
 async function readWebsiteReference(file) {
@@ -3170,6 +3286,9 @@ function clearWebsiteReference() {
 
 function resetWebsiteBuilder() {
     const w = getWebsiteUI();
+    websiteState.previewOpen = false;
+    websiteState.chatCollapsed = false;
+    websiteState.activeView = 'preview';
     websiteState.project = null;
     websiteState.activeFilePath = '';
     websiteState.changedFiles = [];
@@ -3185,6 +3304,7 @@ function resetWebsiteBuilder() {
     w.generationCard?.classList.add('hidden');
     w.conversation?.querySelectorAll('[data-website-dynamic="true"]').forEach(function(row) { row.remove(); });
     setWebsiteStatus('', '');
+    syncWebsiteWorkspaceLayout();
     w.prompt?.focus();
 }
 
@@ -3243,8 +3363,13 @@ window.initWebsiteBuilder = function() {
             if (w.previewShell) w.previewShell.dataset.device = btn.dataset.websiteDevice;
         });
     });
-    w.openResultBtn?.addEventListener('click', function() { w.output?.classList.remove('hidden'); showWebsiteView('preview'); w.output?.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-    w.closePreviewBtn?.addEventListener('click', function() { w.output?.classList.add('hidden'); });
+    w.openResultBtn?.addEventListener('click', function() { openWebsitePreviewWorkspace('preview'); });
+    w.closeChatBtn?.addEventListener('click', collapseWebsiteChatPanel);
+    w.closePreviewBtn?.addEventListener('click', closeWebsitePreviewWorkspace);
+    w.refreshPreviewBtn?.addEventListener('click', function() {
+        refreshWebsitePreview();
+        setWebsiteStatus('تم تحديث المعاينة.', 'success');
+    });
     w.copyCodeBtn?.addEventListener('click', async function() {
         const file = getWebsiteFile(websiteState.activeFilePath || websiteState.project?.entry);
         if (!file) return setWebsiteStatus('لا يوجد ملف لنسخه.', 'error');
@@ -3264,4 +3389,5 @@ window.initWebsiteBuilder = function() {
     w.applyCodeBtn?.addEventListener('click', updateActiveWebsiteFileFromEditor);
     w.reviseBtn?.addEventListener('click', reviseWebsite);
     w.newProjectBtn?.addEventListener('click', resetWebsiteBuilder);
+    syncWebsiteWorkspaceLayout();
 };
