@@ -2893,39 +2893,57 @@ function normalizeWebsiteProject(candidate) {
     if (!htmlFile || !cssFile || !jsFile) return null;
 
     const html = ensureWebsiteIndexLinks(String(htmlFile.content ?? ''));
+    const css = String(cssFile.content ?? '').trim();
+    const js = String(jsFile.content ?? '').trim();
+
     if (!/<html[\s>]/i.test(html) || !/<body[\s>]/i.test(html)) return null;
+    if (!css || !js) return null;
 
     return {
         name: String(candidate.name || 'aklake-website').slice(0, 80),
         entry: 'index.html',
         files: [
             { path: 'index.html', content: html },
-            { path: 'style.css', content: String(cssFile.content ?? '') },
-            { path: 'app.js', content: String(jsFile.content ?? '') }
+            { path: 'style.css', content: css },
+            { path: 'app.js', content: js }
         ]
     };
 }
 
 function fencedTextToWebsiteProject(value) {
     if (typeof value !== 'string') return null;
+
     const blocks = [];
-    const regex = /```([A-Za-z0-9_+#.-]*)[^\S\r\n]*\r?\n([\s\S]*?)```/g;
+    const regex = /```([^\r\n`]*)\r?\n([\s\S]*?)```/g;
     let match;
+
     while ((match = regex.exec(value)) !== null) {
-        blocks.push({ language: String(match[1] || '').toLowerCase(), content: String(match[2] || '').replace(/\s+$/, '') });
+        const rawInfo = String(match[1] || '').trim().replace(/\*/g, '').toLowerCase();
+        const first = rawInfo.split(/\s+/).filter(Boolean)[0] || '';
+        let type = '';
+
+        if (['html', 'htm'].includes(first) || /\.html?$/.test(first) || rawInfo.includes('index.html')) type = 'html';
+        else if (first === 'css' || /\.css$/.test(first) || rawInfo.includes('style.css')) type = 'css';
+        else if (['javascript', 'js', 'mjs', 'ecmascript'].includes(first) || /\.(?:js|mjs)$/.test(first) || rawInfo.includes('app.js')) type = 'js';
+
+        blocks.push({
+            type,
+            content: String(match[2] || '').replace(/\s+$/, '')
+        });
     }
 
-    const byLang = function(names) { return blocks.find(function(block) { return names.includes(block.language); }); };
-    let html = byLang(['html', 'htm']);
-    let css = byLang(['css']);
-    let js = byLang(['javascript', 'js', 'mjs', 'ecmascript']);
+    let html = blocks.find(function(block) { return block.type === 'html'; }) || null;
+    let css = blocks.find(function(block) { return block.type === 'css'; }) || null;
+    let js = blocks.find(function(block) { return block.type === 'js'; }) || null;
 
     if ((!html || !css || !js) && blocks.length === 3) {
         html = html || blocks[0];
         css = css || blocks[1];
         js = js || blocks[2];
     }
+
     if (!html || !css || !js) return null;
+    if (!html.content.trim() || !css.content.trim() || !js.content.trim()) return null;
 
     return normalizeWebsiteProject({
         name: 'aklake-website',
@@ -2939,6 +2957,7 @@ function fencedTextToWebsiteProject(value) {
 
 function legacyHtmlToWebsiteProject(value) {
     if (typeof value !== 'string') return null;
+
     let html = value.trim().replace(/^```(?:html)?\s*/i, '').replace(/\s*```$/i, '');
     const start = html.search(/<!doctype\s+html|<html[\s>]/i);
     if (start < 0 || !/<body[\s>]/i.test(html)) return null;
@@ -2946,21 +2965,27 @@ function legacyHtmlToWebsiteProject(value) {
 
     const cssParts = [];
     html = html.replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gi, function(_all, css) {
-        cssParts.push(css.trim());
+        const clean = String(css || '').trim();
+        if (clean) cssParts.push(clean);
         return '';
     });
+
     const jsParts = [];
     html = html.replace(/<script\b(?![^>]*\bsrc\s*=)[^>]*>([\s\S]*?)<\/script>/gi, function(_all, js) {
-        jsParts.push(js.trim());
+        const clean = String(js || '').trim();
+        if (clean) jsParts.push(clean);
         return '';
     });
+
+    // لا نصنع style.css أو app.js وهميين إذا لم يرسلهما النموذج.
+    if (!cssParts.length || !jsParts.length) return null;
 
     return normalizeWebsiteProject({
         name: 'aklake-website',
         files: [
-            { path: 'index.html', content: html },
-            { path: 'style.css', content: cssParts.join('\n\n') || '/* AKLAKE styles */\n' },
-            { path: 'app.js', content: jsParts.join('\n\n') || '// AKLAKE scripts\n' }
+            { path: 'index.html', content: ensureWebsiteIndexLinks(html) },
+            { path: 'style.css', content: cssParts.join('\n\n') },
+            { path: 'app.js', content: jsParts.join('\n\n') }
         ]
     });
 }
@@ -2977,7 +3002,7 @@ function extractWebsiteProject(responseData) {
         if (legacy) return legacy;
     }
 
-    throw new Error('لم يتم استلام الملفات الثلاثة المطلوبة: index.html و style.css و app.js.');
+    throw new Error('لم يتم استلام ثلاثة ملفات حقيقية منفصلة. يجب أن يحتوي الرد على ```html و ```css و ```javascript، وكل ملف غير فارغ.');
 }
 
 function getWebsiteFile(path) {
@@ -3141,18 +3166,113 @@ function showWebsiteView(view) {
     });
 }
 
+function createWebsiteJobId() {
+    const random = Math.random().toString(36).slice(2, 10);
+    return 'web_' + Date.now().toString(36) + '_' + random;
+}
+
+function waitWebsiteMs(ms) {
+    return new Promise(function(resolve) { setTimeout(resolve, ms); });
+}
+
+async function readWebsiteJobStatus(jobId) {
+    const statusExecution = await appwriteFunctions.createExecution(
+        FIRST_FUNCTION_ID,
+        JSON.stringify({
+            userId: currentUser.$id,
+            mode: 'website_job_status',
+            jobId: jobId
+        }),
+        false,
+        '/',
+        'POST',
+        { 'Content-Type': 'application/json' }
+    );
+
+    let data = null;
+    try {
+        data = statusExecution.responseBody ? JSON.parse(statusExecution.responseBody) : null;
+    } catch (error) {
+        throw new Error('تعذر قراءة حالة مهمة إنشاء الموقع.');
+    }
+
+    if (statusExecution.status === 'failed' || Number(statusExecution.responseStatusCode || 200) >= 400) {
+        throw new Error(data?.error || statusExecution.errors || 'تعذر فحص حالة إنشاء الموقع.');
+    }
+    return data || {};
+}
+
+async function waitForWebsiteJob(jobId, executionId) {
+    const startedAt = Date.now();
+    const maxWaitMs = 6 * 60 * 1000;
+    let consecutiveStatusErrors = 0;
+
+    while (Date.now() - startedAt < maxWaitMs) {
+        // إذا كانت نسخة Appwrite SDK الحالية توفر getExecution، نستفيد منها لاكتشاف فشل التنفيذ الحقيقي مبكرًا.
+        if (executionId && typeof appwriteFunctions.getExecution === 'function') {
+            try {
+                const execution = await appwriteFunctions.getExecution(FIRST_FUNCTION_ID, executionId);
+                if (execution?.status === 'failed') {
+                    throw new Error(execution.errors || 'فشل تنفيذ الكود الوظيفي أثناء إنشاء الموقع.');
+                }
+            } catch (error) {
+                // أخطاء getExecution غير الحاسمة لا توقف polling الخاص بنتيجة المشروع.
+                if (/فشل تنفيذ الكود الوظيفي/.test(String(error?.message || ''))) throw error;
+            }
+        }
+
+        try {
+            const data = await readWebsiteJobStatus(jobId);
+            consecutiveStatusErrors = 0;
+
+            if (data.jobStatus === 'completed') {
+                if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') {
+                    syncCreditDisplays(data.remainingTokens);
+                }
+                return data;
+            }
+
+            if (data.jobStatus === 'failed' || data.success === false) {
+                throw new Error(data.error || 'فشلت مهمة إنشاء الموقع.');
+            }
+
+            if (data.stage === 'calling_model') {
+                setWebsiteStatus('النموذج يكتب الآن ملفات index.html و style.css و app.js...', 'loading');
+            } else if (data.stage === 'saving_result') {
+                setWebsiteStatus('اكتمل التوليد، يتم الآن تنظيم الملفات الثلاثة...', 'loading');
+            } else {
+                setWebsiteStatus('يتم تجهيز مهمة إنشاء الموقع...', 'loading');
+            }
+        } catch (error) {
+            if (/فشلت مهمة|توقفت مهمة|فشل تنفيذ/.test(String(error?.message || ''))) throw error;
+            consecutiveStatusErrors += 1;
+            if (consecutiveStatusErrors >= 4) throw error;
+        }
+
+        await waitWebsiteMs(1600);
+    }
+
+    throw new Error('استغرقت مهمة إنشاء الموقع وقتًا أطول من 6 دقائق وتم إيقاف الانتظار.');
+}
+
 async function requestWebsiteFromFirstFunction(operation, prompt) {
     if (!currentUser) {
         alert('يرجى تسجيل الدخول أولاً. سيبقى البرومنت كما هو.');
         openModal();
         return null;
     }
+
     ui.source.value = FIRST_FUNCTION_ID;
+
     const reference = websiteState.referenceAttachment ? {
         name: websiteState.referenceAttachment.name,
         mimeType: websiteState.referenceAttachment.mimeType,
         text: websiteState.referenceAttachment.text || ''
     } : null;
+
+    const jobId = createWebsiteJobId();
+
+    // إنشاء المواقع فقط يعمل Async حتى لا يصطدم بحد 30 ثانية.
     const execution = await appwriteFunctions.createExecution(
         FIRST_FUNCTION_ID,
         JSON.stringify({
@@ -3163,18 +3283,20 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
             operation: operation,
             modelTier: websiteState.model,
             project: operation === 'revise' ? websiteState.project : undefined,
-            referenceAttachment: reference
+            referenceAttachment: reference,
+            jobId: jobId
         }),
-        false, '/', 'POST', { 'Content-Type': 'application/json' }
+        true,
+        '/',
+        'POST',
+        { 'Content-Type': 'application/json' }
     );
-    let data = null;
-    try { data = execution.responseBody ? JSON.parse(execution.responseBody) : null; }
-    catch (error) { throw new Error('رد الكود الوظيفي الأول ليس JSON صالحًا.'); }
-    if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400 || !data?.success) {
-        throw new Error(data?.error || execution.errors || 'تعذر تنفيذ طلب إنشاء الموقع.');
+
+    if (execution?.status === 'failed') {
+        throw new Error(execution.errors || 'تعذر بدء مهمة إنشاء الموقع.');
     }
-    if (data.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(data.remainingTokens);
-    return data;
+
+    return waitForWebsiteJob(jobId, execution?.$id || execution?.id || '');
 }
 
 async function generateWebsite() {
