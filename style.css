@@ -2891,6 +2891,14 @@ body::after { content: none !important; }
 .website-state-content { width: min(460px, calc(100% - 8px)); max-width: min(460px, calc(100% - 8px)) !important; }
 .website-generation-bubble, .website-complete-bubble { width: 100%; box-sizing: border-box; color: #eafff2 !important; background: rgba(4,15,10,.96) !important; border: 1px solid rgba(121,226,173,.13) !important; box-shadow: 0 20px 55px rgba(0,0,0,.25); }
 .website-generation-bubble { padding: 12px !important; }
+.website-preview-typing { display: none; align-items: center; justify-content: center; gap: 5px; min-height: 24px; }
+.website-preview-typing i,
+.website-revision-waiting-dots i { width: 7px; height: 7px; display: block; background: #79e2ad; border-radius: 50%; animation: websiteRevisionDot 1s ease-in-out infinite; }
+.website-preview-typing i:nth-child(2),
+.website-revision-waiting-dots i:nth-child(2) { animation-delay: .14s; }
+.website-preview-typing i:nth-child(3),
+.website-revision-waiting-dots i:nth-child(3) { animation-delay: .28s; }
+@keyframes websiteRevisionDot { 0%, 70%, 100% { transform: translateY(0); opacity: .35; } 35% { transform: translateY(-5px); opacity: 1; } }
 .website-progress-image { display: block !important; width: min(290px, 100%) !important; aspect-ratio: 1/1; object-fit: contain; margin: 0 auto; border: 0 !important; background: transparent !important; }
 .website-live-progress { width: 100%; height: 9px; margin-top: 10px; position: relative; overflow: hidden; background: rgba(121,226,173,.08); border: 1px solid rgba(121,226,173,.13); border-radius: 999px; }
 .website-live-progress span { width: 42%; height: 100%; display: block; position: absolute; left: -42%; background: linear-gradient(90deg, transparent, #ffbd72 25%, #79e2ad 75%, transparent); border-radius: inherit; animation: websiteProgressTravel 1.3s ease-in-out infinite; }
@@ -2906,13 +2914,20 @@ body::after { content: none !important; }
 .website-complete-bubble > div > strong { overflow: hidden; color: #f3fff7; font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
 .website-complete-bubble > div > small { color: #839f90; font-size: .56rem; }
 #website-open-result-btn { min-height: 36px; display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; color: #052016; background: #79e2ad; border: 0; border-radius: 9px; font-size: .64rem; font-weight: 850; cursor: pointer; }
-.website-output-panel { width: 100%; margin: 10px 0 22px; padding: 14px; box-sizing: border-box; background: rgba(3,11,7,.97); border: 1px solid rgba(121,226,173,.14); border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.28); }
-.website-output-toolbar { display: flex; align-items: center; gap: 10px; padding-bottom: 11px; }
-.website-view-tabs, .website-device-switch, .website-code-actions { display: flex; align-items: center; gap: 6px; }
-.website-device-switch { margin-inline-start: auto; }
+.website-output-panel { width: 100%; margin: 10px 0 22px; padding: 14px; position: relative; box-sizing: border-box; background: rgba(3,11,7,.97); border: 1px solid rgba(121,226,173,.14); border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+.website-output-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-bottom: 11px; }
+.website-view-tabs, .website-device-switch, .website-code-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .website-output-toolbar button { min-height: 34px; padding: 7px 10px; color: #9bb5a7; background: rgba(255,255,255,.035); border: 1px solid rgba(121,226,173,.1); border-radius: 8px; cursor: pointer; }
 .website-output-toolbar button.active, .website-output-toolbar button:hover { color: #062017; background: #79e2ad; }
-.website-preview-shell { width: 100%; overflow: hidden; background: #fff; border: 1px solid rgba(121,226,173,.12); border-radius: 12px; transition: max-width .2s ease; margin: 0 auto; }
+.website-revision-panel { min-width: 240px; flex: 1 1 420px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 7px; }
+.website-revision-panel textarea { width: 100%; height: 36px; min-height: 36px; max-height: 82px; box-sizing: border-box; padding: 8px 11px; color: #eafff2; background: rgba(3,13,8,.94); border: 1px solid rgba(121,226,173,.2); border-radius: 9px; resize: vertical; outline: 0; line-height: 1.35; }
+.website-revision-panel textarea::placeholder { color: #71877b; }
+.website-revision-panel textarea:focus { border-color: rgba(121,226,173,.58); box-shadow: 0 0 0 3px rgba(121,226,173,.08); }
+.website-revision-panel textarea:disabled { opacity: .62; cursor: wait; }
+.website-revision-panel button { min-width: 82px; height: 36px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; color: #062017; background: #79e2ad; border: 0; border-radius: 9px; font-weight: 800; }
+.website-revision-panel button:disabled { opacity: .72; cursor: wait; }
+.website-output-stage { min-height: 0; position: relative; }
+.website-preview-shell { width: 100%; overflow: hidden; background: #fff; border: 1px solid rgba(121,226,173,.12); border-radius: 12px; transition: max-width .2s ease, filter .2s ease, transform .2s ease; margin: 0 auto; }
 .website-preview-shell[data-device="mobile"] { max-width: 390px; }
 .website-browser-bar { height: 38px; display: flex; align-items: center; gap: 6px; padding: 0 12px; direction: ltr; background: #111713; color: #98ae9f; font-size: .62rem; }
 .website-browser-bar i { width: 8px; height: 8px; border-radius: 50%; background: #60776a; }
@@ -2923,12 +2938,13 @@ body::after { content: none !important; }
 .website-code-head small { color: #789687; }
 #website-code-editor { width: 100%; min-height: 520px; box-sizing: border-box; padding: 14px; color: #d9f6e6; background: #07100b; border: 1px solid rgba(121,226,173,.14); border-radius: 10px; outline: 0; resize: vertical; font-family: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size: .72rem; line-height: 1.55; }
 #website-apply-code-btn { justify-self: start; min-height: 38px; padding: 8px 13px; color: #062017; background: #79e2ad; border: 0; border-radius: 9px; cursor: pointer; }
-.website-revision-panel { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(121,226,173,.12); }
-.website-revision-head h4 { margin: 3px 0 10px; color: #eafff2; font-size: .82rem; }
-.website-revision-composer { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
-.website-revision-composer textarea { min-height: 70px; padding: 10px; color: #eafff2; background: rgba(3,13,8,.94); border: 1px solid rgba(121,226,173,.15); border-radius: 9px; resize: vertical; outline: 0; }
-.website-revision-composer button { align-self: stretch; padding: 8px 12px; color: #062017; background: #79e2ad; border: 0; border-radius: 9px; cursor: pointer; }
-.website-revision-note { margin: 8px 0 0; color: #789687; font-size: .6rem; }
+.website-revision-overlay { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 18px; box-sizing: border-box; background: rgba(2,10,6,.34); backdrop-filter: blur(1px); border-radius: 11px; }
+.website-revision-waiting { width: min(360px, calc(100% - 24px)); display: grid; justify-items: center; gap: 8px; padding: 20px; color: #effff6; text-align: center; background: rgba(3,14,8,.94); border: 1px solid rgba(121,226,173,.24); border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,.42); }
+.website-revision-waiting-dots { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 18px; }
+.website-revision-waiting strong { font-size: .88rem; }
+.website-revision-waiting small { color: #91aa9d; font-size: .64rem; line-height: 1.55; }
+.website-output-panel.is-revising .website-preview-shell,
+.website-output-panel.is-revising .website-project-workspace { filter: blur(4px); transform: scale(.995); pointer-events: none; user-select: none; }
 .website-input-dock { position: relative; flex: 0 0 auto; z-index: 40; padding: 12px 4px 10px; background: linear-gradient(180deg,rgba(1,8,5,.25),rgba(1,8,5,.98) 16%,rgba(1,8,5,1)); border-top: 1px solid rgba(121,226,173,.1); box-shadow: 0 -18px 42px rgba(0,0,0,.22); }
 .website-reference-preview { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; padding: 8px 10px; color: #dff8e9; background: rgba(121,226,173,.06); border: 1px solid rgba(121,226,173,.14); border-radius: 10px; }
 .website-reference-preview > span { width: 32px; height: 32px; display: grid; place-items: center; color: #79e2ad; background: rgba(121,226,173,.08); border-radius: 8px; }
@@ -3406,6 +3422,7 @@ body::after { content: none !important; }
     flex: 0 0 auto;
     min-height: 44px;
     padding: 0 0 8px;
+    flex-wrap: wrap;
 }
 
 .website-builder-studio.is-preview-mode .website-output-toolbar button {
@@ -3413,9 +3430,16 @@ body::after { content: none !important; }
     padding: 6px 9px;
 }
 
+.website-builder-studio.is-preview-mode .website-output-stage {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
 .website-builder-studio.is-preview-mode .website-preview-view,
 .website-builder-studio.is-preview-mode .website-files-view {
-    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
     min-height: 0;
     overflow: hidden;
 }
@@ -3469,7 +3493,26 @@ body::after { content: none !important; }
 }
 
 .website-builder-studio.is-preview-mode .website-revision-panel {
-    display: none;
+    display: grid;
+    min-width: 220px;
+}
+
+.website-builder-studio.is-preview-mode.is-revising .website-generation-bubble {
+    width: auto;
+    min-width: 72px;
+    display: inline-grid;
+    place-items: center;
+    padding: 11px 14px !important;
+}
+
+.website-builder-studio.is-preview-mode.is-revising .website-generation-bubble .website-progress-image,
+.website-builder-studio.is-preview-mode.is-revising .website-generation-bubble .website-live-progress,
+.website-builder-studio.is-preview-mode.is-revising .website-generation-bubble .website-progress-info {
+    display: none !important;
+}
+
+.website-builder-studio.is-preview-mode.is-revising .website-preview-typing {
+    display: flex;
 }
 
 /* إخفاء المحادثة يترك المعاينة ممتدة على كامل المساحة المتبقية. */
@@ -3585,6 +3628,16 @@ body::after { content: none !important; }
 
     .website-builder-studio.is-preview-mode .website-output-toolbar button {
         padding-inline: 7px;
+    }
+
+    .website-builder-studio.is-preview-mode .website-revision-panel {
+        order: 4;
+        flex-basis: 100%;
+        min-width: 0;
+    }
+
+    .website-builder-studio.is-preview-mode .website-revision-panel textarea {
+        min-width: 0;
     }
 
     .website-builder-studio.is-preview-mode .website-project-workspace {

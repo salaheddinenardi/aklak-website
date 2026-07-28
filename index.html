@@ -477,6 +477,7 @@
                         <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
                         <div class="message-content website-state-content">
                             <div class="message-bubble website-generation-bubble">
+                                <div class="website-preview-typing" aria-label="يتم تعديل الموقع"><i></i><i></i><i></i></div>
                                 <img class="website-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يجري إنشاء الموقع" loading="eager">
                                 <div class="website-live-progress" role="progressbar" aria-label="يجري إنشاء الموقع"><span></span></div>
                                 <div class="website-progress-info"><span>يتم الآن إنشاء الموقع</span><strong id="website-progress-title">من البرومنت الذي أرسلته</strong><small id="website-progress-model">—</small></div>
@@ -501,6 +502,10 @@
                             <button class="active" type="button" data-website-view="preview"><i class="far fa-eye"></i> المعاينة</button>
                             <button type="button" data-website-view="files"><i class="fas fa-file-code"></i> الملفات الثلاثة</button>
                         </div>
+                        <div id="website-revision-panel" class="website-revision-panel" aria-label="طلب تعديل الموقع">
+                            <textarea id="website-revision-prompt" rows="1" placeholder="اكتب التعديل المطلوب على الموقع..."></textarea>
+                            <button id="website-revise-btn" type="button" aria-label="إرسال طلب تعديل الموقع"><i class="fas fa-arrow-up"></i><span>تعديل</span></button>
+                        </div>
                         <div class="website-device-switch" aria-label="حجم المعاينة">
                             <button class="active" type="button" data-website-device="desktop" title="حاسوب"><i class="fas fa-desktop"></i></button>
                             <button type="button" data-website-device="mobile" title="هاتف"><i class="fas fa-mobile-screen-button"></i></button>
@@ -512,32 +517,33 @@
                             <button id="website-close-preview-btn" type="button" title="إغلاق المعاينة"><i class="fas fa-xmark"></i></button>
                         </div>
                     </div>
-                    <div id="website-preview-view" class="website-preview-view">
-                        <div id="website-preview-shell" class="website-preview-shell" data-device="desktop">
-                            <div class="website-browser-bar"><i></i><i></i><i></i><span>معاينة آمنة للموقع</span></div>
-                            <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms"></iframe>
+                    <div class="website-output-stage">
+                        <div id="website-revision-overlay" class="website-revision-overlay hidden" aria-live="polite" aria-hidden="true">
+                            <div class="website-revision-waiting">
+                                <div class="website-revision-waiting-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+                                <strong>يتم تعديل الموقع</strong>
+                                <small>يُراجع النموذج الملفات المطلوبة ويحافظ على بقية المشروع.</small>
+                            </div>
                         </div>
-                    </div>
-                    <div id="website-files-view" class="website-files-view hidden">
-                        <div class="website-project-workspace">
-                            <aside class="website-files-sidebar" aria-label="ملفات الموقع">
-                                <div class="website-files-sidebar-head"><span><i class="fas fa-file-code"></i> ملفات الموقع</span><small>index.html · style.css · app.js</small></div>
-                                <div id="website-file-tree" class="website-file-tree"></div>
-                            </aside>
-                            <section class="website-file-editor-panel">
-                                <div class="website-code-head"><span><i class="fas fa-file-code"></i> <b id="website-active-file-path">اختر ملفًا</b></span><small id="website-active-file-language">—</small></div>
-                                <textarea id="website-code-editor" dir="ltr" spellcheck="false" aria-label="محرر ملف المشروع"></textarea>
-                                <button id="website-apply-code-btn" type="button"><i class="fas fa-play"></i> حفظ الملف وتحديث المعاينة</button>
-                            </section>
+                        <div id="website-preview-view" class="website-preview-view">
+                            <div id="website-preview-shell" class="website-preview-shell" data-device="desktop">
+                                <div class="website-browser-bar"><i></i><i></i><i></i><span>معاينة آمنة للموقع</span></div>
+                                <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms"></iframe>
+                            </div>
                         </div>
-                    </div>
-                    <div id="website-revision-panel" class="website-revision-panel">
-                        <div class="website-revision-head"><div><span class="panel-eyebrow">AI REVISION</span><h4>اطلب تعديلًا على الموقع الحالي</h4></div></div>
-                        <div class="website-revision-composer">
-                            <textarea id="website-revision-prompt" rows="2" placeholder="مثال: عدّل الهيدر فقط وأضف زر تسجيل، واترك بقية الموقع كما هو..."></textarea>
-                            <button id="website-revise-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i><span>تعديل الموقع</span></button>
+                        <div id="website-files-view" class="website-files-view hidden">
+                            <div class="website-project-workspace">
+                                <aside class="website-files-sidebar" aria-label="ملفات الموقع">
+                                    <div class="website-files-sidebar-head"><span><i class="fas fa-file-code"></i> ملفات الموقع</span><small>index.html · style.css · app.js</small></div>
+                                    <div id="website-file-tree" class="website-file-tree"></div>
+                                </aside>
+                                <section class="website-file-editor-panel">
+                                    <div class="website-code-head"><span><i class="fas fa-file-code"></i> <b id="website-active-file-path">اختر ملفًا</b></span><small id="website-active-file-language">—</small></div>
+                                    <textarea id="website-code-editor" dir="ltr" spellcheck="false" aria-label="محرر ملف المشروع"></textarea>
+                                    <button id="website-apply-code-btn" type="button"><i class="fas fa-play"></i> حفظ الملف وتحديث المعاينة</button>
+                                </section>
+                            </div>
                         </div>
-                        <p class="website-revision-note"><i class="fas fa-code-branch"></i> الوكيل يراجع ملفات المشروع ويعيد فقط التعديلات المطلوبة، بينما يحافظ الكود الوظيفي على بقية الملفات كما هي.</p>
                     </div>
                 </div>
             </div>

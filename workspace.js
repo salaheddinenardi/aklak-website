@@ -2669,7 +2669,8 @@ const websiteState = {
     referenceAttachment: null,
     previewOpen: false,
     chatCollapsed: false,
-    activeView: 'preview'
+    activeView: 'preview',
+    revising: false
 };
 
 const WEBSITE_MODEL_INFO = {
@@ -2688,7 +2689,10 @@ function getWebsiteUI() {
         completeTitle: document.getElementById('website-complete-title'),
         completeMeta: document.getElementById('website-complete-meta'),
         progressModel: document.getElementById('website-progress-model'),
+        progressTitle: document.getElementById('website-progress-title'),
         output: document.getElementById('website-output-panel'),
+        outputStage: document.querySelector('#website-output-panel .website-output-stage'),
+        revisionOverlay: document.getElementById('website-revision-overlay'),
         previewView: document.getElementById('website-preview-view'),
         filesView: document.getElementById('website-files-view'),
         previewShell: document.getElementById('website-preview-shell'),
@@ -2740,11 +2744,27 @@ function setWebsiteBusy(value, label) {
     websiteState.busy = Boolean(value);
     const w = getWebsiteUI();
     [w.generateBtn, w.reviseBtn, w.applyCodeBtn].forEach(function(btn) { if (btn) btn.disabled = websiteState.busy; });
+    [w.prompt, w.revisionPrompt].forEach(function(input) { if (input) input.disabled = websiteState.busy; });
     if (w.generateBtn) {
         w.generateBtn.classList.toggle('is-loading', websiteState.busy);
         w.generateBtn.innerHTML = websiteState.busy ? '<i class="fas fa-spinner fa-spin"></i>' : '<i class="fas fa-arrow-up"></i>';
         w.generateBtn.setAttribute('aria-label', websiteState.busy ? (label || 'جاري الإنشاء...') : 'إرسال طلب إنشاء الموقع');
     }
+    if (w.reviseBtn) {
+        w.reviseBtn.classList.toggle('is-loading', websiteState.busy && websiteState.revising);
+        w.reviseBtn.innerHTML = websiteState.busy && websiteState.revising
+            ? '<i class="fas fa-spinner fa-spin"></i><span>يعدّل</span>'
+            : '<i class="fas fa-arrow-up"></i><span>تعديل</span>';
+    }
+}
+
+function setWebsiteRevisionLoading(value) {
+    websiteState.revising = Boolean(value);
+    const w = getWebsiteUI();
+    w.studio?.classList.toggle('is-revising', websiteState.revising);
+    w.output?.classList.toggle('is-revising', websiteState.revising);
+    w.revisionOverlay?.classList.toggle('hidden', !websiteState.revising);
+    w.revisionOverlay?.setAttribute('aria-hidden', String(!websiteState.revising));
 }
 
 function syncWebsiteWorkspaceLayout() {
@@ -2758,6 +2778,10 @@ function syncWebsiteWorkspaceLayout() {
     ui?.appShell?.classList.toggle('website-preview-layout', active);
     w.studio?.classList.toggle('is-preview-mode', active);
     w.studio?.classList.toggle('is-chat-collapsed', active && websiteState.chatCollapsed);
+    w.studio?.classList.toggle('is-revising', websiteState.revising);
+    w.output?.classList.toggle('is-revising', websiteState.revising);
+    w.revisionOverlay?.classList.toggle('hidden', !websiteState.revising);
+    w.revisionOverlay?.setAttribute('aria-hidden', String(!websiteState.revising));
     document.body.classList.toggle('website-preview-open', active);
 
     if (w.closeChatBtn) {
@@ -3345,9 +3369,11 @@ async function generateWebsite() {
     }
 
     appendWebsiteUserMessage(prompt, websiteState.referenceAttachment?.name);
+    setWebsiteRevisionLoading(false);
     w.completeCard?.classList.add('hidden');
     w.output?.classList.add('hidden');
     w.generationCard?.classList.remove('hidden');
+    if (w.progressTitle) w.progressTitle.textContent = 'من البرومنت الذي أرسلته';
     if (w.progressModel) w.progressModel.textContent = (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model) + ' · 3 ملفات';
     setWebsiteBusy(true, 'يتم إنشاء الملفات الثلاثة...');
     setWebsiteStatus('يتم إنشاء index.html و style.css و app.js في رد واحد...', 'loading');
@@ -3379,12 +3405,14 @@ async function reviseWebsiteWithInstruction(instruction, sourceInput) {
     appendWebsiteUserMessage(cleanInstruction, null);
     w.generationCard?.classList.remove('hidden');
     w.completeCard?.classList.add('hidden');
+    if (w.progressTitle) w.progressTitle.textContent = 'يتم الآن تعديل الموقع الحالي';
     if (w.progressModel) {
-        w.progressModel.textContent = 'تعديل جزئي · ' +
+        w.progressModel.textContent = 'تعديل الملفات المطلوبة فقط · ' +
             (WEBSITE_MODEL_INFO[websiteState.provider + ':' + websiteState.model]?.label || websiteState.model);
     }
+    setWebsiteRevisionLoading(true);
     setWebsiteBusy(true, 'يتم تعديل ملفات المشروع...');
-    setWebsiteStatus('يتم تطبيق التعديل على الموقع الحالي...', 'loading');
+    setWebsiteStatus('يتم إرسال الملفات الحالية للنموذج وتطبيق التعديل المطلوب فقط...', 'loading');
 
     try {
         const response = await requestWebsiteFromFirstFunction('revise', cleanInstruction);
@@ -3405,6 +3433,7 @@ async function reviseWebsiteWithInstruction(instruction, sourceInput) {
         w.generationCard?.classList.add('hidden');
         setWebsiteStatus(error.message || 'تعذر تعديل الموقع.', 'error');
     } finally {
+        setWebsiteRevisionLoading(false);
         setWebsiteBusy(false);
     }
 }
@@ -3447,6 +3476,7 @@ function resetWebsiteBuilder() {
     websiteState.previewOpen = false;
     websiteState.chatCollapsed = false;
     websiteState.activeView = 'preview';
+    websiteState.revising = false;
     websiteState.project = null;
     websiteState.activeFilePath = '';
     websiteState.changedFiles = [];
@@ -3458,6 +3488,10 @@ function resetWebsiteBuilder() {
     if (w.fileTree) w.fileTree.innerHTML = '';
     if (w.activeFilePath) w.activeFilePath.textContent = 'اختر ملفًا';
     w.output?.classList.add('hidden');
+    w.output?.classList.remove('is-revising');
+    w.studio?.classList.remove('is-revising');
+    w.revisionOverlay?.classList.add('hidden');
+    w.revisionOverlay?.setAttribute('aria-hidden', 'true');
     w.completeCard?.classList.add('hidden');
     w.generationCard?.classList.add('hidden');
     w.conversation?.querySelectorAll('[data-website-dynamic="true"]').forEach(function(row) { row.remove(); });
@@ -3490,6 +3524,12 @@ window.initWebsiteBuilder = function() {
     restoreWebsiteModelChoice();
     w.prompt?.addEventListener('input', function() { autoResizeTextarea(w.prompt); });
     w.prompt?.addEventListener('keydown', function(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); generateWebsite(); } });
+    w.revisionPrompt?.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            reviseWebsite();
+        }
+    });
     w.generateBtn?.addEventListener('click', generateWebsite);
     w.attachBtn?.addEventListener('click', function() { w.referenceFile?.click(); });
     w.referenceFile?.addEventListener('change', async function() { if (w.referenceFile.files?.[0]) { try { await readWebsiteReference(w.referenceFile.files[0]); } catch (e) { setWebsiteStatus('تعذر قراءة الملف المرفق.', 'error'); } } });
