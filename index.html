@@ -19,12 +19,14 @@
         </a>
     </div>
     <div class="account-actions">
-        <span id="user-info" class="credit-pill hidden" title="رصيد التوكن"><i class="fas fa-bolt token-mark"></i><span id="user-credits" class="token-value">0</span></span>
-        <button class="token-add-btn hidden" type="button" data-add-tokens aria-label="إضافة توكن" title="إضافة توكن"><i class="fas fa-plus"></i></button>
-        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات" title="السلة"><i class="fas fa-bag-shopping"></i><b id="cart-count">0</b></button>
-        <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i> تسجيل الدخول</button>
+        <div class="token-action-group">
+            <span id="user-info" class="credit-pill hidden" title="رصيد التوكن"><i class="fas fa-bolt token-mark"></i><span class="account-item-label">التوكن</span><span id="user-credits" class="token-value">0</span></span>
+            <button class="token-add-btn hidden" type="button" data-add-tokens aria-label="إضافة توكن" title="إضافة توكن"><i class="fas fa-plus"></i></button>
+        </div>
+        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات" title="السلة"><i class="fas fa-bag-shopping"></i><span class="account-item-label">السلة</span><b id="cart-count">0</b></button>
+        <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i><span class="account-item-label account-login-label">تسجيل الدخول</span></button>
         <button id="profile-header-btn" class="profile-header-btn hidden" type="button" aria-label="فتح الملف الشخصي" aria-expanded="false">
-            <i class="far fa-circle-user"></i><span id="header-user-name">حسابي</span><i class="fas fa-chevron-down profile-chevron"></i>
+            <i class="far fa-circle-user"></i><span class="account-item-label">البروفيل</span><span id="header-user-name">حسابي</span><i class="fas fa-chevron-down profile-chevron"></i>
         </button>
     </div>
 </header>
@@ -72,7 +74,10 @@
 </section>
 
 <div id="app-shell" class="app-shell is-collapsed" data-action="text">
-    <aside class="tools-sidebar" aria-label="أدوات الذكاء الاصطناعي">
+    <aside class="tools-sidebar" aria-label="أدوات الذكاء الاصطناعي والحساب">
+        <div id="workspace-brand-slot" class="workspace-brand-slot" aria-label="AKLAKE والواجهة الرئيسية"></div>
+        <div id="workspace-account-slot" class="workspace-account-slot" aria-label="الحساب والتوكن والسلة"></div>
+        <div class="sidebar-system-divider" aria-hidden="true"></div>
         <div class="sidebar-title">الأدوات</div>
         <button class="tool-button active" type="button" data-tool="text">
             <span class="tool-icon"><i class="far fa-message"></i></span><span>المحادثة</span>

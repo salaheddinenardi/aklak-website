@@ -1,7 +1,29 @@
+function syncWorkspaceChrome(inWorkspace) {
+    const nav = document.querySelector('.nav');
+    const brandNavigation = document.querySelector('.brand-navigation');
+    const accountActions = document.querySelector('.account-actions');
+    const brandSlot = document.getElementById('workspace-brand-slot');
+    const accountSlot = document.getElementById('workspace-account-slot');
+
+    if (!nav || !brandNavigation || !accountActions || !brandSlot || !accountSlot) return;
+
+    if (inWorkspace) {
+        if (brandNavigation.parentElement !== brandSlot) brandSlot.appendChild(brandNavigation);
+        if (accountActions.parentElement !== accountSlot) accountSlot.appendChild(accountActions);
+        nav.setAttribute('aria-hidden', 'true');
+    } else {
+        if (brandNavigation.parentElement !== nav) nav.appendChild(brandNavigation);
+        if (accountActions.parentElement !== nav) nav.appendChild(accountActions);
+        nav.removeAttribute('aria-hidden');
+    }
+}
+window.syncWorkspaceChrome = syncWorkspaceChrome;
+
 function openWorkspace() {
     if (ui.welcomeScreen) ui.welcomeScreen.classList.add('is-hidden');
     if (ui.appShell) ui.appShell.classList.remove('is-collapsed');
     document.body.classList.add('workspace-open');
+    syncWorkspaceChrome(true);
 }
 window.openWorkspace = openWorkspace;
 
@@ -9,6 +31,7 @@ function showHomeScreen() {
     if (ui.welcomeScreen) ui.welcomeScreen.classList.remove('is-hidden');
     if (ui.appShell) ui.appShell.classList.add('is-collapsed');
     document.body.classList.remove('workspace-open');
+    syncWorkspaceChrome(false);
     const libraryDrawer = document.getElementById('my-library-section');
     if (libraryDrawer) libraryDrawer.classList.add('hidden');
     if (typeof closeArtDialogs === 'function') closeArtDialogs();

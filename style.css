@@ -3759,3 +3759,277 @@ body::after { content: none !important; }
 .website-preview-shell #website-preview-frame { min-height: 680px; }
 .website-builder-studio.is-preview-mode #website-preview-frame { height: calc(100vh - 188px); min-height: 620px; }
 @media (max-width: 720px) { .website-asset-chip { min-width: 150px; } .website-asset-viewer { min-height: 360px; grid-template-rows: minmax(200px,1fr) auto auto; } }
+
+
+/* =========================================================
+   AKLAKE WORKSPACE CHROME — دمج الهوية والحساب داخل الأدوات
+   الشريط العلوي يبقى للواجهة الرئيسية فقط. داخل مساحة العمل
+   نستخدم نفس عناصر DOM الأصلية حتى تبقى جميع الأحداث والعدادات سليمة.
+   ========================================================= */
+.nav .account-item-label { display: none; }
+.nav .token-action-group { display: contents; }
+
+.workspace-brand-slot,
+.workspace-account-slot { width: 100%; }
+.workspace-brand-slot:empty,
+.workspace-account-slot:empty,
+.sidebar-system-divider:has(+ .sidebar-title):not(body.workspace-open *) { display: none; }
+
+body.workspace-open .nav { display: none !important; }
+body.workspace-open .app-shell { padding-top: 0; }
+body.workspace-open .tools-sidebar {
+    top: 0;
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+body.workspace-open .workspace-main { min-height: 100dvh; }
+
+body.workspace-open .tools-sidebar .brand-navigation {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 38px minmax(0,1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px 11px;
+    border-bottom: 1px solid rgba(121,226,173,.12);
+}
+body.workspace-open .tools-sidebar .home-button {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    color: var(--green-bright);
+    background: rgba(121,226,173,.08);
+    border: 1px solid rgba(121,226,173,.14);
+    border-radius: 7px;
+}
+body.workspace-open .tools-sidebar .brand-button {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 5px;
+    cursor: pointer;
+}
+body.workspace-open .tools-sidebar .brand-orbit { display: none; }
+body.workspace-open .tools-sidebar .brand-lockup { min-width: 0; }
+body.workspace-open .tools-sidebar .logo { font-size: 1rem; letter-spacing: 1.8px; }
+body.workspace-open .tools-sidebar .brand-lockup small { margin-top: 3px; font-size: .46rem; letter-spacing: 1.45px; }
+
+body.workspace-open .tools-sidebar .account-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 9px 0 4px;
+}
+body.workspace-open .tools-sidebar .token-action-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 28px;
+    align-items: center;
+    gap: 3px;
+    order: 2;
+}
+body.workspace-open .tools-sidebar #profile-header-btn,
+body.workspace-open .tools-sidebar #login-btn { order: 1; }
+body.workspace-open .tools-sidebar #cart-header-btn { order: 3; }
+body.workspace-open .tools-sidebar .account-actions > #profile-header-btn,
+body.workspace-open .tools-sidebar .account-actions > #login-btn,
+body.workspace-open .tools-sidebar .account-actions > #cart-header-btn,
+body.workspace-open .tools-sidebar .credit-pill {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 7px 10px;
+    color: #c1dfcf;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    box-shadow: none;
+    text-align: right;
+}
+body.workspace-open .tools-sidebar .account-actions > #profile-header-btn:hover,
+body.workspace-open .tools-sidebar .account-actions > #login-btn:hover,
+body.workspace-open .tools-sidebar .account-actions > #cart-header-btn:hover,
+body.workspace-open .tools-sidebar .credit-pill:hover {
+    color: #fff;
+    background: rgba(121,226,173,.09);
+    border-color: rgba(121,226,173,.18);
+}
+body.workspace-open .tools-sidebar .account-actions i:first-child,
+body.workspace-open .tools-sidebar .credit-pill .token-mark {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    color: var(--green-bright);
+    background: rgba(121,226,173,.09);
+    border-radius: 6px;
+}
+body.workspace-open .tools-sidebar .account-item-label {
+    display: inline;
+    color: #d9efe3;
+    font-size: .74rem;
+    font-weight: 700;
+}
+body.workspace-open .tools-sidebar #header-user-name {
+    min-width: 0;
+    margin-inline-start: auto;
+    color: #87a796;
+    font-size: .64rem;
+    font-weight: 600;
+}
+body.workspace-open .tools-sidebar .profile-chevron { margin-inline-start: 0; }
+body.workspace-open .tools-sidebar .token-value,
+body.workspace-open .tools-sidebar #cart-count {
+    margin-inline-start: auto;
+    color: var(--green-bright);
+    font-size: .7rem;
+    font-weight: 800;
+}
+body.workspace-open .tools-sidebar .token-add-btn {
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    align-self: center;
+}
+body.workspace-open .tools-sidebar .sidebar-system-divider {
+    width: calc(100% - 16px);
+    height: 1px;
+    flex: 0 0 1px;
+    margin: 5px 8px 4px;
+    background: rgba(121,226,173,.12);
+}
+
+/* وضع المعاينة: كل مساحة ممكنة للمنتج، والشريط يصبح أيقونات فقط. */
+.app-shell.website-preview-layout[data-action="website_builder"] .workspace-brand-slot,
+.app-shell.website-preview-layout[data-action="website_builder"] .workspace-account-slot { width: 48px; }
+.app-shell.website-preview-layout[data-action="website_builder"] .brand-navigation {
+    width: 48px;
+    display: block;
+    padding: 0;
+    border: 0;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] .brand-button { display: none !important; }
+.app-shell.website-preview-layout[data-action="website_builder"] .home-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 11px;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions {
+    width: 48px;
+    padding: 0;
+    gap: 6px;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] .token-action-group {
+    width: 48px;
+    display: block;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #profile-header-btn,
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #login-btn,
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #cart-header-btn,
+.app-shell.website-preview-layout[data-action="website_builder"] .credit-pill {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    justify-content: center;
+    gap: 0;
+    padding: 7px;
+    font-size: 0;
+    border-radius: 11px;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions i:first-child,
+.app-shell.website-preview-layout[data-action="website_builder"] .credit-pill .token-mark {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] .account-item-label,
+.app-shell.website-preview-layout[data-action="website_builder"] #header-user-name,
+.app-shell.website-preview-layout[data-action="website_builder"] .profile-chevron,
+.app-shell.website-preview-layout[data-action="website_builder"] .token-value,
+.app-shell.website-preview-layout[data-action="website_builder"] #cart-count,
+.app-shell.website-preview-layout[data-action="website_builder"] .token-add-btn,
+.app-shell.website-preview-layout[data-action="website_builder"] .sidebar-title,
+.app-shell.website-preview-layout[data-action="website_builder"] .sidebar-system-divider {
+    display: none !important;
+}
+
+@media (max-width: 720px) {
+    body.workspace-open .app-shell { padding: 0 0 74px; }
+    body.workspace-open .workspace-main { min-height: calc(100dvh - 74px); }
+    body.workspace-open .tools-sidebar {
+        top: auto;
+        height: 68px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 7px 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+    }
+    body.workspace-open .tools-sidebar::-webkit-scrollbar { display: none; }
+    body.workspace-open .workspace-brand-slot,
+    body.workspace-open .workspace-account-slot { width: auto; flex: 0 0 auto; }
+    body.workspace-open .tools-sidebar .brand-navigation {
+        width: auto;
+        display: block;
+        padding: 0;
+        border: 0;
+    }
+    body.workspace-open .tools-sidebar .brand-button { display: none; }
+    body.workspace-open .tools-sidebar .home-button { width: 48px; height: 48px; }
+    body.workspace-open .tools-sidebar .account-actions {
+        width: auto;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        padding: 0;
+    }
+    body.workspace-open .tools-sidebar .token-action-group { width: auto; display: block; }
+    body.workspace-open .tools-sidebar .account-actions > #profile-header-btn,
+    body.workspace-open .tools-sidebar .account-actions > #login-btn,
+    body.workspace-open .tools-sidebar .account-actions > #cart-header-btn,
+    body.workspace-open .tools-sidebar .credit-pill,
+    body.workspace-open .tools-sidebar .tool-button {
+        width: 48px;
+        min-width: 48px;
+        height: 48px;
+        min-height: 48px;
+        flex: 0 0 48px;
+        justify-content: center;
+        gap: 0;
+        padding: 7px;
+        font-size: 0;
+    }
+    body.workspace-open .tools-sidebar .account-item-label,
+    body.workspace-open .tools-sidebar #header-user-name,
+    body.workspace-open .tools-sidebar .profile-chevron,
+    body.workspace-open .tools-sidebar .token-value,
+    body.workspace-open .tools-sidebar #cart-count,
+    body.workspace-open .tools-sidebar .token-add-btn,
+    body.workspace-open .tools-sidebar .sidebar-title,
+    body.workspace-open .tools-sidebar .sidebar-system-divider,
+    body.workspace-open .tools-sidebar .sidebar-spacer { display: none !important; }
+}
+
+/* تصحيح ارتفاع مساحة المعاينة بعد إزالة الشريط العلوي من مساحة العمل. */
+body.workspace-open .app-shell.website-preview-layout[data-action="website_builder"] .workspace-main {
+    height: 100dvh;
+    min-height: 0;
+}
+@media (max-width: 720px) {
+    body.workspace-open .app-shell.website-preview-layout[data-action="website_builder"] .workspace-main {
+        height: calc(100dvh - 74px);
+        min-height: 0;
+    }
+}
