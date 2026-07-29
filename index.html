@@ -528,7 +528,16 @@
                         <div id="website-preview-view" class="website-preview-view">
                             <div id="website-preview-shell" class="website-preview-shell" data-device="desktop">
                                 <div class="website-browser-bar"><i></i><i></i><i></i><span>معاينة آمنة للموقع</span></div>
-                                <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms"></iframe>
+                                <div id="website-preview-diagnostics" class="website-preview-diagnostics" data-state="idle" aria-live="polite">
+                                    <div class="website-preview-health" aria-label="حالة ملفات المعاينة">
+                                        <span id="website-preview-health-html" class="is-idle"><i class="fab fa-html5"></i> HTML</span>
+                                        <span id="website-preview-health-css" class="is-idle"><i class="fab fa-css3-alt"></i> CSS</span>
+                                        <span id="website-preview-health-js" class="is-idle"><i class="fab fa-js"></i> JavaScript</span>
+                                    </div>
+                                    <small id="website-preview-runtime-message">جاهز لتشغيل المعاينة.</small>
+                                </div>
+                                <pre id="website-preview-error-log" class="website-preview-error-log hidden" dir="ltr" aria-label="أخطاء تشغيل المعاينة"></pre>
+                                <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms allow-modals allow-downloads"></iframe>
                             </div>
                         </div>
                         <div id="website-files-view" class="website-files-view hidden">

@@ -2673,7 +2673,9 @@ const websiteState = {
     revising: false,
     versions: [],
     activeVersionId: '',
-    versionSequence: 0
+    versionSequence: 0,
+    previewRenderToken: '',
+    previewRuntimeErrors: []
 };
 
 const WEBSITE_MODEL_INFO = {
@@ -2700,6 +2702,12 @@ function getWebsiteUI() {
         filesView: document.getElementById('website-files-view'),
         previewShell: document.getElementById('website-preview-shell'),
         previewFrame: document.getElementById('website-preview-frame'),
+        previewDiagnostics: document.getElementById('website-preview-diagnostics'),
+        previewHealthHtml: document.getElementById('website-preview-health-html'),
+        previewHealthCss: document.getElementById('website-preview-health-css'),
+        previewHealthJs: document.getElementById('website-preview-health-js'),
+        previewRuntimeMessage: document.getElementById('website-preview-runtime-message'),
+        previewErrorLog: document.getElementById('website-preview-error-log'),
         fileTree: document.getElementById('website-file-tree'),
         activeFilePath: document.getElementById('website-active-file-path'),
         activeFileLanguage: document.getElementById('website-active-file-language'),
@@ -3048,15 +3056,81 @@ function normalizeWebsiteAssetPath(value) {
     return safeWebsitePath(value.split('#')[0].split('?')[0].replace(/^\.\//, ''));
 }
 
-function buildWebsitePreviewDocument(project) {
+function escapeWebsiteInlineScript(value) {
+    return String(value || '').replace(/<\/script/gi, '<\\/script');
+}
+
+function buildWebsitePreviewBridge(renderToken) {
+    const token = JSON.stringify(String(renderToken || ''));
+    const bridge = `
+(function () {
+    var AKLAKE_TOKEN = ${token};
+    var runtimeErrors = 0;
+    function send(type, payload) {
+        try {
+            window.parent.postMessage(Object.assign({
+                source: 'aklake-website-preview',
+                token: AKLAKE_TOKEN,
+                type: type
+            }, payload || {}), '*');
+        } catch (_) {}
+    }
+    function makeMemoryStorage() {
+        var data = Object.create(null);
+        return {
+            get length() { return Object.keys(data).length; },
+            key: function(index) { return Object.keys(data)[Number(index)] || null; },
+            getItem: function(key) { key = String(key); return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null; },
+            setItem: function(key, value) { data[String(key)] = String(value); },
+            removeItem: function(key) { delete data[String(key)]; },
+            clear: function() { data = Object.create(null); }
+        };
+    }
+    ['localStorage', 'sessionStorage'].forEach(function(name) {
+        try {
+            void window[name];
+        } catch (_) {
+            try { Object.defineProperty(window, name, { value: makeMemoryStorage(), configurable: true }); } catch (__) {}
+        }
+    });
+    window.addEventListener('error', function(event) {
+        if (!event || !event.message) return;
+        runtimeErrors += 1;
+        send('runtime-error', {
+            message: String(event.message || 'JavaScript runtime error'),
+            filename: String(event.filename || 'app.js'),
+            line: Number(event.lineno || 0),
+            column: Number(event.colno || 0)
+        });
+    });
+    window.addEventListener('unhandledrejection', function(event) {
+        runtimeErrors += 1;
+        var reason = event && event.reason;
+        send('runtime-error', {
+            message: reason && reason.message ? String(reason.message) : String(reason || 'Unhandled promise rejection'),
+            filename: 'app.js',
+            line: 0,
+            column: 0
+        });
+    });
+    document.addEventListener('DOMContentLoaded', function() { send('dom-ready'); });
+    window.addEventListener('load', function() { send('loaded', { runtimeErrors: runtimeErrors }); });
+    send('boot');
+})();`;
+    return '<script data-aklake-preview-bridge>\n' + escapeWebsiteInlineScript(bridge) + '\n</script>';
+}
+
+function buildWebsitePreviewDocument(project, renderToken) {
     const normalized = normalizeWebsiteProject(project);
     if (!normalized) return '';
     const entryFile = normalized.files.find(function(file) { return file.path === normalized.entry; });
     if (!entryFile) return '';
     const map = new Map(normalized.files.map(function(file) { return [file.path, file.content]; }));
-    let html = entryFile.content;
+    let html = String(entryFile.content || '');
     const usedCss = new Set();
-    const usedJs = new Set();
+
+    // srcdoc يعمل داخل sandbox آمن. أي CSP مولد داخل المشروع قد يمنع الأكواد المدمجة الخاصة بالمعاينة، لذلك نحذفه من نسخة المعاينة فقط.
+    html = html.replace(/<meta\b[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
 
     html = html.replace(/<link\b([^>]*?)href=["']([^"']+)["']([^>]*)>/gi, function(full, before, href) {
         const path = normalizeWebsiteAssetPath(href);
@@ -3065,24 +3139,38 @@ function buildWebsitePreviewDocument(project) {
         return '<style data-aklake-file="' + path.replace(/"/g, '&quot;') + '">\n' + map.get(path) + '\n</style>';
     });
 
+    // نحذف مراجع JavaScript المحلية من أماكنها الأصلية. وسم defer لا يعمل عند تحويل السكربت إلى inline،
+    // لذلك نضع app.js في نهاية body، وهو سلوك مكافئ لملف خارجي مع defer من ناحية توفر عناصر DOM.
     html = html.replace(/<script\b([^>]*?)src=["']([^"']+)["']([^>]*)>\s*<\/script>/gi, function(full, before, src) {
         const path = normalizeWebsiteAssetPath(src);
         if (!path || !map.has(path) || !/\.(?:js|mjs)$/i.test(path)) return full;
-        usedJs.add(path);
-        const js = String(map.get(path)).replace(/<\/script/gi, '<\\/script');
-        return '<script data-aklake-file="' + path.replace(/"/g, '&quot;') + '">\n' + js + '\n<\/script>';
+        return '<!-- AKLAKE_PREVIEW_SCRIPT_MOVED:' + path.replace(/-->/g, '') + ' -->';
     });
 
     const unusedCss = normalized.files.filter(function(file) { return /\.css$/i.test(file.path) && !usedCss.has(file.path); });
     if (unusedCss.length) {
-        const styles = unusedCss.map(function(file) { return '<style data-aklake-file="' + file.path + '">\n' + file.content + '\n</style>'; }).join('\n');
+        const styles = unusedCss.map(function(file) {
+            return '<style data-aklake-file="' + file.path.replace(/"/g, '&quot;') + '">\n' + file.content + '\n</style>';
+        }).join('\n');
         html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, styles + '\n</head>') : styles + html;
     }
-    const unusedJs = normalized.files.filter(function(file) { return /\.(?:js|mjs)$/i.test(file.path) && !usedJs.has(file.path); });
-    if (unusedJs.length) {
-        const scripts = unusedJs.map(function(file) { return '<script data-aklake-file="' + file.path + '">\n' + String(file.content).replace(/<\/script/gi, '<\\/script') + '\n<\/script>'; }).join('\n');
-        html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, scripts + '\n</body>') : html + scripts;
-    }
+
+    const bridge = buildWebsitePreviewBridge(renderToken);
+    html = /<head\b[^>]*>/i.test(html)
+        ? html.replace(/<head\b[^>]*>/i, function(head) { return head + '\n' + bridge; })
+        : bridge + '\n' + html;
+
+    const scripts = normalized.files.filter(function(file) { return /\.(?:js|mjs)$/i.test(file.path); }).map(function(file) {
+        return '<script data-aklake-file="' + file.path.replace(/"/g, '&quot;') + '">\n' +
+            escapeWebsiteInlineScript(String(file.content || '')) +
+            '\n//# sourceURL=' + file.path.replace(/[\r\n]/g, '') +
+            '\n</script>';
+    }).join('\n');
+
+    html = /<\/body>/i.test(html)
+        ? html.replace(/<\/body>/i, scripts + '\n</body>')
+        : html + '\n' + scripts;
+
     return html;
 }
 
@@ -3137,6 +3225,7 @@ function selectWebsiteFile(path) {
     if (w.codeEditor) w.codeEditor.value = file.content;
     if (w.activeFilePath) w.activeFilePath.textContent = file.path;
     if (w.activeFileLanguage) w.activeFileLanguage.textContent = getWebsiteLanguage(file.path);
+    w.applyCodeBtn?.classList.remove('has-changes');
     renderWebsiteFileTree();
 }
 
@@ -3199,12 +3288,93 @@ function syncWebsiteVersionCards() {
     });
 }
 
+function setWebsitePreviewHealthBadge(element, state) {
+    if (!element) return;
+    element.classList.remove('is-idle', 'is-loading', 'is-ok', 'is-error');
+    element.classList.add('is-' + (state || 'idle'));
+    element.dataset.status = state || 'idle';
+}
+
+function resetWebsitePreviewDiagnostics(state, message) {
+    const w = getWebsiteUI();
+    websiteState.previewRuntimeErrors = [];
+    const hasProject = Boolean(websiteState.project);
+    const currentState = state || (hasProject ? 'loading' : 'idle');
+    if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = currentState;
+    setWebsitePreviewHealthBadge(w.previewHealthHtml, hasProject ? 'ok' : 'idle');
+    setWebsitePreviewHealthBadge(w.previewHealthCss, hasProject ? 'ok' : 'idle');
+    setWebsitePreviewHealthBadge(w.previewHealthJs, hasProject ? 'loading' : 'idle');
+    if (w.previewRuntimeMessage) {
+        w.previewRuntimeMessage.textContent = message || (hasProject ? 'يتم تشغيل JavaScript والتحقق من التفاعل...' : 'جاهز لتشغيل المعاينة.');
+    }
+    if (w.previewErrorLog) {
+        w.previewErrorLog.textContent = '';
+        w.previewErrorLog.classList.add('hidden');
+    }
+}
+
+function handleWebsitePreviewMessage(event) {
+    const w = getWebsiteUI();
+    if (!w.previewFrame || event.source !== w.previewFrame.contentWindow) return;
+    const data = event.data;
+    if (!data || data.source !== 'aklake-website-preview' || data.token !== websiteState.previewRenderToken) return;
+
+    if (data.type === 'boot') {
+        if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'تم تحميل ملفات المعاينة، ويجري تشغيل app.js...';
+        return;
+    }
+
+    if (data.type === 'dom-ready') {
+        if (!websiteState.previewRuntimeErrors.length && w.previewRuntimeMessage) {
+            w.previewRuntimeMessage.textContent = 'تم بناء عناصر الصفحة. يتم التحقق من اكتمال التشغيل...';
+        }
+        return;
+    }
+
+    if (data.type === 'runtime-error') {
+        const message = String(data.message || 'JavaScript runtime error');
+        const filename = String(data.filename || 'app.js').split('/').pop() || 'app.js';
+        const line = Number(data.line || 0);
+        const column = Number(data.column || 0);
+        const location = line ? ' (' + filename + ':' + line + (column ? ':' + column : '') + ')' : ' (' + filename + ')';
+        const entry = message + location;
+        if (!websiteState.previewRuntimeErrors.includes(entry)) websiteState.previewRuntimeErrors.push(entry);
+        if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = 'error';
+        setWebsitePreviewHealthBadge(w.previewHealthJs, 'error');
+        if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'المعاينة تعمل، لكن app.js يحتوي على خطأ يحتاج إصلاحًا.';
+        if (w.previewErrorLog) {
+            w.previewErrorLog.textContent = websiteState.previewRuntimeErrors.join('\n');
+            w.previewErrorLog.classList.remove('hidden');
+        }
+        setWebsiteStatus('تم رصد خطأ JavaScript داخل المعاينة. راجع الخطأ الظاهر أسفل شريط المعاينة.', 'error');
+        return;
+    }
+
+    if (data.type === 'loaded') {
+        if (websiteState.previewRuntimeErrors.length || Number(data.runtimeErrors || 0) > 0) return;
+        if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = 'ok';
+        setWebsitePreviewHealthBadge(w.previewHealthJs, 'ok');
+        if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'HTML وCSS وJavaScript تعمل معًا في هذه النسخة.';
+    }
+}
+
 function refreshWebsitePreview() {
     const w = getWebsiteUI();
     if (!w.previewFrame) return;
-    const doc = websiteState.project ? buildWebsitePreviewDocument(websiteState.project) : '';
-    // نضيف بصمة عرض متغيرة حتى يعيد iframe تحميل النسخة المختارة فعليًا ولا يحتفظ بمحتوى سابق.
-    w.previewFrame.srcdoc = doc ? doc + '\n<!-- AKLAKE_RENDER_' + Date.now() + ' -->' : '';
+    websiteState.previewRenderToken = 'aklake-preview-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+    resetWebsitePreviewDiagnostics(websiteState.project ? 'loading' : 'idle');
+    const doc = websiteState.project ? buildWebsitePreviewDocument(websiteState.project, websiteState.previewRenderToken) : '';
+    if (!doc) {
+        setWebsitePreviewHealthBadge(w.previewHealthHtml, 'error');
+        setWebsitePreviewHealthBadge(w.previewHealthCss, 'error');
+        setWebsitePreviewHealthBadge(w.previewHealthJs, 'error');
+        if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = 'error';
+        if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'تعذر بناء وثيقة المعاينة من الملفات الحالية.';
+        w.previewFrame.srcdoc = '';
+        return;
+    }
+    // بصمة جديدة في كل تشغيل تمنع بقاء نسخة iframe السابقة بعد التعديل أو الرجوع إلى نسخة قديمة.
+    w.previewFrame.srcdoc = doc + '\n<!-- AKLAKE_RENDER_' + websiteState.previewRenderToken + ' -->';
 }
 
 function activateWebsiteProject(project, changedFiles) {
@@ -3687,11 +3857,15 @@ function resetWebsiteBuilder() {
     websiteState.versions = [];
     websiteState.activeVersionId = '';
     websiteState.versionSequence = 0;
+    websiteState.previewRenderToken = '';
+    websiteState.previewRuntimeErrors = [];
     clearWebsiteReference();
     if (w.prompt) w.prompt.value = '';
     if (w.revisionPrompt) w.revisionPrompt.value = '';
     if (w.previewFrame) w.previewFrame.srcdoc = '';
+    resetWebsitePreviewDiagnostics('idle', 'جاهز لتشغيل المعاينة.');
     if (w.codeEditor) w.codeEditor.value = '';
+    w.applyCodeBtn?.classList.remove('has-changes');
     if (w.fileTree) w.fileTree.innerHTML = '';
     if (w.activeFilePath) w.activeFilePath.textContent = 'اختر ملفًا';
     w.output?.classList.add('hidden');
@@ -3716,21 +3890,39 @@ function updateActiveWebsiteFileFromEditor() {
     if (file.path === websiteState.project.entry && (!/<html[\s>]/i.test(nextContent) || !/<body[\s>]/i.test(nextContent))) {
         return setWebsiteStatus('ملف الدخول الرئيسي يجب أن يبقى وثيقة HTML صالحة.', 'error');
     }
-    if (file.content === nextContent) return setWebsiteStatus('لا يوجد تغيير جديد داخل ' + file.path + '.', '');
+    if (!String(nextContent).trim()) {
+        return setWebsiteStatus('لا يمكن حفظ ' + file.path + ' فارغًا.', 'error');
+    }
+    if (file.content === nextContent) {
+        w.applyCodeBtn?.classList.remove('has-changes');
+        return setWebsiteStatus('لا يوجد تغيير جديد داخل ' + file.path + '.', '');
+    }
+
     const baseProject = cloneWebsiteProject(websiteState.project);
+    const candidateProject = cloneWebsiteProject(baseProject);
+    const candidateFile = candidateProject?.files.find(function(item) { return item.path === file.path; });
+    if (!candidateFile) return setWebsiteStatus('تعذر تجهيز نسخة آمنة من الملف للحفظ.', 'error');
+    candidateFile.content = nextContent;
+
+    const normalizedCandidate = normalizeWebsiteProject(candidateProject);
+    if (!normalizedCandidate) {
+        return setWebsiteStatus('تعذر حفظ الملف لأن المشروع الناتج لم يعد يحتوي الملفات الثلاثة بصورة صالحة.', 'error');
+    }
+
     const parentVersionId = websiteState.activeVersionId;
-    file.content = nextContent;
-    websiteState.changedFiles = [file.path];
-    const snapshot = cloneWebsiteProject(websiteState.project);
-    const fileChanges = buildWebsiteLocalFileChanges(baseProject, snapshot);
-    showWebsiteProject(snapshot, 'تعديل يدوي · ' + (websiteState.versionSequence + 1), [file.path], {
+    const fileChanges = buildWebsiteLocalFileChanges(baseProject, normalizedCandidate);
+    const changed = fileChanges.map(function(change) { return change.path; });
+    if (!changed.length) return setWebsiteStatus('لم يتم العثور على تغيير فعلي للحفظ.', '');
+
+    showWebsiteProject(normalizedCandidate, 'تعديل يدوي · ' + (websiteState.versionSequence + 1), changed, {
         operation: 'revise',
         instruction: 'تعديل يدوي للملف ' + file.path,
         parentVersionId: parentVersionId,
         fileChanges: fileChanges,
         patchMode: 'manual_edit'
     });
-    setWebsiteStatus('تم حفظ ' + file.path + ' كنسخة جديدة مستقلة وتحديث المعاينة.', 'success');
+    w.applyCodeBtn?.classList.remove('has-changes');
+    setWebsiteStatus('تم حفظ ' + file.path + ' كنسخة جديدة مستقلة وتشغيلها في المعاينة.', 'success');
 }
 
 window.initWebsiteBuilder = function() {
@@ -3738,6 +3930,7 @@ window.initWebsiteBuilder = function() {
     const w = getWebsiteUI();
     if (!w.studio) return;
     websiteState.initialized = true;
+    window.addEventListener('message', handleWebsitePreviewMessage);
     restoreWebsiteModelChoice();
     w.prompt?.addEventListener('input', function() { autoResizeTextarea(w.prompt); });
     w.prompt?.addEventListener('keydown', function(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); generateWebsite(); } });
@@ -3800,6 +3993,17 @@ window.initWebsiteBuilder = function() {
         link.download = file.path.split('/').pop() || 'website-file.txt';
         document.body.appendChild(link); link.click(); link.remove();
         setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
+    });
+    w.codeEditor?.addEventListener('input', function() {
+        const activeFile = getWebsiteFile(websiteState.activeFilePath);
+        const dirty = Boolean(activeFile && w.codeEditor.value !== activeFile.content);
+        w.applyCodeBtn?.classList.toggle('has-changes', dirty);
+    });
+    w.codeEditor?.addEventListener('keydown', function(event) {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+            event.preventDefault();
+            updateActiveWebsiteFileFromEditor();
+        }
     });
     w.applyCodeBtn?.addEventListener('click', updateActiveWebsiteFileFromEditor);
     w.reviseBtn?.addEventListener('click', reviseWebsite);
