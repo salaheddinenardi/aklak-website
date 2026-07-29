@@ -1534,6 +1534,8 @@ const landingState = {
     pendingPoints: 40,
     busy: false,
     referenceAttachment: null,
+    assets: [],
+    activeAssetPath: '',
     previewOpen: false
 };
 
@@ -2667,6 +2669,8 @@ const websiteState = {
     activeFilePath: '',
     changedFiles: [],
     referenceAttachment: null,
+    assets: [],
+    activeAssetPath: '',
     previewOpen: false,
     chatCollapsed: false,
     activeView: 'preview',
@@ -2716,11 +2720,9 @@ function getWebsiteUI() {
         generateBtn: document.getElementById('website-generate-btn'),
         attachBtn: document.getElementById('website-attach-btn'),
         referenceFile: document.getElementById('website-reference-file'),
-        referencePreview: document.getElementById('website-reference-preview'),
-        referenceIcon: document.getElementById('website-reference-icon'),
-        referenceTitle: document.getElementById('website-reference-title'),
-        referenceName: document.getElementById('website-reference-name'),
-        removeReferenceBtn: document.getElementById('website-remove-reference-btn'),
+        assetsTray: document.getElementById('website-assets-tray'),
+        assetsList: document.getElementById('website-assets-list'),
+        assetsCount: document.getElementById('website-assets-count'),
         modelToggle: document.getElementById('website-model-toggle'),
         modelPopover: document.getElementById('website-model-popover'),
         modelCards: document.getElementById('website-model-cards'),
@@ -2736,9 +2738,16 @@ function getWebsiteUI() {
         closeChatBtn: document.getElementById('website-close-chat-btn'),
         closePreviewBtn: document.getElementById('website-close-preview-btn'),
         refreshPreviewBtn: document.getElementById('website-refresh-preview-btn'),
+        openBrowserBtn: document.getElementById('website-open-browser-btn'),
         copyCodeBtn: document.getElementById('website-copy-code-btn'),
         downloadBtn: document.getElementById('website-download-btn'),
         applyCodeBtn: document.getElementById('website-apply-code-btn'),
+        assetViewer: document.getElementById('website-asset-viewer'),
+        assetPreview: document.getElementById('website-asset-preview'),
+        activeAssetName: document.getElementById('website-active-asset-name'),
+        activeAssetMeta: document.getElementById('website-active-asset-meta'),
+        copyAssetPathBtn: document.getElementById('website-copy-asset-path-btn'),
+        removeAssetBtn: document.getElementById('website-remove-asset-btn'),
         revisionPrompt: document.getElementById('website-revision-prompt'),
         reviseBtn: document.getElementById('website-revise-btn')
     };
@@ -2754,7 +2763,7 @@ function setWebsiteStatus(message, type) {
 function setWebsiteBusy(value, label) {
     websiteState.busy = Boolean(value);
     const w = getWebsiteUI();
-    [w.generateBtn, w.reviseBtn, w.applyCodeBtn].forEach(function(btn) { if (btn) btn.disabled = websiteState.busy; });
+    [w.generateBtn, w.reviseBtn, w.applyCodeBtn, w.attachBtn].forEach(function(btn) { if (btn) btn.disabled = websiteState.busy; });
     [w.prompt, w.revisionPrompt].forEach(function(input) { if (input) input.disabled = websiteState.busy; });
     if (w.generateBtn) {
         w.generateBtn.classList.toggle('is-loading', websiteState.busy);
@@ -3060,6 +3069,201 @@ function escapeWebsiteInlineScript(value) {
     return String(value || '').replace(/<\/script/gi, '<\\/script');
 }
 
+const WEBSITE_ASSET_MAX_BYTES = 15 * 1024 * 1024;
+const WEBSITE_ASSET_TOTAL_MAX_BYTES = 50 * 1024 * 1024;
+
+function sanitizeWebsiteAssetFileName(name) {
+    const raw = String(name || 'asset').trim().replace(/\\/g, '/').split('/').pop() || 'asset';
+    const dot = raw.lastIndexOf('.');
+    const base = (dot > 0 ? raw.slice(0, dot) : raw)
+        .normalize('NFKD')
+        .replace(/[^A-Za-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60) || 'asset';
+    const ext = dot > 0 ? raw.slice(dot + 1).replace(/[^A-Za-z0-9]+/g, '').slice(0, 12).toLowerCase() : '';
+    return base + (ext ? '.' + ext : '');
+}
+
+function createUniqueWebsiteAssetPath(name) {
+    const safeName = sanitizeWebsiteAssetFileName(name);
+    const dot = safeName.lastIndexOf('.');
+    const base = dot > 0 ? safeName.slice(0, dot) : safeName;
+    const ext = dot > 0 ? safeName.slice(dot) : '';
+    let path = 'assets/' + safeName;
+    let counter = 2;
+    const used = new Set(websiteState.assets.map(function(asset) { return asset.path; }));
+    while (used.has(path)) {
+        path = 'assets/' + base + '-' + counter + ext;
+        counter += 1;
+    }
+    return path;
+}
+
+function formatWebsiteAssetSize(bytes) {
+    const size = Number(bytes || 0);
+    if (size < 1024) return size + ' B';
+    if (size < 1024 * 1024) return (size / 1024).toFixed(size < 10 * 1024 ? 1 : 0) + ' KB';
+    return (size / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function getWebsiteAsset(path) {
+    return websiteState.assets.find(function(asset) { return asset.path === path; }) || null;
+}
+
+function getWebsiteAssetIcon(asset) {
+    const type = String(asset?.mimeType || '');
+    if (/^image\//i.test(type)) return 'far fa-image';
+    if (/^audio\//i.test(type)) return 'fas fa-wave-square';
+    if (/^video\//i.test(type)) return 'fas fa-film';
+    if (/pdf/i.test(type)) return 'far fa-file-pdf';
+    return 'far fa-file';
+}
+
+function renderWebsiteAssetsTray() {
+    const w = getWebsiteUI();
+    const assets = websiteState.assets;
+    w.assetsTray?.classList.toggle('hidden', !assets.length);
+    if (w.assetsCount) w.assetsCount.textContent = assets.length + (assets.length === 1 ? ' ملف' : ' ملفات');
+    if (!w.assetsList) return;
+    w.assetsList.innerHTML = '';
+    assets.forEach(function(asset) {
+        const chip = document.createElement('div');
+        chip.className = 'website-asset-chip';
+        chip.innerHTML = '<i class="' + getWebsiteAssetIcon(asset) + '"></i><span></span><small></small><button type="button" aria-label="إزالة الملف"><i class="fas fa-xmark"></i></button>';
+        chip.querySelector('span').textContent = asset.path;
+        chip.querySelector('small').textContent = formatWebsiteAssetSize(asset.size);
+        chip.querySelector('button').addEventListener('click', function() { removeWebsiteAsset(asset.path); });
+        chip.addEventListener('click', function(event) {
+            if (event.target.closest('button')) return;
+            if (websiteState.project) {
+                openWebsitePreviewWorkspace('files');
+                selectWebsiteAsset(asset.path);
+            }
+        });
+        w.assetsList.appendChild(chip);
+    });
+}
+
+function appendWebsiteAssetPathsToPrompt(paths) {
+    const w = getWebsiteUI();
+    const target = websiteState.previewOpen && w.revisionPrompt ? w.revisionPrompt : w.prompt;
+    if (!target || !paths.length) return;
+    const missing = paths.filter(function(path) { return !target.value.includes(path); });
+    if (!missing.length) return;
+    const line = missing.length === 1
+        ? 'استخدم ملف المشروع: ' + missing[0]
+        : 'استخدم ملفات المشروع: ' + missing.join('، ');
+    target.value = (target.value.trim() ? target.value.trimEnd() + '\n' : '') + line;
+    autoResizeTextarea(target);
+}
+
+async function fileToWebsiteAsset(file) {
+    if (!file) return null;
+    if (file.size > WEBSITE_ASSET_MAX_BYTES) throw new Error('الملف ' + file.name + ' أكبر من 15MB.');
+    const dataUrl = await new Promise(function(resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function() { resolve(String(reader.result || '')); };
+        reader.onerror = function() { reject(reader.error || new Error('تعذر قراءة الملف.')); };
+        reader.readAsDataURL(file);
+    });
+    return {
+        id: 'asset-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        path: createUniqueWebsiteAssetPath(file.name),
+        name: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        size: file.size,
+        dataUrl: dataUrl
+    };
+}
+
+async function addWebsiteAssets(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    const currentBytes = websiteState.assets.reduce(function(total, asset) { return total + Number(asset.size || 0); }, 0);
+    const incomingBytes = files.reduce(function(total, file) { return total + Number(file.size || 0); }, 0);
+    if (currentBytes + incomingBytes > WEBSITE_ASSET_TOTAL_MAX_BYTES) {
+        throw new Error('إجمالي ملفات assets يتجاوز 50MB. احذف بعض الملفات أو استخدم ملفات أصغر.');
+    }
+    const added = [];
+    for (const file of files) {
+        const asset = await fileToWebsiteAsset(file);
+        if (asset) {
+            websiteState.assets.push(asset);
+            added.push(asset.path);
+        }
+    }
+    renderWebsiteAssetsTray();
+    renderWebsiteFileTree();
+    appendWebsiteAssetPathsToPrompt(added);
+    if (websiteState.project) refreshWebsitePreview();
+    setWebsiteStatus('تمت إضافة ' + added.length + ' من ملفات المشروع داخل assets/. المسارات جاهزة للنموذج والمعاينة.', 'success');
+}
+
+function removeWebsiteAsset(path) {
+    const index = websiteState.assets.findIndex(function(asset) { return asset.path === path; });
+    if (index < 0) return;
+    websiteState.assets.splice(index, 1);
+    if (websiteState.activeAssetPath === path) {
+        websiteState.activeAssetPath = '';
+        const fallback = websiteState.activeFilePath || websiteState.project?.entry;
+        if (fallback) selectWebsiteFile(fallback);
+    }
+    renderWebsiteAssetsTray();
+    renderWebsiteFileTree();
+    if (websiteState.project) refreshWebsitePreview();
+    setWebsiteStatus('تمت إزالة ' + path + ' من أصول المشروع.', 'success');
+}
+
+function replaceWebsiteAssetReferences(value) {
+    let output = String(value || '');
+    websiteState.assets.forEach(function(asset) {
+        if (!asset.path || !asset.dataUrl) return;
+        const variants = ['./' + asset.path, asset.path];
+        variants.forEach(function(path) {
+            output = output.split(path).join(asset.dataUrl);
+        });
+    });
+    return output;
+}
+
+function buildWebsiteAssetManifest() {
+    return websiteState.assets.map(function(asset) {
+        return { path: asset.path, name: asset.name, mimeType: asset.mimeType, size: asset.size };
+    });
+}
+
+function selectWebsiteAsset(path) {
+    const asset = getWebsiteAsset(path);
+    if (!asset) return;
+    websiteState.activeAssetPath = asset.path;
+    websiteState.activeFilePath = '';
+    const w = getWebsiteUI();
+    if (w.activeFilePath) w.activeFilePath.textContent = asset.path;
+    if (w.activeFileLanguage) w.activeFileLanguage.textContent = asset.mimeType || 'Asset';
+    if (w.codeEditor) w.codeEditor.classList.add('hidden');
+    w.applyCodeBtn?.classList.add('hidden');
+    w.assetViewer?.classList.remove('hidden');
+    if (w.activeAssetName) w.activeAssetName.textContent = asset.name || asset.path;
+    if (w.activeAssetMeta) w.activeAssetMeta.textContent = asset.path + ' · ' + formatWebsiteAssetSize(asset.size) + ' · ' + (asset.mimeType || 'ملف');
+    if (w.assetPreview) {
+        w.assetPreview.innerHTML = '';
+        let node;
+        if (/^image\//i.test(asset.mimeType)) {
+            node = document.createElement('img'); node.src = asset.dataUrl; node.alt = asset.name;
+        } else if (/^audio\//i.test(asset.mimeType)) {
+            node = document.createElement('audio'); node.src = asset.dataUrl; node.controls = true;
+        } else if (/^video\//i.test(asset.mimeType)) {
+            node = document.createElement('video'); node.src = asset.dataUrl; node.controls = true;
+        } else {
+            node = document.createElement('div'); node.className = 'website-asset-generic'; node.innerHTML = '<i class="' + getWebsiteAssetIcon(asset) + '"></i><strong></strong><small></small>';
+            node.querySelector('strong').textContent = asset.name;
+            node.querySelector('small').textContent = asset.mimeType || 'ملف مشروع';
+        }
+        w.assetPreview.appendChild(node);
+    }
+    renderWebsiteFileTree();
+}
+
 function buildWebsitePreviewBridge(renderToken) {
     const token = JSON.stringify(String(renderToken || ''));
     const bridge = `
@@ -3120,13 +3324,14 @@ function buildWebsitePreviewBridge(renderToken) {
     return '<script data-aklake-preview-bridge>\n' + escapeWebsiteInlineScript(bridge) + '\n</script>';
 }
 
-function buildWebsitePreviewDocument(project, renderToken) {
+function buildWebsitePreviewDocument(project, renderToken, options) {
+    const previewOptions = options || {};
     const normalized = normalizeWebsiteProject(project);
     if (!normalized) return '';
     const entryFile = normalized.files.find(function(file) { return file.path === normalized.entry; });
     if (!entryFile) return '';
     const map = new Map(normalized.files.map(function(file) { return [file.path, file.content]; }));
-    let html = String(entryFile.content || '');
+    let html = replaceWebsiteAssetReferences(String(entryFile.content || ''));
     const usedCss = new Set();
 
     // srcdoc يعمل داخل sandbox آمن. أي CSP مولد داخل المشروع قد يمنع الأكواد المدمجة الخاصة بالمعاينة، لذلك نحذفه من نسخة المعاينة فقط.
@@ -3136,7 +3341,7 @@ function buildWebsitePreviewDocument(project, renderToken) {
         const path = normalizeWebsiteAssetPath(href);
         if (!path || !map.has(path) || !/\.css$/i.test(path)) return full;
         usedCss.add(path);
-        return '<style data-aklake-file="' + path.replace(/"/g, '&quot;') + '">\n' + map.get(path) + '\n</style>';
+        return '<style data-aklake-file="' + path.replace(/"/g, '&quot;') + '">\n' + replaceWebsiteAssetReferences(map.get(path)) + '\n</style>';
     });
 
     // نحذف مراجع JavaScript المحلية من أماكنها الأصلية. وسم defer لا يعمل عند تحويل السكربت إلى inline،
@@ -3150,19 +3355,21 @@ function buildWebsitePreviewDocument(project, renderToken) {
     const unusedCss = normalized.files.filter(function(file) { return /\.css$/i.test(file.path) && !usedCss.has(file.path); });
     if (unusedCss.length) {
         const styles = unusedCss.map(function(file) {
-            return '<style data-aklake-file="' + file.path.replace(/"/g, '&quot;') + '">\n' + file.content + '\n</style>';
+            return '<style data-aklake-file="' + file.path.replace(/"/g, '&quot;') + '">\n' + replaceWebsiteAssetReferences(file.content) + '\n</style>';
         }).join('\n');
         html = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, styles + '\n</head>') : styles + html;
     }
 
-    const bridge = buildWebsitePreviewBridge(renderToken);
-    html = /<head\b[^>]*>/i.test(html)
-        ? html.replace(/<head\b[^>]*>/i, function(head) { return head + '\n' + bridge; })
-        : bridge + '\n' + html;
+    if (previewOptions.bridge !== false) {
+        const bridge = buildWebsitePreviewBridge(renderToken);
+        html = /<head\b[^>]*>/i.test(html)
+            ? html.replace(/<head\b[^>]*>/i, function(head) { return head + '\n' + bridge; })
+            : bridge + '\n' + html;
+    }
 
     const scripts = normalized.files.filter(function(file) { return /\.(?:js|mjs)$/i.test(file.path); }).map(function(file) {
         return '<script data-aklake-file="' + file.path.replace(/"/g, '&quot;') + '">\n' +
-            escapeWebsiteInlineScript(String(file.content || '')) +
+            escapeWebsiteInlineScript(replaceWebsiteAssetReferences(String(file.content || ''))) +
             '\n//# sourceURL=' + file.path.replace(/[\r\n]/g, '') +
             '\n</script>';
     }).join('\n');
@@ -3201,7 +3408,7 @@ function renderWebsiteFileTree() {
         button.type = 'button';
         button.className = 'website-tree-file';
         button.dataset.websiteFile = file.path;
-        button.classList.toggle('active', file.path === websiteState.activeFilePath);
+        button.classList.toggle('active', file.path === websiteState.activeFilePath && !websiteState.activeAssetPath);
         button.classList.toggle('changed', websiteState.changedFiles.includes(file.path));
 
         const icon = document.createElement('i');
@@ -3215,14 +3422,35 @@ function renderWebsiteFileTree() {
         button.addEventListener('click', function() { selectWebsiteFile(path); });
         w.fileTree.appendChild(button);
     });
+
+    if (websiteState.assets.length) {
+        const folder = createWebsiteTreeNode('assets', 'fas fa-folder-open', 'website-tree-folder');
+        w.fileTree.appendChild(folder);
+        websiteState.assets.forEach(function(asset) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'website-tree-file website-tree-asset';
+            button.classList.toggle('active', asset.path === websiteState.activeAssetPath);
+            const icon = document.createElement('i');
+            icon.className = getWebsiteAssetIcon(asset);
+            const label = document.createElement('span');
+            label.textContent = asset.path.replace(/^assets\//, '');
+            button.append(icon, label);
+            button.addEventListener('click', function() { selectWebsiteAsset(asset.path); });
+            w.fileTree.appendChild(button);
+        });
+    }
 }
 
 function selectWebsiteFile(path) {
     const file = getWebsiteFile(path);
     if (!file) return;
     websiteState.activeFilePath = file.path;
+    websiteState.activeAssetPath = '';
     const w = getWebsiteUI();
-    if (w.codeEditor) w.codeEditor.value = file.content;
+    w.assetViewer?.classList.add('hidden');
+    if (w.codeEditor) { w.codeEditor.classList.remove('hidden'); w.codeEditor.value = file.content; }
+    w.applyCodeBtn?.classList.remove('hidden');
     if (w.activeFilePath) w.activeFilePath.textContent = file.path;
     if (w.activeFileLanguage) w.activeFileLanguage.textContent = getWebsiteLanguage(file.path);
     w.applyCodeBtn?.classList.remove('has-changes');
@@ -3300,7 +3528,7 @@ function resetWebsitePreviewDiagnostics(state, message) {
     websiteState.previewRuntimeErrors = [];
     const hasProject = Boolean(websiteState.project);
     const currentState = state || (hasProject ? 'loading' : 'idle');
-    if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = currentState;
+    if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = currentState; w.previewDiagnostics.classList.toggle('hidden', currentState !== 'error'); }
     setWebsitePreviewHealthBadge(w.previewHealthHtml, hasProject ? 'ok' : 'idle');
     setWebsitePreviewHealthBadge(w.previewHealthCss, hasProject ? 'ok' : 'idle');
     setWebsitePreviewHealthBadge(w.previewHealthJs, hasProject ? 'loading' : 'idle');
@@ -3339,7 +3567,7 @@ function handleWebsitePreviewMessage(event) {
         const location = line ? ' (' + filename + ':' + line + (column ? ':' + column : '') + ')' : ' (' + filename + ')';
         const entry = message + location;
         if (!websiteState.previewRuntimeErrors.includes(entry)) websiteState.previewRuntimeErrors.push(entry);
-        if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = 'error';
+        if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = 'error'; w.previewDiagnostics.classList.remove('hidden'); }
         setWebsitePreviewHealthBadge(w.previewHealthJs, 'error');
         if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'المعاينة تعمل، لكن app.js يحتوي على خطأ يحتاج إصلاحًا.';
         if (w.previewErrorLog) {
@@ -3352,7 +3580,7 @@ function handleWebsitePreviewMessage(event) {
 
     if (data.type === 'loaded') {
         if (websiteState.previewRuntimeErrors.length || Number(data.runtimeErrors || 0) > 0) return;
-        if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = 'ok';
+        if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = 'ok'; w.previewDiagnostics.classList.add('hidden'); }
         setWebsitePreviewHealthBadge(w.previewHealthJs, 'ok');
         if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'HTML وCSS وJavaScript تعمل معًا في هذه النسخة.';
     }
@@ -3368,13 +3596,37 @@ function refreshWebsitePreview() {
         setWebsitePreviewHealthBadge(w.previewHealthHtml, 'error');
         setWebsitePreviewHealthBadge(w.previewHealthCss, 'error');
         setWebsitePreviewHealthBadge(w.previewHealthJs, 'error');
-        if (w.previewDiagnostics) w.previewDiagnostics.dataset.state = 'error';
+        if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = 'error'; w.previewDiagnostics.classList.remove('hidden'); }
         if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'تعذر بناء وثيقة المعاينة من الملفات الحالية.';
         w.previewFrame.srcdoc = '';
         return;
     }
     // بصمة جديدة في كل تشغيل تمنع بقاء نسخة iframe السابقة بعد التعديل أو الرجوع إلى نسخة قديمة.
     w.previewFrame.srcdoc = doc + '\n<!-- AKLAKE_RENDER_' + websiteState.previewRenderToken + ' -->';
+}
+
+function openWebsiteInExternalTab() {
+    if (!websiteState.project) return setWebsiteStatus('أنشئ موقعًا أولًا قبل فتحه في تبويب مستقل.', 'error');
+    const doc = buildWebsitePreviewDocument(websiteState.project, '', { bridge: false });
+    if (!doc) return setWebsiteStatus('تعذر تجهيز الموقع للفتح الخارجي.', 'error');
+
+    // التبويب الخارجي يملأ الشاشة، لكن كود الموقع يبقى داخل sandbox مستقل حتى لا يحصل الموقع المولد
+    // على صلاحيات أصل AKLAKE أو بيانات الجلسة أثناء التجربة.
+    const safeDoc = JSON.stringify(doc).replace(/<\/script/gi, '<\\/script');
+    const wrapper = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<title>AKLAKE Preview</title><style>html,body,iframe{width:100%;height:100%;margin:0;border:0;display:block;background:#fff}body{overflow:hidden}</style></head><body>' +
+        '<iframe id="aklake-external-preview" sandbox="allow-scripts allow-forms allow-modals allow-downloads" referrerpolicy="no-referrer"></iframe>' +
+        '<script>document.getElementById("aklake-external-preview").srcdoc=' + safeDoc + ';<\\/script></body></html>';
+    const blob = new Blob([wrapper], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const opened = window.open(url, '_blank');
+    if (!opened) {
+        URL.revokeObjectURL(url);
+        return setWebsiteStatus('المتصفح منع فتح التبويب الجديد. اسمح بالنوافذ المنبثقة لهذا الموقع ثم حاول مجددًا.', 'error');
+    }
+    try { opened.opener = null; } catch (_) {}
+    setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+    setWebsiteStatus('تم فتح النسخة الحالية في تبويب مستقل كامل المساحة مع عزل آمن عن حساب AKLAKE.', 'success');
 }
 
 function activateWebsiteProject(project, changedFiles) {
@@ -3384,6 +3636,7 @@ function activateWebsiteProject(project, changedFiles) {
     websiteState.changedFiles = Array.isArray(changedFiles) ? changedFiles.filter(Boolean) : [];
     if (!getWebsiteFile(websiteState.activeFilePath)) websiteState.activeFilePath = normalized.entry;
     const w = getWebsiteUI();
+    renderWebsiteAssetsTray();
     renderWebsiteFileTree();
     selectWebsiteFile(websiteState.activeFilePath || normalized.entry);
     refreshWebsitePreview();
@@ -3430,9 +3683,10 @@ function appendWebsiteVersionCard(version) {
     title.textContent = version.title || ('نسخة ' + version.number);
     const meta = document.createElement('small');
     const changed = version.changedFiles || [];
+    const assetMeta = websiteState.assets.length ? (' · ' + websiteState.assets.length + ' assets') : '';
     meta.textContent = version.operation === 'revise'
-        ? (changed.length ? 'استبدال فعلي: ' + changed.join('، ') : 'لم يُسجل تغيير فعلي')
-        : '3 ملفات · النسخة الأولى';
+        ? ((changed.length ? 'استبدال فعلي: ' + changed.join('، ') : 'لم يُسجل تغيير فعلي') + assetMeta)
+        : ('3 ملفات كود · النسخة الأولى' + assetMeta);
     copy.append(badge, title, meta);
 
     const openButton = document.createElement('button');
@@ -3672,6 +3926,7 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
         mimeType: websiteState.referenceAttachment.mimeType,
         text: websiteState.referenceAttachment.text || ''
     } : null;
+    const websiteAssets = buildWebsiteAssetManifest();
 
     const jobId = createWebsiteJobId();
 
@@ -3692,6 +3947,7 @@ async function requestWebsiteFromFirstFunction(operation, prompt) {
             modelTier: websiteState.model,
             project: operation === 'revise' ? websiteState.project : undefined,
             referenceAttachment: reference,
+            websiteAssets: websiteAssets,
             jobId: jobId
         }),
         true,
@@ -3716,7 +3972,7 @@ async function generateWebsite() {
         return reviseWebsiteWithInstruction(prompt, w.prompt);
     }
 
-    appendWebsiteUserMessage(prompt, websiteState.referenceAttachment?.name);
+    appendWebsiteUserMessage(prompt, websiteState.assets.length ? (websiteState.assets.length + ' من ملفات assets') : websiteState.referenceAttachment?.name);
     setWebsiteRevisionLoading(false);
     w.completeCard?.classList.add('hidden');
     w.output?.classList.add('hidden');
@@ -3755,7 +4011,7 @@ async function reviseWebsiteWithInstruction(instruction, sourceInput) {
         return;
     }
 
-    appendWebsiteUserMessage(cleanInstruction, null);
+    appendWebsiteUserMessage(cleanInstruction, websiteState.assets.length ? (websiteState.assets.length + ' من ملفات assets') : null);
     w.generationCard?.classList.remove('hidden');
     w.completeCard?.classList.add('hidden');
     if (w.progressTitle) w.progressTitle.textContent = 'يتم الآن تعديل الموقع الحالي';
@@ -3818,31 +4074,14 @@ async function reviseWebsite() {
 }
 
 async function readWebsiteReference(file) {
-    const attachment = { name: file.name, mimeType: file.type || 'application/octet-stream', size: file.size, text: '', dataUrl: '' };
-    const textLike = /^(text\/|application\/json)/i.test(attachment.mimeType) || /\.(html?|css|js|jsx|ts|tsx|json|md|txt|csv)$/i.test(file.name);
-    if (textLike) {
-        const text = await file.text();
-        attachment.text = text.slice(0, 60000);
-    } else if (/^image\//i.test(attachment.mimeType)) {
-        attachment.dataUrl = await new Promise(function(resolve, reject) {
-            const reader = new FileReader(); reader.onload = function() { resolve(String(reader.result || '')); }; reader.onerror = reject; reader.readAsDataURL(file);
-        });
-    }
-    websiteState.referenceAttachment = attachment;
-    const w = getWebsiteUI();
-    w.referencePreview?.classList.remove('hidden');
-    w.attachBtn?.classList.add('active');
-    if (w.referenceTitle) w.referenceTitle.textContent = /^image\//i.test(attachment.mimeType) ? 'صورة مرجعية' : 'ملف مرجعي';
-    if (w.referenceName) w.referenceName.textContent = attachment.name;
-    if (w.referenceIcon) w.referenceIcon.innerHTML = /^image\//i.test(attachment.mimeType) ? '<i class="far fa-image"></i>' : '<i class="far fa-file-code"></i>';
+    // توافق مع النسخ القديمة: الملف المرفق الجديد يضاف إلى مكتبة assets بدل أن يبقى مرجعًا مؤقتًا واحدًا.
+    await addWebsiteAssets(file ? [file] : []);
 }
 
 function clearWebsiteReference() {
     websiteState.referenceAttachment = null;
     const w = getWebsiteUI();
     if (w.referenceFile) w.referenceFile.value = '';
-    w.referencePreview?.classList.add('hidden');
-    w.attachBtn?.classList.remove('active');
 }
 
 function resetWebsiteBuilder() {
@@ -3859,7 +4098,10 @@ function resetWebsiteBuilder() {
     websiteState.versionSequence = 0;
     websiteState.previewRenderToken = '';
     websiteState.previewRuntimeErrors = [];
+    websiteState.assets = [];
+    websiteState.activeAssetPath = '';
     clearWebsiteReference();
+    renderWebsiteAssetsTray();
     if (w.prompt) w.prompt.value = '';
     if (w.revisionPrompt) w.revisionPrompt.value = '';
     if (w.previewFrame) w.previewFrame.srcdoc = '';
@@ -3942,8 +4184,12 @@ window.initWebsiteBuilder = function() {
     });
     w.generateBtn?.addEventListener('click', generateWebsite);
     w.attachBtn?.addEventListener('click', function() { w.referenceFile?.click(); });
-    w.referenceFile?.addEventListener('change', async function() { if (w.referenceFile.files?.[0]) { try { await readWebsiteReference(w.referenceFile.files[0]); } catch (e) { setWebsiteStatus('تعذر قراءة الملف المرفق.', 'error'); } } });
-    w.removeReferenceBtn?.addEventListener('click', clearWebsiteReference);
+    w.referenceFile?.addEventListener('change', async function() {
+        if (!w.referenceFile.files?.length) return;
+        try { await addWebsiteAssets(w.referenceFile.files); }
+        catch (e) { setWebsiteStatus(e.message || 'تعذر قراءة ملفات المشروع.', 'error'); }
+        finally { w.referenceFile.value = ''; }
+    });
     w.modelToggle?.addEventListener('click', function() { setWebsiteModelPopoverOpen(w.modelPopover?.classList.contains('hidden')); });
     w.closeModelBtn?.addEventListener('click', function() { setWebsiteModelPopoverOpen(false); });
     w.modelCards?.querySelectorAll('[data-website-model]').forEach(function(card) {
@@ -3974,25 +4220,42 @@ window.initWebsiteBuilder = function() {
     w.openResultBtn?.addEventListener('click', function() { openWebsitePreviewWorkspace('preview'); });
     w.closeChatBtn?.addEventListener('click', collapseWebsiteChatPanel);
     w.closePreviewBtn?.addEventListener('click', closeWebsitePreviewWorkspace);
+    w.openBrowserBtn?.addEventListener('click', openWebsiteInExternalTab);
     w.refreshPreviewBtn?.addEventListener('click', function() {
         refreshWebsitePreview();
         setWebsiteStatus('تم تحديث المعاينة.', 'success');
     });
     w.copyCodeBtn?.addEventListener('click', async function() {
-        const file = getWebsiteFile(websiteState.activeFilePath || websiteState.project?.entry);
-        if (!file) return setWebsiteStatus('لا يوجد ملف لنسخه.', 'error');
-        try { await navigator.clipboard.writeText(file.content); setWebsiteStatus('تم نسخ ' + file.path + '.', 'success'); }
-        catch (e) { if (w.codeEditor) { w.codeEditor.focus(); w.codeEditor.select(); document.execCommand('copy'); } }
+        const asset = getWebsiteAsset(websiteState.activeAssetPath);
+        const file = getWebsiteFile(websiteState.activeFilePath || (!asset ? websiteState.project?.entry : ''));
+        const value = asset ? asset.path : file?.content;
+        if (!value) return setWebsiteStatus('لا يوجد ملف أو مسار لنسخه.', 'error');
+        try { await navigator.clipboard.writeText(value); setWebsiteStatus(asset ? ('تم نسخ مسار ' + asset.path + '.') : ('تم نسخ ' + file.path + '.'), 'success'); }
+        catch (e) { if (file && w.codeEditor) { w.codeEditor.focus(); w.codeEditor.select(); document.execCommand('copy'); } }
     });
     w.downloadBtn?.addEventListener('click', function() {
-        const file = getWebsiteFile(websiteState.activeFilePath || websiteState.project?.entry);
-        if (!file) return setWebsiteStatus('لا يوجد ملف لتنزيله.', 'error');
-        const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+        const asset = getWebsiteAsset(websiteState.activeAssetPath);
+        const file = getWebsiteFile(websiteState.activeFilePath || (!asset ? websiteState.project?.entry : ''));
+        if (!asset && !file) return setWebsiteStatus('لا يوجد ملف لتنزيله.', 'error');
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = file.path.split('/').pop() || 'website-file.txt';
+        if (asset) {
+            link.href = asset.dataUrl;
+            link.download = asset.name || asset.path.split('/').pop() || 'asset';
+        } else {
+            const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+            link.href = URL.createObjectURL(blob);
+            link.download = file.path.split('/').pop() || 'website-file.txt';
+        }
         document.body.appendChild(link); link.click(); link.remove();
-        setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
+        if (!asset) setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
+    });
+    w.copyAssetPathBtn?.addEventListener('click', async function() {
+        const asset = getWebsiteAsset(websiteState.activeAssetPath);
+        if (!asset) return;
+        try { await navigator.clipboard.writeText(asset.path); setWebsiteStatus('تم نسخ مسار ' + asset.path + '.', 'success'); } catch (_) {}
+    });
+    w.removeAssetBtn?.addEventListener('click', function() {
+        if (websiteState.activeAssetPath) removeWebsiteAsset(websiteState.activeAssetPath);
     });
     w.codeEditor?.addEventListener('input', function() {
         const activeFile = getWebsiteFile(websiteState.activeFilePath);
