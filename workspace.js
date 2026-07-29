@@ -2670,7 +2670,10 @@ const websiteState = {
     previewOpen: false,
     chatCollapsed: false,
     activeView: 'preview',
-    revising: false
+    revising: false,
+    versions: [],
+    activeVersionId: '',
+    versionSequence: 0
 };
 
 const WEBSITE_MODEL_INFO = {
@@ -3137,25 +3140,85 @@ function selectWebsiteFile(path) {
     renderWebsiteFileTree();
 }
 
-function refreshWebsitePreview() {
-    const w = getWebsiteUI();
-    if (w.previewFrame) w.previewFrame.srcdoc = websiteState.project ? buildWebsitePreviewDocument(websiteState.project) : '';
+function cloneWebsiteProject(project) {
+    const normalized = normalizeWebsiteProject(project);
+    if (!normalized) return null;
+    return {
+        name: normalized.name,
+        entry: normalized.entry,
+        files: normalized.files.map(function(file) {
+            return { path: file.path, content: String(file.content ?? '') };
+        })
+    };
 }
 
-function showWebsiteProject(project, title, changedFiles) {
+function getActualWebsiteChanges(beforeProject, afterProject) {
+    const before = normalizeWebsiteProject(beforeProject);
+    const after = normalizeWebsiteProject(afterProject);
+    if (!before || !after) return [];
+    const beforeMap = new Map(before.files.map(function(file) { return [file.path, file.content]; }));
+    return after.files.filter(function(file) {
+        return beforeMap.get(file.path) !== file.content;
+    }).map(function(file) { return file.path; });
+}
+
+function websiteShortFingerprint(content) {
+    let hash = 2166136261;
+    const text = String(content ?? '');
+    for (let i = 0; i < text.length; i += 1) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function buildWebsiteLocalFileChanges(beforeProject, afterProject) {
+    const before = normalizeWebsiteProject(beforeProject);
+    const after = normalizeWebsiteProject(afterProject);
+    if (!after) return [];
+    const beforeMap = new Map((before?.files || []).map(function(file) { return [file.path, file.content]; }));
+    return after.files.map(function(file) {
+        const previous = beforeMap.has(file.path) ? String(beforeMap.get(file.path)) : null;
+        const current = String(file.content ?? '');
+        return {
+            path: file.path,
+            changed: previous === null || previous !== current,
+            beforeHash: previous === null ? null : websiteShortFingerprint(previous),
+            afterHash: websiteShortFingerprint(current),
+            beforeChars: previous === null ? 0 : previous.length,
+            afterChars: current.length
+        };
+    }).filter(function(item) { return item.changed; });
+}
+
+function syncWebsiteVersionCards() {
+    const w = getWebsiteUI();
+    if (!w.conversation) return;
+    w.conversation.querySelectorAll('[data-website-version-id]').forEach(function(card) {
+        card.classList.toggle('is-active', card.dataset.websiteVersionId === websiteState.activeVersionId);
+    });
+}
+
+function refreshWebsitePreview() {
+    const w = getWebsiteUI();
+    if (!w.previewFrame) return;
+    const doc = websiteState.project ? buildWebsitePreviewDocument(websiteState.project) : '';
+    // نضيف بصمة عرض متغيرة حتى يعيد iframe تحميل النسخة المختارة فعليًا ولا يحتفظ بمحتوى سابق.
+    w.previewFrame.srcdoc = doc ? doc + '\n<!-- AKLAKE_RENDER_' + Date.now() + ' -->' : '';
+}
+
+function activateWebsiteProject(project, changedFiles) {
     const normalized = normalizeWebsiteProject(project);
     if (!normalized) throw new Error('تعذر قراءة ملفات المشروع الناتج.');
-    websiteState.project = normalized;
+    websiteState.project = cloneWebsiteProject(normalized);
     websiteState.changedFiles = Array.isArray(changedFiles) ? changedFiles.filter(Boolean) : [];
     if (!getWebsiteFile(websiteState.activeFilePath)) websiteState.activeFilePath = normalized.entry;
     const w = getWebsiteUI();
     renderWebsiteFileTree();
     selectWebsiteFile(websiteState.activeFilePath || normalized.entry);
     refreshWebsitePreview();
-    w.completeCard?.classList.remove('hidden');
     w.generationCard?.classList.add('hidden');
-    if (w.completeTitle) w.completeTitle.textContent = title || normalized.name || 'الموقع الجديد';
-    if (w.completeMeta) w.completeMeta.textContent = normalized.files.length + ' ملفات · جاهز للمعاينة والتعديل';
+    w.completeCard?.classList.add('hidden');
 
     if (websiteState.previewOpen) {
         w.output?.classList.remove('hidden');
@@ -3164,6 +3227,121 @@ function showWebsiteProject(project, title, changedFiles) {
         w.output?.classList.add('hidden');
     }
     syncWebsiteWorkspaceLayout();
+    syncWebsiteVersionCards();
+    return normalized;
+}
+
+function appendWebsiteVersionCard(version) {
+    const w = getWebsiteUI();
+    if (!w.conversation || !version) return;
+
+    const row = document.createElement('div');
+    row.className = 'message-row assistant-message website-state-row website-version-card';
+    row.dataset.websiteDynamic = 'true';
+    row.dataset.websiteVersionId = version.id;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar agent-avatar';
+    avatar.innerHTML = '<img src="' + AGENT_AVATAR_URL + '" alt="وكيل AKLAKE">';
+
+    const content = document.createElement('div');
+    content.className = 'message-content website-state-content';
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble website-complete-bubble website-version-bubble';
+
+    const icon = document.createElement('span');
+    icon.className = 'website-complete-icon';
+    icon.innerHTML = '<i class="fas fa-check"></i>';
+
+    const copy = document.createElement('div');
+    const badge = document.createElement('span');
+    badge.textContent = 'النسخة ' + version.number + (version.operation === 'revise' ? ' · تعديل' : ' · الأصلية');
+    const title = document.createElement('strong');
+    title.textContent = version.title || ('نسخة ' + version.number);
+    const meta = document.createElement('small');
+    const changed = version.changedFiles || [];
+    meta.textContent = version.operation === 'revise'
+        ? (changed.length ? 'استبدال فعلي: ' + changed.join('، ') : 'لم يُسجل تغيير فعلي')
+        : '3 ملفات · النسخة الأولى';
+    copy.append(badge, title, meta);
+
+    const openButton = document.createElement('button');
+    openButton.type = 'button';
+    openButton.className = 'website-version-open-btn';
+    openButton.innerHTML = '<i class="far fa-eye"></i><span>عرض</span>';
+    openButton.addEventListener('click', function() { openWebsiteVersion(version.id); });
+
+    bubble.append(icon, copy, openButton);
+    content.appendChild(bubble);
+
+    if (Array.isArray(version.fileChanges) && version.fileChanges.length) {
+        const proof = document.createElement('div');
+        proof.className = 'message-source website-version-proof';
+        const summaries = version.fileChanges.map(function(change) {
+            const before = change.beforeHash ? String(change.beforeHash).slice(0, 8) : 'جديد';
+            const after = change.afterHash ? String(change.afterHash).slice(0, 8) : '—';
+            return change.path + ': ' + before + ' → ' + after;
+        });
+        proof.textContent = 'تحقق الملفات · ' + summaries.join(' · ');
+        content.appendChild(proof);
+    }
+
+    row.append(avatar, content);
+    w.conversation.insertBefore(row, w.generationCard || null);
+    syncWebsiteVersionCards();
+}
+
+function recordWebsiteVersion(project, options) {
+    const normalized = cloneWebsiteProject(project);
+    if (!normalized) throw new Error('تعذر حفظ نسخة الموقع الجديدة.');
+    const opts = options || {};
+    websiteState.versionSequence += 1;
+    const version = {
+        id: 'website-version-' + Date.now() + '-' + websiteState.versionSequence,
+        number: websiteState.versionSequence,
+        title: opts.title || normalized.name || ('نسخة ' + websiteState.versionSequence),
+        operation: opts.operation === 'revise' ? 'revise' : 'generate',
+        instruction: String(opts.instruction || ''),
+        parentVersionId: opts.parentVersionId || '',
+        changedFiles: Array.isArray(opts.changedFiles) ? opts.changedFiles.slice() : [],
+        fileChanges: Array.isArray(opts.fileChanges) ? opts.fileChanges.map(function(change) { return Object.assign({}, change); }) : [],
+        patchMode: opts.patchMode || '',
+        project: normalized,
+        createdAt: new Date().toISOString()
+    };
+    websiteState.versions.push(version);
+    websiteState.activeVersionId = version.id;
+    appendWebsiteVersionCard(version);
+    return version;
+}
+
+function openWebsiteVersion(versionId) {
+    const version = websiteState.versions.find(function(item) { return item.id === versionId; });
+    if (!version) return setWebsiteStatus('تعذر العثور على هذه النسخة.', 'error');
+    websiteState.activeVersionId = version.id;
+    activateWebsiteProject(version.project, version.changedFiles);
+    openWebsitePreviewWorkspace('preview');
+    setWebsiteStatus('تم فتح النسخة ' + version.number + '. أي تعديل جديد سيبدأ من هذه النسخة.', 'success');
+}
+window.openWebsiteVersion = openWebsiteVersion;
+
+function showWebsiteProject(project, title, changedFiles, options) {
+    const opts = options || {};
+    const normalized = activateWebsiteProject(project, changedFiles);
+    if (opts.record === false) return normalized;
+
+    const version = recordWebsiteVersion(normalized, {
+        title: title,
+        operation: opts.operation,
+        instruction: opts.instruction,
+        parentVersionId: opts.parentVersionId,
+        changedFiles: changedFiles,
+        fileChanges: opts.fileChanges,
+        patchMode: opts.patchMode
+    });
+    websiteState.activeVersionId = version.id;
+    syncWebsiteVersionCards();
+    return normalized;
 }
 
 function appendWebsiteUserMessage(content, attachmentName) {
@@ -3381,8 +3559,13 @@ async function generateWebsite() {
         const response = await requestWebsiteFromFirstFunction('generate', prompt);
         if (!response) return;
         const project = extractWebsiteProject(response);
-        showWebsiteProject(project, prompt.slice(0, 55), response.changedFiles);
-        setWebsiteStatus('اكتمل الموقع. يمكنك التنقل بين index.html و style.css و app.js وتعديل أي ملف.', 'success');
+        showWebsiteProject(project, prompt.slice(0, 55), response.changedFiles, {
+            operation: 'generate',
+            instruction: prompt,
+            fileChanges: Array.isArray(response.fileChanges) ? response.fileChanges : buildWebsiteLocalFileChanges(null, project),
+            patchMode: response.patchMode || 'generated'
+        });
+        setWebsiteStatus('اكتمل الموقع وحُفظت النسخة 1 داخل المحادثة. يمكنك فتحها لاحقًا في أي وقت.', 'success');
     } catch (error) {
         w.generationCard?.classList.add('hidden');
         setWebsiteStatus(error.message || 'تعذر إنشاء الموقع.', 'error');
@@ -3414,12 +3597,33 @@ async function reviseWebsiteWithInstruction(instruction, sourceInput) {
     setWebsiteBusy(true, 'يتم تعديل ملفات المشروع...');
     setWebsiteStatus('يتم إرسال الملفات الحالية للنموذج وتطبيق التعديل المطلوب فقط...', 'loading');
 
+    const baseProject = cloneWebsiteProject(websiteState.project);
+    const parentVersionId = websiteState.activeVersionId;
+
     try {
         const response = await requestWebsiteFromFirstFunction('revise', cleanInstruction);
         if (!response) return;
         const project = extractWebsiteProject(response);
-        const changed = Array.isArray(response.changedFiles) ? response.changedFiles : [];
-        showWebsiteProject(project, 'نسخة معدلة', changed);
+        const actualChanged = getActualWebsiteChanges(baseProject, project);
+        if (!actualChanged.length) {
+            throw new Error('وصلت نتيجة التعديل، لكن الملفات الجديدة مطابقة للنسخة السابقة حرفيًا. لم يتم إنشاء نسخة وهمية.');
+        }
+        const reportedChanged = Array.isArray(response.changedFiles) ? response.changedFiles : [];
+        const changed = actualChanged;
+        const fileChanges = Array.isArray(response.fileChanges) && response.fileChanges.length
+            ? response.fileChanges.filter(function(change) { return changed.includes(change.path); })
+            : buildWebsiteLocalFileChanges(baseProject, project);
+        showWebsiteProject(project, 'نسخة معدلة · ' + (websiteState.versionSequence + 1), changed, {
+            operation: 'revise',
+            instruction: cleanInstruction,
+            parentVersionId: parentVersionId,
+            fileChanges: fileChanges,
+            patchMode: response.patchMode || 'revision'
+        });
+
+        if (reportedChanged.length && reportedChanged.some(function(path) { return !changed.includes(path); })) {
+            setWebsiteStatus('تم التعديل، مع تجاهل ملفات أعادها النموذج دون تغيير فعلي.', 'success');
+        }
 
         if (sourceInput) {
             sourceInput.value = '';
@@ -3427,8 +3631,8 @@ async function reviseWebsiteWithInstruction(instruction, sourceInput) {
         }
         if (w.revisionPrompt && w.revisionPrompt !== sourceInput) w.revisionPrompt.value = '';
 
-        const label = changed.length ? ' تم تعديل: ' + changed.join('، ') : '';
-        setWebsiteStatus('تم تطبيق التعديل مع الحفاظ على بقية الموقع.' + label, 'success');
+        const label = ' تم استبدال فعليًا: ' + changed.join('، ');
+        setWebsiteStatus('تم إنشاء نسخة جديدة مستقلة مع الحفاظ على النسخة السابقة.' + label, 'success');
     } catch (error) {
         w.generationCard?.classList.add('hidden');
         setWebsiteStatus(error.message || 'تعذر تعديل الموقع.', 'error');
@@ -3480,6 +3684,9 @@ function resetWebsiteBuilder() {
     websiteState.project = null;
     websiteState.activeFilePath = '';
     websiteState.changedFiles = [];
+    websiteState.versions = [];
+    websiteState.activeVersionId = '';
+    websiteState.versionSequence = 0;
     clearWebsiteReference();
     if (w.prompt) w.prompt.value = '';
     if (w.revisionPrompt) w.revisionPrompt.value = '';
@@ -3509,11 +3716,21 @@ function updateActiveWebsiteFileFromEditor() {
     if (file.path === websiteState.project.entry && (!/<html[\s>]/i.test(nextContent) || !/<body[\s>]/i.test(nextContent))) {
         return setWebsiteStatus('ملف الدخول الرئيسي يجب أن يبقى وثيقة HTML صالحة.', 'error');
     }
+    if (file.content === nextContent) return setWebsiteStatus('لا يوجد تغيير جديد داخل ' + file.path + '.', '');
+    const baseProject = cloneWebsiteProject(websiteState.project);
+    const parentVersionId = websiteState.activeVersionId;
     file.content = nextContent;
     websiteState.changedFiles = [file.path];
-    renderWebsiteFileTree();
-    refreshWebsitePreview();
-    setWebsiteStatus('تم حفظ تعديل ' + file.path + ' وتحديث المعاينة.', 'success');
+    const snapshot = cloneWebsiteProject(websiteState.project);
+    const fileChanges = buildWebsiteLocalFileChanges(baseProject, snapshot);
+    showWebsiteProject(snapshot, 'تعديل يدوي · ' + (websiteState.versionSequence + 1), [file.path], {
+        operation: 'revise',
+        instruction: 'تعديل يدوي للملف ' + file.path,
+        parentVersionId: parentVersionId,
+        fileChanges: fileChanges,
+        patchMode: 'manual_edit'
+    });
+    setWebsiteStatus('تم حفظ ' + file.path + ' كنسخة جديدة مستقلة وتحديث المعاينة.', 'success');
 }
 
 window.initWebsiteBuilder = function() {

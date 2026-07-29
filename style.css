@@ -3644,3 +3644,63 @@ body::after { content: none !important; }
         grid-template-columns: 115px minmax(0,1fr);
     }
 }
+
+/* =========================================================
+   WEBSITE BUILDER — سجل النسخ والتحقق من استبدال الملفات
+   ========================================================= */
+.website-version-card {
+    transition: opacity .2s ease, transform .2s ease;
+}
+.website-version-card .website-version-bubble {
+    position: relative;
+}
+.website-version-card.is-active .website-version-bubble {
+    border-color: rgba(121,226,173,.42) !important;
+    box-shadow: 0 18px 48px rgba(0,0,0,.28), inset 0 0 0 1px rgba(121,226,173,.08);
+}
+.website-version-card.is-active .website-version-bubble::after {
+    content: 'المفتوحة الآن';
+    position: absolute;
+    inset-inline-end: 10px;
+    bottom: -18px;
+    color: #79e2ad;
+    font-size: .52rem;
+    font-weight: 800;
+}
+.website-version-open-btn {
+    width: auto;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 11px;
+    color: #052016;
+    background: #79e2ad;
+    border: 0;
+    border-radius: 9px;
+    font-size: .64rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+.website-version-open-btn:hover { filter: brightness(1.06); }
+.website-version-proof {
+    margin-top: 6px;
+    padding-inline: 3px;
+    color: #7f9f90 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: .5rem !important;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+.website-version-card.is-active .website-version-proof { color: #94c7ad !important; }
+
+@media (max-width: 700px) {
+    .website-version-card .website-complete-bubble {
+        grid-template-columns: 38px minmax(0,1fr) auto;
+        gap: 8px;
+    }
+    .website-version-card .website-complete-icon { width: 38px; height: 38px; }
+    .website-version-open-btn span { display: none; }
+    .website-version-open-btn { width: 36px; min-width: 36px; padding: 0; }
+}
