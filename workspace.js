@@ -606,10 +606,18 @@ window.selectAITool = function(action) {
         typeof window.restoreWebsiteChatPanel === 'function' && window.restoreWebsiteChatPanel()) {
         return;
     }
+    if (action === 'landing_page' && ui.action.value === 'landing_page' &&
+        typeof window.restoreLandingChatPanel === 'function' && window.restoreLandingChatPanel()) {
+        return;
+    }
 
     if (action !== 'website_builder' && ui.action.value === 'website_builder' &&
         typeof window.closeWebsitePreviewWorkspace === 'function') {
         window.closeWebsitePreviewWorkspace();
+    }
+    if (action !== 'landing_page' && ui.action.value === 'landing_page' &&
+        typeof window.closeLandingPreviewWorkspace === 'function') {
+        window.closeLandingPreviewWorkspace();
     }
 
     if (action !== 'edit' && ui.imageFile && ui.imageFile.files && ui.imageFile.files.length > 0) {
@@ -1559,7 +1567,9 @@ const landingState = {
     referenceAttachment: null,
     assets: [],
     activeAssetPath: '',
-    previewOpen: false
+    previewOpen: false,
+    chatCollapsed: false,
+    activeView: 'preview'
 };
 
 const landingUI = {};
@@ -1575,6 +1585,7 @@ function cacheLandingUI() {
         projectsPanel: landingElement('landing-projects-panel'),
         projectsToggle: landingElement('landing-projects-toggle'),
         newProjectBtn: landingElement('landing-new-project-btn'),
+        closeChatBtn: landingElement('landing-close-chat-btn'),
         conversation: landingElement('landing-conversation'),
         generationCard: landingElement('landing-generation-card'),
         progressProduct: landingElement('landing-progress-product'),
@@ -1656,16 +1667,54 @@ function setLandingModelPopoverOpen(open) {
     landingUI.modelToggle?.setAttribute('aria-expanded', String(expanded));
 }
 
+function syncLandingWorkspaceLayout() {
+    const active = Boolean(
+        landingState.previewOpen &&
+        ui?.action?.value === 'landing_page'
+    );
+
+    ui?.appShell?.classList.toggle('landing-preview-layout', active);
+    landingUI.studio?.classList.toggle('is-preview-mode', active);
+    landingUI.studio?.classList.toggle('is-chat-collapsed', active && landingState.chatCollapsed);
+    document.body.classList.toggle('landing-preview-open', active);
+
+    if (landingUI.closeChatBtn) {
+        landingUI.closeChatBtn.setAttribute('aria-hidden', String(!active));
+        landingUI.closeChatBtn.tabIndex = active ? 0 : -1;
+    }
+}
+
 function setLandingPreviewOpen(open) {
     landingState.previewOpen = Boolean(open);
     landingUI.output?.classList.toggle('hidden', !landingState.previewOpen);
     if (landingState.previewOpen) {
+        landingState.chatCollapsed = false;
+        landingState.activeView = 'preview';
         showLandingView('preview');
-        requestAnimationFrame(function() {
-            landingUI.output?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
+    } else {
+        landingState.chatCollapsed = false;
     }
+    syncLandingWorkspaceLayout();
 }
+
+function collapseLandingChatPanel() {
+    if (!landingState.previewOpen) return false;
+    landingState.chatCollapsed = true;
+    syncLandingWorkspaceLayout();
+    return true;
+}
+
+window.restoreLandingChatPanel = function() {
+    if (!landingState.previewOpen || !landingState.chatCollapsed) return false;
+    landingState.chatCollapsed = false;
+    syncLandingWorkspaceLayout();
+    requestAnimationFrame(function() { landingUI.prompt?.focus(); });
+    return true;
+};
+
+window.closeLandingPreviewWorkspace = function() {
+    setLandingPreviewOpen(false);
+};
 
 function clearLandingDynamicMessages() {
     landingUI.conversation?.querySelectorAll('[data-landing-dynamic="true"]').forEach(function(row) { row.remove(); });
@@ -2372,7 +2421,8 @@ function moveLandingVersion(direction) {
 }
 
 function showLandingView(viewName) {
-    const showCode = viewName === 'code';
+    landingState.activeView = viewName === 'code' ? 'code' : 'preview';
+    const showCode = landingState.activeView === 'code';
     if (landingUI.previewView) landingUI.previewView.classList.toggle('hidden', showCode);
     if (landingUI.codeView) landingUI.codeView.classList.toggle('hidden', !showCode);
     document.querySelectorAll('[data-landing-view]').forEach(function(button) {
@@ -2390,6 +2440,29 @@ function setLandingDevice(device) {
 
 async function generateLandingPage() {
     if (landingState.busy) return;
+
+    const activeProject = getActiveLandingProject();
+    const activeVersion = activeProject && activeProject.versions
+        ? activeProject.versions[landingState.currentVersionIndex]
+        : null;
+    const composerInstruction = landingUI.prompt ? landingUI.prompt.value.trim() : '';
+
+    // داخل مساحة المعاينة تصبح خانة الشات نفسها خانة تعديل للنسخة الحالية،
+    // مثل منشئ المواقع، بدل إنشاء مشروع جديد بالخطأ.
+    if (landingState.previewOpen && activeVersion?.html) {
+        if (!composerInstruction) {
+            setLandingStatus('اكتب التعديل المطلوب على النسخة الحالية.', 'error');
+            landingUI.prompt?.focus();
+            return;
+        }
+        if (landingUI.revisionPrompt) landingUI.revisionPrompt.value = composerInstruction;
+        if (landingUI.prompt) {
+            landingUI.prompt.value = '';
+            landingUI.prompt.style.height = 'auto';
+        }
+        return reviseLandingPage();
+    }
+
     const form = collectLandingForm();
     const requiredNameField = landingUI.productName?.closest('.landing-required-name');
     requiredNameField?.classList.remove('has-error');
@@ -2458,7 +2531,6 @@ async function reviseLandingPage() {
     const form = collectLandingForm();
     if (!form.prompt && project.form?.prompt) form.prompt = project.form.prompt;
     appendLandingUserMessage(instruction, null);
-    setLandingPreviewOpen(false);
     showLandingGeneration(true, form.productName || project.title, 'تعديل الصفحة');
     setLandingBusy(true, 'يتم تعديل الصفحة...');
     setLandingStatus('يعدّل النموذج المطلوب فقط مع الحفاظ على بقية الصفحة.', 'loading');
@@ -2477,12 +2549,13 @@ async function reviseLandingPage() {
         }
         if (landingUI.revisionPrompt) landingUI.revisionPrompt.value = '';
         if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(responseData.remainingTokens);
+        setLandingPreviewOpen(true);
         showLandingView('preview');
-        showLandingComplete(form.productName || project.title);
+        showLandingComplete(form.productName || project.title, false);
         setLandingStatus(responseData.storageWarning || 'تم حفظ التعديل كنسخة جديدة، والنسخة القديمة ما زالت متاحة.', responseData.storageWarning ? 'info' : 'success');
     } catch (error) {
         showLandingGeneration(false);
-        showLandingComplete(form.productName || project.title);
+        if (landingState.previewOpen) showLandingComplete(form.productName || project.title, false);
         setLandingStatus(error.message || 'تعذر تعديل الصفحة.', 'error');
     } finally {
         setLandingBusy(false);
@@ -2594,6 +2667,7 @@ function initLandingPageStudio() {
     if (currentUser) syncLandingProjectsFromServer();
 
     if (landingUI.newProjectBtn) landingUI.newProjectBtn.addEventListener('click', startNewLandingProject);
+    if (landingUI.closeChatBtn) landingUI.closeChatBtn.addEventListener('click', collapseLandingChatPanel);
     if (landingUI.projectsToggle) landingUI.projectsToggle.addEventListener('click', function() {
         setLandingProjectsOpen(landingUI.projectsPanel?.classList.contains('hidden'));
     });

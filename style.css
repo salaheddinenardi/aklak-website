@@ -4033,3 +4033,533 @@ body.workspace-open .app-shell.website-preview-layout[data-action="website_build
         min-height: 0;
     }
 }
+
+/* =========================================================
+   PREVIEW POLISH — مساحة أكبر + أيقونات ثابتة + صفحات الهبوط
+   يقتصر على أوضاع معاينة المواقع وصفحات الهبوط.
+   ========================================================= */
+
+/* إصلاح اختفاء أيقونات الحساب/التوكن/السلة بعد إخفاء النصوص. */
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #profile-header-btn > i:first-child,
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #login-btn > i:first-child,
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #cart-header-btn > i:first-child,
+.app-shell.website-preview-layout[data-action="website_builder"] .credit-pill > .token-mark,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #profile-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #login-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #cart-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] .credit-pill > .token-mark {
+    display: grid !important;
+    place-items: center;
+    font-size: 1rem !important;
+    line-height: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: var(--green-bright, #79e2ad) !important;
+}
+
+/* ---------- معاينة المواقع: إزالة الهوامش والفراغ السفلي ---------- */
+body.workspace-open .app-shell.website-preview-layout[data-action="website_builder"] {
+    height: 100dvh;
+    min-height: 0;
+}
+body.workspace-open .app-shell.website-preview-layout[data-action="website_builder"] .workspace-main {
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    padding: 0 !important;
+    margin: 0;
+    overflow: hidden;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] #main-inputs-wrapper {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+.website-builder-studio.is-preview-mode {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    column-gap: 0 !important;
+    padding: 0;
+    margin: 0;
+}
+.website-builder-studio.is-preview-mode .website-chat-toolbar,
+.website-builder-studio.is-preview-mode .website-conversation,
+.website-builder-studio.is-preview-mode .website-input-dock {
+    border-radius: 0;
+}
+.website-builder-studio.is-preview-mode .website-chat-toolbar {
+    border-inline-end: 1px solid rgba(121,226,173,.12);
+}
+.website-builder-studio.is-preview-mode .website-conversation {
+    border-inline-start: 0;
+    border-inline-end: 1px solid rgba(121,226,173,.12);
+}
+.website-builder-studio.is-preview-mode .website-input-dock {
+    border-inline-end: 1px solid rgba(121,226,173,.12);
+}
+.website-builder-studio.is-preview-mode .website-output-panel {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #000;
+}
+.website-builder-studio.is-preview-mode .website-output-toolbar {
+    min-height: 46px;
+    margin: 0;
+    padding: 6px 8px !important;
+    border-bottom: 1px solid rgba(121,226,173,.12);
+    background: rgba(3,11,7,.99);
+}
+.website-builder-studio.is-preview-mode .website-output-stage,
+.website-builder-studio.is-preview-mode .website-preview-view,
+.website-builder-studio.is-preview-mode .website-preview-shell {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0 !important;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff;
+}
+.website-builder-studio.is-preview-mode .website-preview-view {
+    display: flex;
+}
+.website-builder-studio.is-preview-mode .website-preview-shell[data-device="desktop"] {
+    max-width: none !important;
+}
+.website-builder-studio.is-preview-mode #website-preview-frame {
+    display: block;
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0;
+    border: 0;
+    background: #fff;
+}
+.website-builder-studio.is-preview-mode .website-preview-shell[data-device="mobile"] {
+    height: 100%;
+    margin: 0 auto !important;
+    border-inline: 1px solid rgba(255,255,255,.12) !important;
+}
+
+/* ---------- صفحات الهبوط: نفس تجربة المعاينة الجانبية للمواقع ---------- */
+.landing-chat-panel-label,
+.landing-close-chat-btn { display: none; }
+
+.app-shell.landing-preview-layout[data-action="landing_page"] {
+    box-sizing: border-box;
+    grid-template-columns: 64px minmax(0,1fr);
+    height: 100dvh;
+    min-height: 0;
+    padding-top: 0;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .tools-sidebar {
+    width: auto;
+    top: 0;
+    height: 100dvh;
+    padding: 12px 7px;
+    align-items: center;
+    gap: 6px;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .sidebar-title,
+.app-shell.landing-preview-layout[data-action="landing_page"] .tool-button > span:not(.tool-icon),
+.app-shell.landing-preview-layout[data-action="landing_page"] .sidebar-system-divider {
+    display: none !important;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .tool-button {
+    width: 48px;
+    min-width: 48px;
+    justify-content: center;
+    gap: 0;
+    padding: 7px;
+    border-radius: 11px;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .tool-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .tool-button.active::after { right: -8px; }
+.app-shell.landing-preview-layout[data-action="landing_page"] .workspace-brand-slot,
+.app-shell.landing-preview-layout[data-action="landing_page"] .workspace-account-slot { width: 48px; }
+.app-shell.landing-preview-layout[data-action="landing_page"] .brand-navigation {
+    width: 48px;
+    display: block;
+    padding: 0;
+    border: 0;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .brand-button { display: none !important; }
+.app-shell.landing-preview-layout[data-action="landing_page"] .home-button {
+    width: 48px;
+    height: 48px;
+    border-radius: 11px;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions {
+    width: 48px;
+    padding: 0;
+    gap: 6px;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .token-action-group {
+    width: 48px;
+    display: block;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #profile-header-btn,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #login-btn,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #cart-header-btn,
+.app-shell.landing-preview-layout[data-action="landing_page"] .credit-pill {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    justify-content: center;
+    gap: 0;
+    padding: 7px;
+    font-size: 0;
+    border-radius: 11px;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] .credit-pill .token-mark {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-item-label,
+.app-shell.landing-preview-layout[data-action="landing_page"] #header-user-name,
+.app-shell.landing-preview-layout[data-action="landing_page"] .profile-chevron,
+.app-shell.landing-preview-layout[data-action="landing_page"] .token-value,
+.app-shell.landing-preview-layout[data-action="landing_page"] #cart-count,
+.app-shell.landing-preview-layout[data-action="landing_page"] .token-add-btn,
+.app-shell.landing-preview-layout[data-action="landing_page"] .sidebar-title,
+.app-shell.landing-preview-layout[data-action="landing_page"] .sidebar-system-divider {
+    display: none !important;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .workspace-main {
+    width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    margin: 0;
+    padding: 0 !important;
+    overflow: hidden;
+}
+.app-shell.landing-preview-layout[data-action="landing_page"] .workspace-header { display: none; }
+.app-shell.landing-preview-layout[data-action="landing_page"] #main-inputs-wrapper {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.landing-page-studio.is-preview-mode {
+    width: 100% !important;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    display: grid !important;
+    grid-template-columns: clamp(290px, 22vw, 350px) minmax(0,1fr);
+    grid-template-rows: auto minmax(0,1fr) auto;
+    column-gap: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    direction: rtl;
+}
+.landing-page-studio.is-preview-mode .landing-scroll-area { display: contents; }
+.landing-page-studio.is-preview-mode .landing-chat-toolbar {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 48px;
+    margin: 0;
+    padding: 7px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    background: rgba(4,14,9,.99);
+    border: 0;
+    border-inline-end: 1px solid rgba(121,226,173,.12);
+    border-bottom: 1px solid rgba(121,226,173,.12);
+    border-radius: 0;
+}
+.landing-page-studio.is-preview-mode .landing-chat-panel-label {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-inline-end: auto;
+    color: #eafff2;
+    font-size: .72rem;
+    font-weight: 800;
+}
+.landing-page-studio.is-preview-mode .landing-chat-panel-label i { color: #79e2ad; }
+.landing-page-studio.is-preview-mode .landing-chat-toolbar button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 8px;
+}
+.landing-page-studio.is-preview-mode .landing-chat-toolbar button > span { display: none; }
+.landing-page-studio.is-preview-mode .landing-close-chat-btn { display: inline-grid; place-items: center; }
+.landing-page-studio.is-preview-mode .landing-conversation {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: 10px 8px 14px;
+    gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    background: rgba(2,10,6,.97);
+    border-inline-end: 1px solid rgba(121,226,173,.12);
+}
+.landing-page-studio.is-preview-mode .landing-conversation .message-row { min-width: 0; gap: 7px; }
+.landing-page-studio.is-preview-mode .landing-conversation .message-avatar {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+}
+.landing-page-studio.is-preview-mode .landing-conversation .message-content {
+    min-width: 0;
+    max-width: calc(100% - 37px);
+}
+.landing-page-studio.is-preview-mode .landing-user-message .message-bubble,
+.landing-page-studio.is-preview-mode .landing-welcome-message .message-bubble {
+    display: -webkit-box;
+    max-height: 6.2em;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+}
+.landing-page-studio.is-preview-mode .landing-input-dock {
+    grid-column: 1;
+    grid-row: 3;
+    min-width: 0;
+    margin: 0;
+    padding: 8px;
+    background: rgba(4,14,9,.99);
+    border: 0;
+    border-top: 1px solid rgba(121,226,173,.12);
+    border-inline-end: 1px solid rgba(121,226,173,.12);
+    border-radius: 0;
+    box-shadow: none;
+}
+/* داخل المعاينة، الشات مخصص لتعديل النسخة الحالية؛ الحقول الإعدادية تبقى في الوضع العادي فقط. */
+.landing-page-studio.is-preview-mode .landing-required-row,
+.landing-page-studio.is-preview-mode .landing-assistant-panel { display: none !important; }
+.landing-page-studio.is-preview-mode .landing-chat-composer {
+    grid-template-columns: 36px minmax(0,1fr) 38px;
+    gap: 5px;
+    padding: 6px;
+    border-radius: 11px;
+    box-shadow: none;
+}
+.landing-page-studio.is-preview-mode .landing-chat-composer textarea {
+    min-height: 38px;
+    max-height: 110px;
+    padding: 8px 5px;
+    font-size: .72rem;
+}
+.landing-page-studio.is-preview-mode .landing-composer-side-btn,
+.landing-page-studio.is-preview-mode .landing-generate-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+}
+.landing-page-studio.is-preview-mode .landing-composer-tools { gap: 5px; padding-top: 5px; }
+.landing-page-studio.is-preview-mode .landing-composer-tools > span { display: none; }
+.landing-page-studio.is-preview-mode .landing-output-panel {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #000;
+}
+.landing-page-studio.is-preview-mode .landing-output-toolbar {
+    position: static;
+    flex: 0 0 auto;
+    min-height: 46px;
+    margin: 0;
+    padding: 6px 8px !important;
+    border-bottom: 1px solid rgba(121,226,173,.12);
+    background: rgba(3,11,7,.99);
+}
+.landing-page-studio.is-preview-mode .landing-output-toolbar button {
+    min-height: 32px;
+    padding: 6px 9px;
+}
+.landing-page-studio.is-preview-mode .landing-preview-view,
+.landing-page-studio.is-preview-mode .landing-code-view {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    background: #fff;
+}
+.landing-page-studio.is-preview-mode .landing-preview-view { display: flex; }
+.landing-page-studio.is-preview-mode .landing-empty-preview { margin: auto; }
+.landing-page-studio.is-preview-mode .landing-preview-shell {
+    flex: 1 1 auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-width: none;
+    margin: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+}
+.landing-page-studio.is-preview-mode .landing-browser-bar { display: none !important; }
+.landing-page-studio.is-preview-mode .landing-preview-shell[data-device="mobile"] {
+    width: min(390px,100%);
+    max-width: 390px;
+    margin: 0 auto;
+    border-inline: 1px solid rgba(255,255,255,.12);
+}
+.landing-page-studio.is-preview-mode #landing-preview-frame {
+    display: block;
+    width: 100%;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0;
+    border: 0;
+    background: #fff;
+}
+.landing-page-studio.is-preview-mode .landing-code-view {
+    padding: 8px;
+    background: rgba(2,8,5,.98);
+}
+.landing-page-studio.is-preview-mode #landing-code-editor {
+    height: calc(100% - 86px);
+    min-height: 0;
+    resize: none;
+}
+/* شريط تعديل مضغوط أسفل المعاينة، مع الحفاظ على التنقل بين النسخ. */
+.landing-page-studio.is-preview-mode .landing-revision-panel {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 6px 8px;
+    border: 0;
+    border-top: 1px solid rgba(121,226,173,.12);
+    border-radius: 0;
+    background: rgba(3,11,7,.99);
+}
+.landing-page-studio.is-preview-mode .landing-revision-head {
+    min-height: 28px;
+    margin: 0 0 5px;
+}
+.landing-page-studio.is-preview-mode .landing-revision-head > div:first-child,
+.landing-page-studio.is-preview-mode .landing-revision-note { display: none; }
+.landing-page-studio.is-preview-mode .landing-version-nav { margin-inline-start: auto; }
+.landing-page-studio.is-preview-mode .landing-revision-composer {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 40px;
+    align-items: end;
+    gap: 6px;
+}
+.landing-page-studio.is-preview-mode .landing-revision-composer textarea {
+    min-height: 38px;
+    max-height: 72px;
+    padding: 8px 9px;
+    resize: none;
+}
+.landing-page-studio.is-preview-mode #landing-revise-btn {
+    width: 40px;
+    min-width: 40px;
+    height: 38px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+}
+.landing-page-studio.is-preview-mode #landing-revise-btn span { display: none; }
+
+/* إخفاء الشات يجعل صفحة الهبوط تملأ كل المساحة المتبقية. */
+.landing-page-studio.is-preview-mode.is-chat-collapsed {
+    grid-template-columns: minmax(0,1fr);
+}
+.landing-page-studio.is-preview-mode.is-chat-collapsed .landing-chat-toolbar,
+.landing-page-studio.is-preview-mode.is-chat-collapsed .landing-conversation,
+.landing-page-studio.is-preview-mode.is-chat-collapsed .landing-input-dock {
+    display: none !important;
+}
+.landing-page-studio.is-preview-mode.is-chat-collapsed .landing-output-panel {
+    grid-column: 1;
+    grid-row: 1 / 4;
+}
+.landing-page-studio:not(.is-preview-mode) .landing-chat-panel-label,
+.landing-page-studio:not(.is-preview-mode) .landing-close-chat-btn {
+    display: none !important;
+}
+
+@media (max-width: 980px) and (min-width: 721px) {
+    .app-shell.landing-preview-layout[data-action="landing_page"] { grid-template-columns: 58px minmax(0,1fr); }
+    .landing-page-studio.is-preview-mode { grid-template-columns: minmax(270px,32vw) minmax(0,1fr); }
+}
+
+@media (max-width: 720px) {
+    /* الهاتف يبقى بعرض واحد حتى لا تصبح المعاينة ضيقة جدًا. */
+    body.workspace-open .app-shell.website-preview-layout[data-action="website_builder"] .workspace-main,
+    body.workspace-open .app-shell.landing-preview-layout[data-action="landing_page"] .workspace-main {
+        height: calc(100dvh - 68px);
+        padding: 0 !important;
+    }
+    .app-shell.landing-preview-layout[data-action="landing_page"] {
+        display: block;
+        height: 100dvh;
+        padding: 0 0 68px;
+    }
+    .app-shell.landing-preview-layout[data-action="landing_page"] .tools-sidebar {
+        top: auto;
+        width: 100%;
+        height: 68px;
+        padding: 7px 8px;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    .landing-page-studio.is-preview-mode {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0,1fr);
+        height: 100%;
+    }
+    .landing-page-studio.is-preview-mode .landing-chat-toolbar,
+    .landing-page-studio.is-preview-mode .landing-conversation,
+    .landing-page-studio.is-preview-mode .landing-input-dock { display: none; }
+    .landing-page-studio.is-preview-mode .landing-output-panel {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    .landing-page-studio.is-preview-mode .landing-revision-panel { padding: 5px 6px; }
+}
