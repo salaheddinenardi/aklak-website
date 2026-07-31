@@ -5472,3 +5472,44 @@ body.workspace-open .app-shell.has-context-history .context-history-panel {
     .cv-edit-form-grid .landing-field-wide { grid-column: auto; }
     .cv-edit-submit-row { align-items: stretch; flex-direction: column; }
 }
+
+
+/* =========================================================
+   CV INTERACTION FIX — مربع رفع واضح + أدوات تحرير ظاهرة بعد الرفع
+   ========================================================= */
+.app-shell[data-action="cv_builder"] #cv-photo-assistant-host .cv-photo-upload-square,
+.app-shell[data-action="cv_builder"] #cv-photo-edit-host .cv-photo-upload-square {
+    width: 136px;
+    height: 136px;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 136px;
+    border-radius: 10px;
+}
+.app-shell[data-action="cv_builder"] .cv-photo-upload-square .cv-photo-upload-icon {
+    width: 54px;
+    height: 54px;
+    font-size: 2.35rem;
+}
+.app-shell[data-action="cv_builder"] .cv-photo-editor-panel:not(.hidden) {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+.app-shell[data-action="cv_builder"] .cv-photo-editor-panel:not(.hidden) .cv-photo-shapes,
+.app-shell[data-action="cv_builder"] .cv-photo-editor-panel:not(.hidden) .cv-photo-tools,
+.app-shell[data-action="cv_builder"] .cv-photo-editor-panel:not(.hidden) .cv-photo-zoom {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+.app-shell[data-action="cv_builder"] .cv-photo-shapes button span {
+    display: inline;
+}
+@media (max-width: 700px) {
+    .app-shell[data-action="cv_builder"] #cv-photo-assistant-host .cv-photo-upload-square,
+    .app-shell[data-action="cv_builder"] #cv-photo-edit-host .cv-photo-upload-square {
+        width: 124px;
+        height: 124px;
+        flex-basis: 124px;
+    }
+}

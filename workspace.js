@@ -3419,7 +3419,7 @@ function buildCVGenerationPrompt(form) {
         cvField('معلومات إضافية', form.extra)
     ].filter(Boolean).join('\n\n');
     const photoRule = form.profilePhotoPath
-        ? 'توجد صورة شخصية نهائية تم قصها وتشكيلها مسبقًا داخل المحرر. استخدم هذا المسار حرفيًا داخل src للصورة: ' + form.profilePhotoPath + '. تعامل معها كصورة جاهزة: لا تضف clip-path أو border-radius أو object-position لتغيير قصها، ولا تخترع رابطًا آخر.'
+        ? 'توجد صورة شخصية جاهزة داخل أصول المشروع. استخدم هذا المسار حرفيًا داخل src للصورة: ' + form.profilePhotoPath + '. لا تحتاج إلى رؤية الصورة نفسها ولا إلى تحليل محتواها؛ استخدم المسار كما هو، ولا تخترع رابطًا آخر ولا تغيّر القص أو الشكل بالكود.'
         : 'لا توجد صورة شخصية مرفقة؛ لا تضف صورة وهمية ولا صورة من الإنترنت.';
     return [
         'أنت مصمم سير ذاتية ومهندس واجهات محترف داخل AKLAKE.',
@@ -3441,7 +3441,7 @@ function buildCVGenerationPrompt(form) {
 
 function buildCVRevisionPrompt(instruction, currentHtml, form, changes, photoChange) {
     const photoRule = form.profilePhotoPath
-        ? 'الصورة الشخصية النهائية جاهزة ومقصوصة مسبقًا. حافظ على مسارها حرفيًا: ' + form.profilePhotoPath + '، ولا تضف CSS لقصها أو تغيير شكلها.'
+        ? 'الصورة الشخصية موجودة محليًا في أصول المشروع. حافظ على مسارها حرفيًا: ' + form.profilePhotoPath + '، ولا تحتاج إلى رؤية الصورة نفسها أو تحليلها، ولا تضف CSS يعيد قصها أو يغيّر شكلها.'
         : (photoChange === 'remove' ? 'احذف الصورة الشخصية الحالية من السيرة ولا تستبدلها بصورة وهمية.' : 'لا تضف صورة شخصية غير مقدمة.');
     const normalizedChanges = Array.isArray(changes) ? changes : [];
     const changesText = normalizedChanges.length
@@ -3461,7 +3461,7 @@ function buildCVRevisionPrompt(instruction, currentHtml, form, changes, photoCha
         '',
         'تغييرات المعلومات المنظمة:',
         changesText,
-        photoChange === 'replace' ? '- الصورة الشخصية: استبدل الصورة الحالية بالصورة النهائية المرفقة عبر المسار المحدد.' : '',
+        photoChange === 'replace' ? '- الصورة الشخصية: استبدل الصورة الحالية بمسار الصورة الجديد المحدد فقط؛ الصورة نفسها لا تُرسل للنموذج.' : '',
         photoChange === 'remove' ? '- الصورة الشخصية: أزل الصورة القديمة بالكامل.' : '',
         '',
         'ملاحظة المستخدم:',
@@ -3533,9 +3533,8 @@ async function requestCVFromFirstFunction(mode, form, instruction, currentHtml, 
         model: cvState.model,
         modelTier: cvState.model,
         cvRequest: true,
-        cvProfileImagePath: cvState.profileImage?.path || '',
-        cvProfileImageShape: cvState.profileImage?.crop?.shape || '',
-        imageBase64: cvState.profileImage?.dataUrl || undefined
+        // مثل منشئ المواقع: النموذج يستلم مسار الأصل فقط، أما بيانات الصورة فتبقى محليًا للمعاينة والتنزيل.
+        cvProfileImagePath: cvState.profileImage?.path || ''
     };
     const execution = await appwriteFunctions.createExecution(
         FIRST_FUNCTION_ID,
@@ -4139,6 +4138,13 @@ function initCVStudio() {
     startNewCVProject();
 }
 window.initCVStudio = initCVStudio;
+
+// تهيئة مستقلة احتياطية: الدالة نفسها محمية من التكرار عبر data-initialized.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCVStudio, { once: true });
+} else {
+    initCVStudio();
+}
 
 
 

@@ -513,14 +513,14 @@ function updateModels() {
         ui.model.innerHTML = '<option value="gpt-image-2">GPT Image 2</option>';
     } else if (action === 'landing_page') {
         ui.model.innerHTML = '<option value="gpt-4o-mini">GPT-4o mini — اقتصادي (20 نقطة)</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — متوازن (40 نقطة)</option><option value="gpt-5.5">GPT-5.5 — قياسي قوي (60 نقطة)</option>';
-    } else if (action === 'cv_builder') {
-        ui.model.innerHTML = provider === 'cloudflare'
-            ? '<option value="llama">LLaMA 3.3 — 5 نقاط</option>'
-            : '<option value="gpt-4o-mini">GPT-4o mini — 8 نقاط</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — 10 نقاط</option>';
     } else if (action === 'website_builder') {
         ui.model.innerHTML = provider === 'cloudflare'
             ? '<option value="llama">LLaMA 3.3 — 5 نقاط</option>'
             : '<option value="gpt-4o">GPT-4o — 8 نقاط</option><option value="gpt-5.4-mini" selected>GPT-5.4 mini — 10 نقاط</option><option value="gpt-5.5">GPT-5.5 — 15 نقطة</option>';
+    } else if (action === 'cv_builder') {
+        ui.model.innerHTML = provider === 'cloudflare'
+            ? '<option value="llama">LLaMA 3.3 — 5 نقاط</option>'
+            : '<option value="gpt-4o-mini">GPT-4o mini — 8 نقاط</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — 10 نقاط</option>';
     } else if (action === 'text' || action === 'book_outline') {
         if (provider === 'gemini') {
             ui.model.innerHTML = '<option value="gemini-3.5-flash">Gemini 3.5 Flash</option>';
@@ -554,8 +554,8 @@ window.addEventListener('DOMContentLoaded', function() {
     initArtStudio();
     initCreationLibrary();
     initLandingPageStudio();
-    if (typeof initCVStudio === 'function') initCVStudio();
     if (typeof initWebsiteBuilder === 'function') initWebsiteBuilder();
+    if (typeof initCVStudio === 'function') initCVStudio();
     mountBookStagesInConversation();
     initBookIntroActions();
     initCompletedBookViewer();
@@ -604,10 +604,10 @@ window.addEventListener('DOMContentLoaded', function() {
                 openModelChooser(action, false);
             } else if (action === 'landing_page') {
                 document.getElementById('landing-model-cards')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } else if (action === 'cv_builder') {
-                if (typeof setCVModelPopoverOpen === 'function') setCVModelPopoverOpen(true);
             } else if (action === 'website_builder') {
                 if (typeof setWebsiteModelPopoverOpen === 'function') setWebsiteModelPopoverOpen(true);
+            } else if (action === 'cv_builder') {
+                if (typeof setCVModelPopoverOpen === 'function') setCVModelPopoverOpen(true);
             } else if (action === 'art_studio') {
                 const selectedFrame = typeof getSelectedArtFrame === 'function' ? getSelectedArtFrame() : null;
                 if (selectedFrame && typeof openArtPromptDialog === 'function') {
