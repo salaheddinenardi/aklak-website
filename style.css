@@ -5192,3 +5192,283 @@ body.workspace-open .app-shell.has-context-history .context-history-panel {
         right: 4px;
     }
 }
+
+/* =========================================================
+   CV EDITOR UPGRADE — مساعد أطول + محرر صورة + تعديل البيانات
+   ========================================================= */
+.app-shell[data-action="cv_builder"] .cv-required-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* إطار المساعد ثابت، والمحتوى الداخلي وحده يتحرك. */
+.app-shell[data-action="cv_builder"] .cv-builder-studio:not(.is-preview-mode) #cv-assistant-panel.cv-assistant-panel {
+    height: min(72vh, 660px);
+    max-height: min(72vh, 660px);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+}
+.app-shell[data-action="cv_builder"] #cv-assistant-panel.hidden { display: none !important; }
+.app-shell[data-action="cv_builder"] .cv-assistant-heading {
+    flex: 0 0 auto;
+    min-height: 58px;
+    margin: 0;
+    padding: 11px 12px;
+    border-bottom: 1px solid rgba(121,226,173,.12);
+    background: rgba(5,18,11,.99);
+}
+.app-shell[data-action="cv_builder"] .cv-assistant-heading > div { min-width: 0; flex: 1 1 auto; }
+.app-shell[data-action="cv_builder"] .cv-assistant-close-btn {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    margin-inline-start: auto;
+    padding: 0;
+    color: #9eb8ab;
+    background: rgba(255,255,255,.025);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 9px;
+    cursor: pointer;
+}
+.app-shell[data-action="cv_builder"] .cv-assistant-close-btn:hover {
+    color: #fff;
+    background: rgba(255,100,110,.09);
+    border-color: rgba(255,120,130,.2);
+}
+.app-shell[data-action="cv_builder"] .cv-assistant-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+/* محرر الصورة الشخصية: مربع واضح يحمل رمز البروفايل. */
+.cv-photo-editor-host { width: 100%; min-width: 0; }
+.cv-photo-editor-block {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: rgba(3,14,9,.72);
+    border: 1px solid rgba(121,226,173,.13);
+    border-radius: 13px;
+}
+.cv-photo-field-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cv-photo-field-head > div { display: grid; gap: 2px; }
+.cv-photo-field-head strong { color: #eafff2; font-size: .72rem; }
+.cv-photo-field-head small { color: #7f9c8d; font-size: .58rem; }
+.cv-photo-workspace { display: grid; grid-template-columns: 132px minmax(0,1fr); align-items: start; gap: 12px; }
+.cv-photo-upload-square {
+    width: 132px;
+    height: 132px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    overflow: hidden;
+    padding: 10px;
+    color: #bad7c8;
+    background: linear-gradient(145deg, rgba(121,226,173,.075), rgba(121,226,173,.025));
+    border: 1px dashed rgba(121,226,173,.32);
+    border-radius: 14px;
+    cursor: pointer;
+}
+.cv-photo-upload-square:hover { border-color: rgba(121,226,173,.68); background: rgba(121,226,173,.09); }
+.cv-photo-upload-square .cv-photo-upload-icon {
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    color: #79e2ad;
+    font-size: 2rem;
+}
+.cv-photo-upload-square strong { font-size: .67rem; }
+.cv-photo-upload-square small { color: #789687; font-size: .53rem; }
+.cv-photo-upload-square > img {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    display: block;
+    object-fit: contain;
+    background: repeating-conic-gradient(rgba(255,255,255,.045) 0 25%, transparent 0 50%) 50% / 14px 14px;
+}
+.cv-photo-upload-square.has-image .cv-photo-upload-icon,
+.cv-photo-upload-square.has-image > strong,
+.cv-photo-upload-square.has-image > small { opacity: 0; }
+.cv-photo-upload-square.has-image::after {
+    content: "تعديل";
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    z-index: 2;
+    padding: 4px 7px;
+    color: #062017;
+    background: rgba(121,226,173,.94);
+    border-radius: 7px;
+    font-size: .52rem;
+    font-weight: 800;
+}
+.cv-photo-editor-panel {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(190px, 260px) minmax(0,1fr);
+    gap: 10px 12px;
+    padding: 10px;
+    background: rgba(1,9,5,.82);
+    border: 1px solid rgba(121,226,173,.14);
+    border-radius: 12px;
+}
+.cv-photo-editor-panel.hidden { display: none !important; }
+.cv-photo-canvas-wrap { grid-row: 1 / span 4; display: grid; gap: 6px; align-content: start; }
+.cv-photo-canvas-wrap canvas {
+    width: min(100%, 260px);
+    aspect-ratio: 1 / 1;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+    background: repeating-conic-gradient(rgba(255,255,255,.05) 0 25%, rgba(255,255,255,.018) 0 50%) 50% / 18px 18px;
+    border: 1px solid rgba(121,226,173,.16);
+    border-radius: 11px;
+}
+.cv-photo-canvas-wrap canvas:active { cursor: grabbing; }
+.cv-photo-canvas-wrap small { color: #789687; font-size: .54rem; line-height: 1.45; }
+.cv-photo-shapes { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 5px; }
+.cv-photo-shapes button,
+.cv-photo-tools button {
+    min-width: 0;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px;
+    color: #a9c8b8;
+    background: rgba(121,226,173,.045);
+    border: 1px solid rgba(121,226,173,.12);
+    border-radius: 8px;
+    font-size: .53rem;
+    cursor: pointer;
+}
+.cv-photo-shapes button span { display: none; }
+.cv-photo-shapes button.active,
+.cv-photo-shapes button:hover,
+.cv-photo-tools button:hover { color: #062017; background: #79e2ad; border-color: #79e2ad; }
+.cv-photo-zoom { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 8px; }
+.cv-photo-zoom > span { color: #a5c2b3; font-size: .57rem; }
+.cv-photo-zoom input { width: 100%; accent-color: #79e2ad; }
+.cv-photo-tools { display: grid; grid-template-columns: repeat(5, 38px) minmax(110px,1fr); gap: 6px; align-items: center; }
+.cv-photo-tools .cv-photo-apply-btn { color: #062017; background: #79e2ad; border-color: #79e2ad; font-weight: 850; }
+.cv-photo-tools .cv-photo-apply-btn span { display: inline; }
+.cv-inline-photo-preview {
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 34px;
+    margin-top: 9px;
+    padding: 6px 8px !important;
+}
+.cv-inline-photo-preview > span { color: #79e2ad; }
+.cv-inline-photo-preview small { max-width: none !important; flex: 1 1 auto; }
+
+/* وضع تعديل المعلومات داخل مساحة المعاينة نفسها. */
+.cv-edit-info-view {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    padding: 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    color: #eafff2;
+    background: rgba(2,8,5,.985);
+}
+.cv-edit-info-view.hidden { display: none !important; }
+.cv-edit-info-head { display: grid; gap: 7px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(121,226,173,.11); }
+.cv-edit-info-head > div { display: flex; align-items: center; gap: 8px; }
+.cv-edit-info-head h4 { margin: 0; color: #effff5; font-size: .86rem; }
+.cv-edit-info-head p { max-width: 760px; margin: 0; color: #789687; font-size: .61rem; line-height: 1.65; }
+.cv-photo-edit-host { margin-bottom: 14px; }
+.cv-edit-form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }
+.cv-edit-form-grid .landing-field-wide { grid-column: 1 / -1; }
+.cv-edit-info-view .landing-field { display: grid; gap: 5px; }
+.cv-edit-info-view .landing-field > span { color: #a7c6b6; font-size: .59rem; }
+.cv-edit-info-view input,
+.cv-edit-info-view select,
+.cv-edit-info-view textarea,
+.cv-edit-note-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    color: #eafff2;
+    background: rgba(3,13,8,.94);
+    border: 1px solid rgba(121,226,173,.15);
+    border-radius: 9px;
+    outline: 0;
+}
+.cv-edit-info-view input,
+.cv-edit-info-view select { min-height: 40px; padding: 8px 9px; }
+.cv-edit-info-view textarea,
+.cv-edit-note-field textarea { min-height: 78px; padding: 9px; resize: vertical; }
+.cv-edit-info-view input:focus,
+.cv-edit-info-view select:focus,
+.cv-edit-info-view textarea:focus,
+.cv-edit-note-field textarea:focus { border-color: rgba(121,226,173,.48); box-shadow: 0 0 0 3px rgba(121,226,173,.06); }
+.cv-edit-note-field { display: grid; gap: 6px; margin-top: 14px; }
+.cv-edit-note-field > span { color: #b7d4c5; font-size: .63rem; }
+.cv-edit-note-field > span small { margin-inline-start: 5px; color: #708c7e; font-weight: 400; }
+.cv-edit-submit-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(121,226,173,.09); }
+#cv-edit-submit-btn {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 14px;
+    color: #052016;
+    background: #79e2ad;
+    border: 0;
+    border-radius: 9px;
+    font-size: .66rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+#cv-edit-submit-btn:disabled { opacity: .55; cursor: wait; }
+.cv-edit-submit-row small { color: #789687; font-size: .56rem; line-height: 1.5; }
+
+/* في وضع المعاينة، المحرر يحتل نفس مساحة الـ iframe أو محرر HTML. */
+.cv-builder-studio.is-preview-mode .cv-edit-info-view {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.cv-builder-studio.is-preview-mode .cv-edit-info-view.hidden { display: none !important; }
+.cv-builder-studio.is-preview-mode .landing-output-panel[data-cv-active-view="edit"] .landing-device-switch { visibility: hidden; pointer-events: none; }
+
+@media (max-width: 900px) {
+    .cv-photo-workspace { grid-template-columns: 118px minmax(0,1fr); }
+    .cv-photo-upload-square { width: 118px; height: 118px; }
+    .cv-photo-editor-panel { grid-template-columns: minmax(170px, 220px) minmax(0,1fr); }
+}
+@media (max-width: 700px) {
+    .app-shell[data-action="cv_builder"] .cv-builder-studio:not(.is-preview-mode) #cv-assistant-panel.cv-assistant-panel {
+        height: min(76dvh, 690px);
+        max-height: min(76dvh, 690px);
+    }
+    .cv-photo-workspace { grid-template-columns: 1fr; }
+    .cv-photo-upload-square { width: 132px; height: 132px; }
+    .cv-photo-editor-panel { grid-template-columns: 1fr; }
+    .cv-photo-canvas-wrap { grid-row: auto; justify-items: center; }
+    .cv-photo-shapes { grid-template-columns: repeat(5, 1fr); }
+    .cv-photo-tools { grid-template-columns: repeat(5, 38px) 1fr; }
+    .cv-edit-form-grid { grid-template-columns: 1fr; }
+    .cv-edit-form-grid .landing-field-wide { grid-column: auto; }
+    .cv-edit-submit-row { align-items: stretch; flex-direction: column; }
+}

@@ -524,6 +524,7 @@
                     <div class="landing-output-toolbar">
                         <div class="landing-view-tabs" role="tablist">
                             <button class="active" type="button" data-cv-view="preview"><i class="far fa-eye"></i> المعاينة</button>
+                            <button type="button" data-cv-view="edit"><i class="fas fa-pen-to-square"></i> تعديل المعلومات</button>
                             <button type="button" data-cv-view="code"><i class="fas fa-code"></i> كود HTML</button>
                         </div>
                         <div class="landing-device-switch" aria-label="حجم المعاينة">
@@ -546,6 +547,37 @@
                             <iframe id="cv-preview-frame" title="معاينة السيرة الذاتية" sandbox="allow-scripts allow-forms"></iframe>
                         </div>
                     </div>
+                    <div id="cv-edit-info-view" class="cv-edit-info-view hidden" aria-label="تعديل معلومات السيرة الذاتية">
+                        <div class="cv-edit-info-head">
+                            <div><span class="panel-eyebrow">CV DATA EDITOR</span><h4><i class="fas fa-pen-to-square"></i> تعديل معلومات السيرة</h4></div>
+                            <p>تظهر هنا فقط المعلومات التي أدخلتها في الحقول. البيانات الموجودة داخل برومنت حر لا نستخرجها أو نخمنها تلقائيًا.</p>
+                        </div>
+                        <div id="cv-photo-edit-host" class="cv-photo-editor-host cv-photo-edit-host"></div>
+                        <div class="landing-form-grid cv-edit-form-grid">
+                            <label class="landing-field landing-field-wide"><span>الاسم الكامل</span><input id="cv-edit-full-name" type="text" autocomplete="name" placeholder="الاسم الكامل"></label>
+                            <label class="landing-field"><span>المسمى الوظيفي المستهدف</span><input id="cv-edit-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
+                            <label class="landing-field"><span>لغة السيرة</span><select id="cv-edit-language"><option value="" selected>لم أحدد — استنتجها من الطلب</option><option value="العربية">العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
+                            <label class="landing-field"><span>تاريخ الازدياد</span><input id="cv-edit-birth-date" type="date"></label>
+                            <label class="landing-field"><span>العمر</span><input id="cv-edit-age" type="number" min="14" max="100" inputmode="numeric"></label>
+                            <label class="landing-field"><span>البريد الإلكتروني</span><input id="cv-edit-email" type="email" dir="ltr"></label>
+                            <label class="landing-field"><span>رقم الهاتف</span><input id="cv-edit-phone" type="tel" dir="ltr"></label>
+                            <label class="landing-field"><span>المدينة / البلد</span><input id="cv-edit-location" type="text"></label>
+                            <label class="landing-field"><span>LinkedIn أو Portfolio</span><input id="cv-edit-links" type="text" dir="ltr"></label>
+                            <label class="landing-field landing-field-wide"><span>نبذة مهنية</span><textarea id="cv-edit-summary" rows="3"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>الخبرات والوظائف السابقة</span><textarea id="cv-edit-experience" rows="4"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>الدراسة والشهادات الأكاديمية</span><textarea id="cv-edit-education" rows="3"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>الشهادات والدورات</span><textarea id="cv-edit-certifications" rows="3"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>المهارات</span><textarea id="cv-edit-skills" rows="3"></textarea></label>
+                            <label class="landing-field"><span>اللغات</span><input id="cv-edit-languages" type="text"></label>
+                            <label class="landing-field"><span>اهتمامات / رخص / معلومات إضافية</span><input id="cv-edit-extra" type="text"></label>
+                        </div>
+                        <label class="cv-edit-note-field"><span><i class="far fa-note-sticky"></i> ملاحظة التعديل <small>اختيارية</small></span><textarea id="cv-edit-note" rows="3" placeholder="مثال: اجعل الخبرة الأخيرة أكثر بروزًا، أو اتركها فارغة لتحديث المعلومات فقط."></textarea></label>
+                        <div class="cv-edit-submit-row">
+                            <button id="cv-edit-submit-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i><span>تطبيق المعلومات على CV</span></button>
+                            <small><i class="fas fa-code"></i> سيتم إرسال HTML الحالي + التغييرات فقط، وحفظ النتيجة كنسخة جديدة.</small>
+                        </div>
+                    </div>
+
                     <div id="cv-code-view" class="landing-code-view hidden">
                         <div class="landing-code-head"><span><i class="fas fa-file-code"></i> cv.html</span><small>يمكنك تعديل الكود يدويًا ثم تطبيقه على المعاينة</small></div>
                         <textarea id="cv-code-editor" dir="ltr" spellcheck="false" aria-label="محرر كود السيرة الذاتية"></textarea>
@@ -573,35 +605,71 @@
             <div class="landing-input-dock">
                 <div class="landing-required-row cv-required-row">
                     <label class="landing-required-name" for="cv-full-name"><span><i class="far fa-user"></i> الاسم الكامل <b>مطلوب</b></span><input id="cv-full-name" type="text" placeholder="مثال: صلاح الدين ..." autocomplete="name" required></label>
-                    <div class="cv-photo-input-control">
-                        <button id="cv-attach-btn" class="cv-photo-picker" type="button" aria-label="اختيار الصورة الشخصية" title="اختيار الصورة الشخصية"><i class="far fa-image"></i><span>الصورة الشخصية</span></button>
-                        <div id="cv-profile-image-preview" class="cv-inline-photo-preview hidden" aria-live="polite">
-                            <span class="cv-photo-thumb"><img id="cv-profile-image-thumb" alt="الصورة الشخصية"></span>
-                            <small id="cv-profile-image-name"></small>
-                            <button id="cv-remove-profile-image-btn" type="button" aria-label="إزالة الصورة"><i class="fas fa-xmark"></i></button>
-                        </div>
-                    </div>
                     <button id="cv-assistant-toggle" class="landing-assistant-toggle" type="button" aria-expanded="false" aria-controls="cv-assistant-panel"><i class="fas fa-wand-magic-sparkles"></i><span>المساعد · معلومات CV</span><i class="fas fa-chevron-down"></i></button>
                 </div>
 
-                <div id="cv-assistant-panel" class="landing-assistant-panel hidden" aria-hidden="true">
-                    <div class="landing-assistant-heading"><span><i class="far fa-id-card"></i></span><div><strong>مساعد معلومات السيرة الذاتية</strong><small>املأ ما تعرفه فقط؛ الحقول تساعدك على عدم نسيان المعلومات المهمة.</small></div></div>
-                    <div class="landing-form-grid">
-                        <label class="landing-field"><span>المسمى الوظيفي المستهدف</span><input id="cv-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
-                        <label class="landing-field"><span>لغة السيرة</span><select id="cv-language"><option value="العربية" selected>العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
-                        <label class="landing-field"><span>تاريخ الازدياد</span><input id="cv-birth-date" type="date"></label>
-                        <label class="landing-field"><span>العمر</span><input id="cv-age" type="number" min="14" max="100" inputmode="numeric" placeholder="مثال: 25"></label>
-                        <label class="landing-field"><span>البريد الإلكتروني</span><input id="cv-email" type="email" dir="ltr" placeholder="name@example.com"></label>
-                        <label class="landing-field"><span>رقم الهاتف</span><input id="cv-phone" type="tel" dir="ltr" placeholder="+212 ..."></label>
-                        <label class="landing-field"><span>المدينة / البلد</span><input id="cv-location" type="text" placeholder="مثال: Settat, Morocco"></label>
-                        <label class="landing-field"><span>LinkedIn أو Portfolio</span><input id="cv-links" type="text" dir="ltr" placeholder="linkedin.com/in/... أو portfolio"></label>
-                        <label class="landing-field landing-field-wide"><span>نبذة مهنية</span><textarea id="cv-summary" rows="3" placeholder="من أنت مهنيًا؟ ما خبرتك وما نوع الفرص التي تستهدفها؟"></textarea></label>
-                        <label class="landing-field landing-field-wide"><span>الخبرات والوظائف السابقة</span><textarea id="cv-experience" rows="4" placeholder="اسم الشركة — الوظيفة — من/إلى — أهم المسؤوليات والنتائج. اكتب كل تجربة في سطر أو فقرة منفصلة."></textarea></label>
-                        <label class="landing-field landing-field-wide"><span>الدراسة والشهادات الأكاديمية</span><textarea id="cv-education" rows="3" placeholder="المؤسسة — الشهادة/التخصص — السنة"></textarea></label>
-                        <label class="landing-field landing-field-wide"><span>الشهادات والدورات</span><textarea id="cv-certifications" rows="3" placeholder="اسم الشهادة أو الدورة — الجهة — السنة"></textarea></label>
-                        <label class="landing-field landing-field-wide"><span>المهارات</span><textarea id="cv-skills" rows="3" placeholder="مهارات تقنية، مهنية، برامج، أدوات، قيادة، تواصل..."></textarea></label>
-                        <label class="landing-field"><span>اللغات</span><input id="cv-languages" type="text" placeholder="العربية، الفرنسية، الإنجليزية..."></label>
-                        <label class="landing-field"><span>اهتمامات / رخص / معلومات إضافية</span><input id="cv-extra" type="text" placeholder="اختياري"></label>
+                <div id="cv-assistant-panel" class="landing-assistant-panel cv-assistant-panel hidden" aria-hidden="true">
+                    <div class="landing-assistant-heading cv-assistant-heading">
+                        <span><i class="far fa-id-card"></i></span>
+                        <div><strong>مساعد معلومات السيرة الذاتية</strong><small>املأ ما تعرفه فقط؛ ويمكنك تعديل الصورة قبل اعتمادها.</small></div>
+                        <button id="cv-assistant-close-btn" class="cv-assistant-close-btn" type="button" aria-label="إخفاء مساعد معلومات CV" title="إخفاء المساعد"><i class="fas fa-xmark"></i></button>
+                    </div>
+                    <div class="cv-assistant-scroll">
+                        <div id="cv-photo-assistant-host" class="cv-photo-editor-host">
+                            <section id="cv-photo-editor-block" class="cv-photo-editor-block" aria-label="محرر الصورة الشخصية">
+                                <div class="cv-photo-field-head"><div><strong>الصورة الشخصية</strong><small>ارفع صورة ثم حرّكها وعدّل الإطار قبل اعتمادها.</small></div></div>
+                                <div class="cv-photo-workspace">
+                                    <button id="cv-attach-btn" class="cv-photo-upload-square" type="button" aria-label="رفع أو تعديل الصورة الشخصية" title="رفع أو تعديل الصورة الشخصية">
+                                        <span class="cv-photo-upload-icon"><i class="far fa-circle-user"></i></span>
+                                        <img id="cv-profile-image-thumb" class="hidden" alt="الصورة الشخصية النهائية">
+                                        <strong>صورة البروفيل</strong><small>رفع / تعديل</small>
+                                    </button>
+                                    <div id="cv-photo-editor-panel" class="cv-photo-editor-panel hidden">
+                                        <div class="cv-photo-canvas-wrap">
+                                            <canvas id="cv-photo-canvas" width="560" height="560" aria-label="منطقة قص وتحريك الصورة الشخصية"></canvas>
+                                            <small><i class="fas fa-hand"></i> اسحب الصورة داخل الإطار لتحديد الجزء المناسب.</small>
+                                        </div>
+                                        <div class="cv-photo-shapes" role="group" aria-label="شكل الصورة النهائية">
+                                            <button class="active" type="button" data-cv-photo-shape="square" title="مربع"><i class="far fa-square"></i><span>مربع</span></button>
+                                            <button type="button" data-cv-photo-shape="rounded" title="مربع دائري الحواف"><i class="far fa-square"></i><span>ناعم</span></button>
+                                            <button type="button" data-cv-photo-shape="circle" title="دائرة"><i class="far fa-circle"></i><span>دائرة</span></button>
+                                            <button type="button" data-cv-photo-shape="diamond" title="معين"><i class="far fa-gem"></i><span>معين</span></button>
+                                            <button type="button" data-cv-photo-shape="hexagon" title="سداسي"><i class="fas fa-certificate"></i><span>سداسي</span></button>
+                                        </div>
+                                        <label class="cv-photo-zoom"><span><i class="fas fa-magnifying-glass-plus"></i> التكبير</span><input id="cv-photo-zoom" type="range" min="1" max="3.5" step="0.01" value="1"></label>
+                                        <div class="cv-photo-tools">
+                                            <button id="cv-photo-rotate-left" type="button" title="تدوير لليسار"><i class="fas fa-rotate-left"></i></button>
+                                            <button id="cv-photo-rotate-right" type="button" title="تدوير لليمين"><i class="fas fa-rotate-right"></i></button>
+                                            <button id="cv-photo-flip" type="button" title="قلب أفقي"><i class="fas fa-left-right"></i></button>
+                                            <button id="cv-photo-reset" type="button" title="إعادة الضبط"><i class="fas fa-arrows-rotate"></i></button>
+                                            <button id="cv-photo-replace" type="button" title="اختيار صورة أخرى"><i class="fas fa-image"></i></button>
+                                            <button id="cv-photo-apply-btn" class="cv-photo-apply-btn" type="button"><i class="fas fa-check"></i><span>اعتماد الصورة</span></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="cv-profile-image-preview" class="cv-inline-photo-preview hidden" aria-live="polite">
+                                    <span><i class="fas fa-check-circle"></i></span><small id="cv-profile-image-name"></small>
+                                    <button id="cv-remove-profile-image-btn" type="button" aria-label="إزالة الصورة"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </section>
+                        </div>
+                        <div class="landing-form-grid">
+                            <label class="landing-field"><span>المسمى الوظيفي المستهدف</span><input id="cv-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
+                            <label class="landing-field"><span>لغة السيرة</span><select id="cv-language"><option value="" selected>لم أحدد — استنتجها من الطلب</option><option value="العربية">العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
+                            <label class="landing-field"><span>تاريخ الازدياد</span><input id="cv-birth-date" type="date"></label>
+                            <label class="landing-field"><span>العمر</span><input id="cv-age" type="number" min="14" max="100" inputmode="numeric" placeholder="مثال: 25"></label>
+                            <label class="landing-field"><span>البريد الإلكتروني</span><input id="cv-email" type="email" dir="ltr" placeholder="name@example.com"></label>
+                            <label class="landing-field"><span>رقم الهاتف</span><input id="cv-phone" type="tel" dir="ltr" placeholder="+212 ..."></label>
+                            <label class="landing-field"><span>المدينة / البلد</span><input id="cv-location" type="text" placeholder="مثال: Settat, Morocco"></label>
+                            <label class="landing-field"><span>LinkedIn أو Portfolio</span><input id="cv-links" type="text" dir="ltr" placeholder="linkedin.com/in/... أو portfolio"></label>
+                            <label class="landing-field landing-field-wide"><span>نبذة مهنية</span><textarea id="cv-summary" rows="3" placeholder="من أنت مهنيًا؟ ما خبرتك وما نوع الفرص التي تستهدفها؟"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>الخبرات والوظائف السابقة</span><textarea id="cv-experience" rows="4" placeholder="اسم الشركة — الوظيفة — من/إلى — أهم المسؤوليات والنتائج. اكتب كل تجربة في سطر أو فقرة منفصلة."></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>الدراسة والشهادات الأكاديمية</span><textarea id="cv-education" rows="3" placeholder="المؤسسة — الشهادة/التخصص — السنة"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>الشهادات والدورات</span><textarea id="cv-certifications" rows="3" placeholder="اسم الشهادة أو الدورة — الجهة — السنة"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>المهارات</span><textarea id="cv-skills" rows="3" placeholder="مهارات تقنية، مهنية، برامج، أدوات، قيادة، تواصل..."></textarea></label>
+                            <label class="landing-field"><span>اللغات</span><input id="cv-languages" type="text" placeholder="العربية، الفرنسية، الإنجليزية..."></label>
+                            <label class="landing-field"><span>اهتمامات / رخص / معلومات إضافية</span><input id="cv-extra" type="text" placeholder="اختياري"></label>
+                        </div>
                     </div>
                 </div>
 
@@ -614,7 +682,7 @@
 
                 <div class="landing-composer-tools">
                     <button id="cv-model-toggle" type="button" aria-expanded="false" aria-controls="cv-model-popover"><i class="fas fa-microchip"></i><span id="cv-active-model">GPT-4.1 mini</span><small id="cv-generate-cost">10 نقاط</small><i class="fas fa-chevron-up"></i></button>
-                    <span><i class="far fa-image"></i> الصورة تُرسل للنموذج كمسار فقط، ولا يُرسل ملف الصورة نفسه.</span>
+                    <span><i class="far fa-image"></i> الصورة النهائية تُقص محليًا حسب الإطار، وتُرفق مع طلب CV مع الحفاظ على مسارها داخل HTML.</span>
                 </div>
                 <div id="cv-model-popover" class="landing-model-popover model-chooser-popover hidden" aria-hidden="true">
                     <div class="model-chooser-heading"><div><span class="panel-eyebrow">MODEL ROUTER</span><h3>اختر نموذج إنشاء السيرة</h3></div><button id="cv-close-model-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
