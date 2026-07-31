@@ -571,8 +571,16 @@
             </div>
 
             <div class="landing-input-dock">
-                <div class="landing-required-row">
+                <div class="landing-required-row cv-required-row">
                     <label class="landing-required-name" for="cv-full-name"><span><i class="far fa-user"></i> الاسم الكامل <b>مطلوب</b></span><input id="cv-full-name" type="text" placeholder="مثال: صلاح الدين ..." autocomplete="name" required></label>
+                    <div class="cv-photo-input-control">
+                        <button id="cv-attach-btn" class="cv-photo-picker" type="button" aria-label="اختيار الصورة الشخصية" title="اختيار الصورة الشخصية"><i class="far fa-image"></i><span>الصورة الشخصية</span></button>
+                        <div id="cv-profile-image-preview" class="cv-inline-photo-preview hidden" aria-live="polite">
+                            <span class="cv-photo-thumb"><img id="cv-profile-image-thumb" alt="الصورة الشخصية"></span>
+                            <small id="cv-profile-image-name"></small>
+                            <button id="cv-remove-profile-image-btn" type="button" aria-label="إزالة الصورة"><i class="fas fa-xmark"></i></button>
+                        </div>
+                    </div>
                     <button id="cv-assistant-toggle" class="landing-assistant-toggle" type="button" aria-expanded="false" aria-controls="cv-assistant-panel"><i class="fas fa-wand-magic-sparkles"></i><span>المساعد · معلومات CV</span><i class="fas fa-chevron-down"></i></button>
                 </div>
 
@@ -598,14 +606,8 @@
                 </div>
 
                 <input id="cv-profile-image-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
-                <div id="cv-profile-image-preview" class="landing-reference-preview cv-profile-image-preview hidden">
-                    <span class="cv-photo-thumb"><img id="cv-profile-image-thumb" alt="الصورة الشخصية"></span>
-                    <div><strong>الصورة الشخصية</strong><small id="cv-profile-image-name"></small></div>
-                    <button id="cv-remove-profile-image-btn" type="button" aria-label="إزالة الصورة"><i class="far fa-trash-can"></i></button>
-                </div>
 
-                <div class="landing-chat-composer">
-                    <button id="cv-attach-btn" class="landing-composer-side-btn" type="button" aria-label="إرفاق الصورة الشخصية" title="إرفاق الصورة الشخصية"><i class="fas fa-plus"></i></button>
+                <div class="landing-chat-composer cv-chat-composer">
                     <textarea id="cv-main-prompt" rows="1" placeholder="مثال: أنشئ لي CV احترافيًا لوظيفة مطور واجهات، بتصميم نظيف ورسمي..."></textarea>
                     <button id="cv-generate-btn" class="landing-generate-btn" type="button" aria-label="إرسال طلب إنشاء السيرة الذاتية"><i class="fas fa-arrow-up"></i></button>
                 </div>

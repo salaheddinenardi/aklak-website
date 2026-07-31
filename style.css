@@ -4959,3 +4959,236 @@ body.workspace-open .app-shell.has-context-history .context-history-panel {
     overflow: hidden;
 }
 .app-shell[data-action="cv_builder"] .cv-builder-studio.hidden { display: none !important; }
+
+/* =========================================================
+   CV STABILITY PATCH — تثبيت خانة الإدخال + لوحة مساعد مستقلة
+   ========================================================= */
+.app-shell[data-action="cv_builder"] .cv-builder-studio .landing-input-dock {
+    position: relative;
+    isolation: isolate;
+    z-index: 80;
+}
+
+/* الصف الأساسي يبقى ثابت الارتفاع: الاسم + الصورة + المساعد. */
+.app-shell[data-action="cv_builder"] .cv-required-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: end;
+    gap: 8px;
+}
+
+.app-shell[data-action="cv_builder"] .cv-photo-input-control {
+    min-height: 39px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.app-shell[data-action="cv_builder"] .cv-photo-picker {
+    min-height: 39px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 11px;
+    color: #b6d6c5;
+    background: rgba(121,226,173,.055);
+    border: 1px solid rgba(121,226,173,.15);
+    border-radius: 9px;
+    font: inherit;
+    font-size: .65rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.app-shell[data-action="cv_builder"] .cv-photo-picker:hover,
+.app-shell[data-action="cv_builder"] .cv-photo-picker.is-selected {
+    color: #edfff4;
+    background: rgba(121,226,173,.11);
+    border-color: rgba(121,226,173,.35);
+}
+.app-shell[data-action="cv_builder"] .cv-photo-picker > i { color: #79e2ad; }
+
+/* معاينة الصورة تبقى صغيرة داخل نفس الصف ولا تدفع خانة الكتابة لأسفل. */
+.app-shell[data-action="cv_builder"] .cv-inline-photo-preview {
+    height: 39px;
+    max-width: 190px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    padding: 4px 5px;
+    color: #dff8e9;
+    background: rgba(121,226,173,.06);
+    border: 1px solid rgba(121,226,173,.14);
+    border-radius: 9px;
+}
+.app-shell[data-action="cv_builder"] .cv-inline-photo-preview.hidden { display: none !important; }
+.app-shell[data-action="cv_builder"] .cv-inline-photo-preview .cv-photo-thumb {
+    width: 29px;
+    height: 29px;
+    flex: 0 0 29px;
+    overflow: hidden;
+    padding: 0;
+    background: rgba(121,226,173,.08);
+    border: 0;
+    border-radius: 7px;
+}
+.app-shell[data-action="cv_builder"] .cv-inline-photo-preview .cv-photo-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+.app-shell[data-action="cv_builder"] .cv-inline-photo-preview small {
+    max-width: 105px;
+    overflow: hidden;
+    color: #98baa8;
+    font-size: .55rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.app-shell[data-action="cv_builder"] .cv-inline-photo-preview > button {
+    width: 27px;
+    height: 27px;
+    flex: 0 0 27px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: #9db8aa;
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+}
+.app-shell[data-action="cv_builder"] .cv-inline-photo-preview > button:hover {
+    color: #ff9aa3;
+    background: rgba(255,100,110,.08);
+}
+
+/* المساعد يفتح فوق خانة الإدخال كلوحة مستقلة؛ الإطار ثابت والحقول وحدها قابلة للتمرير. */
+.app-shell[data-action="cv_builder"] .cv-builder-studio:not(.is-preview-mode) #cv-assistant-panel {
+    width: calc(100% - 8px);
+    max-height: min(54vh, 470px);
+    position: absolute;
+    right: 4px;
+    bottom: calc(100% + 8px);
+    z-index: 95;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    box-shadow: 0 24px 70px rgba(0,0,0,.48);
+}
+
+/* إعدادات النموذج تستخدم نفس المرساة ولا تغيّر ارتفاع الـ dock. */
+.app-shell[data-action="cv_builder"] .cv-builder-studio:not(.is-preview-mode) #cv-model-popover {
+    width: min(520px, calc(100% - 8px));
+    max-height: min(68vh, 590px);
+    right: 4px;
+    bottom: calc(100% + 8px);
+    z-index: 100;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* خانة النص الكبيرة لم تعد مسؤولة عن إرفاق الصورة. */
+.app-shell[data-action="cv_builder"] .cv-chat-composer {
+    grid-template-columns: minmax(0,1fr) 44px;
+}
+.app-shell[data-action="cv_builder"] .cv-chat-composer textarea {
+    grid-column: 1;
+}
+.app-shell[data-action="cv_builder"] .cv-chat-composer #cv-generate-btn {
+    grid-column: 2;
+}
+
+/* يمنع رسائل الحالة من تغيير ارتفاع منطقة الإدخال. */
+.app-shell[data-action="cv_builder"] #cv-status {
+    height: 22px;
+    min-height: 22px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* في المعاينة لا نحتاج حقول الإنشاء الأولية أو زر الصورة. */
+.cv-builder-studio.is-preview-mode .cv-required-row,
+.cv-builder-studio.is-preview-mode #cv-assistant-panel { display: none !important; }
+.cv-builder-studio.is-preview-mode .cv-chat-composer {
+    grid-template-columns: minmax(0,1fr) 38px;
+}
+
+/* =========================================================
+   PREVIEW SIDEBAR ICONS — نفس مظهر معاينة المواقع في كل الأدوات
+   ========================================================= */
+.app-shell.website-preview-layout[data-action="website_builder"] .tool-icon,
+.app-shell.landing-preview-layout[data-action="landing_page"] .tool-icon,
+.app-shell.landing-preview-layout[data-action="cv_builder"] .tool-icon {
+    display: grid !important;
+    place-items: center;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] .tool-icon > i,
+.app-shell.landing-preview-layout[data-action="landing_page"] .tool-icon > i,
+.app-shell.landing-preview-layout[data-action="cv_builder"] .tool-icon > i,
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #profile-header-btn > i:first-child,
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #login-btn > i:first-child,
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #cart-header-btn > i:first-child,
+.app-shell.website-preview-layout[data-action="website_builder"] .credit-pill > .token-mark,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #profile-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #login-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #cart-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] .credit-pill > .token-mark,
+.app-shell.landing-preview-layout[data-action="cv_builder"] .account-actions > #profile-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="cv_builder"] .account-actions > #login-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="cv_builder"] .account-actions > #cart-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="cv_builder"] .credit-pill > .token-mark {
+    display: grid !important;
+    place-items: center;
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px !important;
+    font-size: 1rem !important;
+    line-height: 1 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: var(--green-bright, #79e2ad) !important;
+}
+
+/* يمنع الأزرار المصغرة من فقدان شكلها عند إخفاء النص في وضع المعاينة. */
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #profile-header-btn:not(.hidden),
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #login-btn:not(.hidden),
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #cart-header-btn:not(.hidden),
+.app-shell.landing-preview-layout[data-action="landing_page"] .credit-pill:not(.hidden),
+.app-shell.landing-preview-layout[data-action="cv_builder"] .account-actions > #profile-header-btn:not(.hidden),
+.app-shell.landing-preview-layout[data-action="cv_builder"] .account-actions > #login-btn:not(.hidden),
+.app-shell.landing-preview-layout[data-action="cv_builder"] .account-actions > #cart-header-btn:not(.hidden),
+.app-shell.landing-preview-layout[data-action="cv_builder"] .credit-pill:not(.hidden) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+@media (max-width: 760px) {
+    .app-shell[data-action="cv_builder"] .cv-required-row {
+        grid-template-columns: minmax(0,1fr) auto;
+    }
+    .app-shell[data-action="cv_builder"] .cv-photo-input-control {
+        grid-column: 1 / -1;
+        order: 3;
+        min-width: 0;
+    }
+    .app-shell[data-action="cv_builder"] .cv-inline-photo-preview { max-width: min(210px, 52vw); }
+    .app-shell[data-action="cv_builder"] .cv-builder-studio:not(.is-preview-mode) #cv-assistant-panel,
+    .app-shell[data-action="cv_builder"] .cv-builder-studio:not(.is-preview-mode) #cv-model-popover {
+        width: calc(100% - 8px);
+        max-height: min(58dvh, 500px);
+        right: 4px;
+    }
+}

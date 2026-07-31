@@ -2907,6 +2907,12 @@ function setCVBusy(busy, message) {
 
 function setCVAssistantOpen(open) {
     const expanded = Boolean(open);
+    // لا نسمح للمساعد وإعدادات النموذج أن يتراكبا فوق خانة الإدخال.
+    if (expanded && cvUI.modelPopover && !cvUI.modelPopover.classList.contains('hidden')) {
+        cvUI.modelPopover.classList.add('hidden');
+        cvUI.modelPopover.setAttribute('aria-hidden', 'true');
+        cvUI.modelToggle?.setAttribute('aria-expanded', 'false');
+    }
     cvUI.assistantPanel?.classList.toggle('hidden', !expanded);
     cvUI.assistantPanel?.setAttribute('aria-hidden', String(!expanded));
     cvUI.assistantToggle?.classList.toggle('is-open', expanded);
@@ -2958,7 +2964,14 @@ function applyCVModel(info) {
 
 function setCVModelPopoverOpen(open) {
     const expanded = Boolean(open);
-    if (expanded) setCVPendingModel(cvState.provider + ':' + cvState.model);
+    if (expanded) {
+        setCVPendingModel(cvState.provider + ':' + cvState.model);
+        // إعدادات النموذج تفتح فوق الـ dock من دون تحريك خانة الكتابة.
+        cvUI.assistantPanel?.classList.add('hidden');
+        cvUI.assistantPanel?.setAttribute('aria-hidden', 'true');
+        cvUI.assistantToggle?.classList.remove('is-open');
+        cvUI.assistantToggle?.setAttribute('aria-expanded', 'false');
+    }
     cvUI.modelPopover?.classList.toggle('hidden', !expanded);
     cvUI.modelPopover?.setAttribute('aria-hidden', String(!expanded));
     cvUI.modelToggle?.setAttribute('aria-expanded', String(expanded));
@@ -3025,6 +3038,7 @@ function clearCVProfileImage() {
     if (cvUI.profileThumb) cvUI.profileThumb.removeAttribute('src');
     if (cvUI.profileName) cvUI.profileName.textContent = '';
     cvUI.profilePreview?.classList.add('hidden');
+    cvUI.attachBtn?.classList.remove('is-selected');
 }
 
 function setCVProfileImage(file) {
@@ -3051,9 +3065,10 @@ function setCVProfileImage(file) {
             persistCVProjects();
         }
         if (cvUI.profileThumb) cvUI.profileThumb.src = cvState.profileImage.dataUrl;
-        if (cvUI.profileName) cvUI.profileName.textContent = file.name + ' · سيصل للنموذج المسار ' + cvState.profileImage.path;
+        if (cvUI.profileName) cvUI.profileName.textContent = file.name;
         cvUI.profilePreview?.classList.remove('hidden');
-        setCVStatus('تم تجهيز الصورة محليًا. لن يُرسل ملف الصورة إلى النموذج؛ سيصله المسار فقط.', 'success');
+        cvUI.attachBtn?.classList.add('is-selected');
+        setCVStatus('تمت إضافة الصورة الشخصية. سيصل للنموذج مسارها فقط.', 'success');
     };
     reader.onerror = function() { setCVStatus('تعذر قراءة الصورة الشخصية.', 'error'); };
     reader.readAsDataURL(file);
