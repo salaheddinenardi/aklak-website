@@ -571,6 +571,7 @@ function syncWorkspaceFromSelections() {
         art_studio: { kicker: 'AKLAKE ART ROOM', title: 'استوديو اللوحات الفنية', placeholder: 'صف اللوحة التي تريد إنشاءها...' },
         book_outline: { kicker: 'BOOK BUILDER', title: 'المؤلف الذكي', placeholder: 'ما شكل الكتاب الذي تريد إنجازه، أيها البشري؟' },
         landing_page: { kicker: 'AKLAKE LANDING LAB', title: 'مولد صفحات الهبوط', placeholder: 'صف صفحة الهبوط التي تريدها...' },
+        cv_builder: { kicker: 'AKLAKE CV LAB', title: 'منشئ السيرة الذاتية', placeholder: 'صف السيرة الذاتية التي تريد إنشاءها...' },
         website_builder: { kicker: 'AKLAKE WEBSITE LAB', title: 'منشئ المواقع', placeholder: 'صف الموقع الذي تريد إنشاءه...' }
     };
     const data = workspaceData[action] || workspaceData.text;
@@ -610,6 +611,10 @@ window.selectAITool = function(action) {
         typeof window.restoreLandingChatPanel === 'function' && window.restoreLandingChatPanel()) {
         return;
     }
+    if (action === 'cv_builder' && ui.action.value === 'cv_builder' &&
+        typeof window.restoreCVChatPanel === 'function' && window.restoreCVChatPanel()) {
+        return;
+    }
 
     if (action !== 'website_builder' && ui.action.value === 'website_builder' &&
         typeof window.closeWebsitePreviewWorkspace === 'function') {
@@ -618,6 +623,10 @@ window.selectAITool = function(action) {
     if (action !== 'landing_page' && ui.action.value === 'landing_page' &&
         typeof window.closeLandingPreviewWorkspace === 'function') {
         window.closeLandingPreviewWorkspace();
+    }
+    if (action !== 'cv_builder' && ui.action.value === 'cv_builder' &&
+        typeof window.closeCVPreviewWorkspace === 'function') {
+        window.closeCVPreviewWorkspace();
     }
 
     if (action !== 'edit' && ui.imageFile && ui.imageFile.files && ui.imageFile.files.length > 0) {
@@ -630,8 +639,8 @@ window.selectAITool = function(action) {
     if (mainInputs) mainInputs.classList.remove('hidden');
     if (libraryDrawer) libraryDrawer.classList.add('hidden');
 
-    // منشئ المواقع يستخدم الكود الوظيفي الأول حصريًا؛ بقية الأدوات تبقى على مساراتها الحالية.
-    ui.source.value = action === 'website_builder' ? FIRST_FUNCTION_ID : SECOND_FUNCTION_ID;
+    // منشئ المواقع وCV يستخدمان الكود الوظيفي الأول حصريًا؛ بقية الأدوات تبقى على مساراتها الحالية.
+    ui.source.value = ['website_builder', 'cv_builder'].includes(action) ? FIRST_FUNCTION_ID : SECOND_FUNCTION_ID;
     ui.action.value = action;
     updateUI();
     if (action === 'text' && ui.prompt) ui.prompt.focus();
@@ -2753,6 +2762,864 @@ window.initLandingPageStudio = initLandingPageStudio;
 
 
 // ==========================================
+// منشئ السيرة الذاتية — HTML واحد عبر الكود الوظيفي الأول
+// ==========================================
+const CV_STORAGE_KEY = 'aklake_cv_projects_v1';
+const CV_MODEL_MEMORY_KEY = 'aklake_cv_model_v1';
+const CV_MAX_PROJECTS = 24;
+const CV_MAX_VERSIONS = 20;
+const CV_MODEL_INFO = Object.freeze({
+    'cloudflare:llama': { provider: 'cloudflare', model: 'llama', points: 5, label: 'LLaMA 3.3' },
+    'openai:gpt-4o-mini': { provider: 'openai', model: 'gpt-4o-mini', points: 8, label: 'GPT-4o mini' },
+    'openai:gpt-4.1-mini': { provider: 'openai', model: 'gpt-4.1-mini', points: 10, label: 'GPT-4.1 mini' }
+});
+
+const cvState = {
+    projects: [],
+    activeProjectId: null,
+    currentVersionIndex: -1,
+    provider: 'openai',
+    model: 'gpt-4.1-mini',
+    points: 10,
+    pendingKey: 'openai:gpt-4.1-mini',
+    busy: false,
+    previewOpen: false,
+    chatCollapsed: false,
+    activeView: 'preview',
+    profileImage: null
+};
+
+const cvUI = {};
+function cvElement(id) { return document.getElementById(id); }
+
+function cacheCVUI() {
+    Object.assign(cvUI, {
+        studio: cvElement('cv-builder-studio'),
+        conversation: cvElement('cv-conversation'),
+        generationCard: cvElement('cv-generation-card'),
+        completeCard: cvElement('cv-complete-card'),
+        progressName: cvElement('cv-progress-name'),
+        progressModel: cvElement('cv-progress-model'),
+        completeTitle: cvElement('cv-complete-title'),
+        openResultBtn: cvElement('cv-open-result-btn'),
+        projectsToggle: cvElement('cv-projects-toggle'),
+        projectsPanel: cvElement('cv-projects-panel'),
+        projectsList: cvElement('cv-projects-list'),
+        newProjectBtn: cvElement('cv-new-project-btn'),
+        closeChatBtn: cvElement('cv-close-chat-btn'),
+        output: cvElement('cv-output-panel'),
+        previewView: cvElement('cv-preview-view'),
+        emptyPreview: cvElement('cv-empty-preview'),
+        previewShell: cvElement('cv-preview-shell'),
+        previewFrame: cvElement('cv-preview-frame'),
+        codeView: cvElement('cv-code-view'),
+        codeEditor: cvElement('cv-code-editor'),
+        applyCodeBtn: cvElement('cv-apply-code-btn'),
+        copyBtn: cvElement('cv-copy-code-btn'),
+        downloadBtn: cvElement('cv-download-btn'),
+        closePreviewBtn: cvElement('cv-close-preview-btn'),
+        revisionPanel: cvElement('cv-revision-panel'),
+        revisionPrompt: cvElement('cv-revision-prompt'),
+        reviseBtn: cvElement('cv-revise-btn'),
+        prevVersionBtn: cvElement('cv-prev-version-btn'),
+        nextVersionBtn: cvElement('cv-next-version-btn'),
+        versionLabel: cvElement('cv-version-label'),
+        fullName: cvElement('cv-full-name'),
+        jobTitle: cvElement('cv-job-title'),
+        language: cvElement('cv-language'),
+        birthDate: cvElement('cv-birth-date'),
+        age: cvElement('cv-age'),
+        email: cvElement('cv-email'),
+        phone: cvElement('cv-phone'),
+        location: cvElement('cv-location'),
+        links: cvElement('cv-links'),
+        summary: cvElement('cv-summary'),
+        experience: cvElement('cv-experience'),
+        education: cvElement('cv-education'),
+        certifications: cvElement('cv-certifications'),
+        skills: cvElement('cv-skills'),
+        languages: cvElement('cv-languages'),
+        extra: cvElement('cv-extra'),
+        assistantToggle: cvElement('cv-assistant-toggle'),
+        assistantPanel: cvElement('cv-assistant-panel'),
+        profileFile: cvElement('cv-profile-image-file'),
+        profilePreview: cvElement('cv-profile-image-preview'),
+        profileThumb: cvElement('cv-profile-image-thumb'),
+        profileName: cvElement('cv-profile-image-name'),
+        removeProfileBtn: cvElement('cv-remove-profile-image-btn'),
+        attachBtn: cvElement('cv-attach-btn'),
+        prompt: cvElement('cv-main-prompt'),
+        generateBtn: cvElement('cv-generate-btn'),
+        modelToggle: cvElement('cv-model-toggle'),
+        modelPopover: cvElement('cv-model-popover'),
+        modelCards: cvElement('cv-model-cards'),
+        activeModel: cvElement('cv-active-model'),
+        generateCost: cvElement('cv-generate-cost'),
+        rememberModelToggle: cvElement('cv-remember-model-toggle'),
+        rememberIcon: document.querySelector('.cv-remember-toggle-icon'),
+        confirmModelBtn: cvElement('cv-confirm-model-btn'),
+        closeModelBtn: cvElement('cv-close-model-btn'),
+        status: cvElement('cv-status')
+    });
+}
+
+function createCVId(prefix) {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return prefix + '-' + window.crypto.randomUUID();
+    return prefix + '-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+}
+
+function loadCVProjects() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(CV_STORAGE_KEY) || '[]');
+        cvState.projects = Array.isArray(stored) ? stored.filter(Boolean).slice(0, CV_MAX_PROJECTS) : [];
+    } catch (_) {
+        cvState.projects = [];
+    }
+}
+
+function persistCVProjects() {
+    try {
+        const sorted = cvState.projects.slice().sort(function(a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); }).slice(0, CV_MAX_PROJECTS);
+        cvState.projects = sorted;
+        localStorage.setItem(CV_STORAGE_KEY, JSON.stringify(sorted));
+    } catch (error) {
+        console.warn('تعذر حفظ مشاريع CV محليًا:', error);
+        setCVStatus('تم إنشاء السيرة، لكن مساحة التخزين المحلية ممتلئة. نزّل الملف للاحتفاظ به.', 'info');
+    }
+}
+
+function getActiveCVProject() {
+    return cvState.projects.find(function(project) { return project.id === cvState.activeProjectId; }) || null;
+}
+
+function setCVStatus(message, type) {
+    if (!cvUI.status) return;
+    cvUI.status.textContent = message || '';
+    cvUI.status.className = 'landing-status' + (type ? ' is-' + type : '');
+}
+
+function setCVBusy(busy, message) {
+    cvState.busy = Boolean(busy);
+    if (cvUI.generateBtn) cvUI.generateBtn.disabled = cvState.busy;
+    if (cvUI.reviseBtn) cvUI.reviseBtn.disabled = cvState.busy;
+    if (cvState.busy && message) setCVStatus(message, 'loading');
+}
+
+function setCVAssistantOpen(open) {
+    const expanded = Boolean(open);
+    cvUI.assistantPanel?.classList.toggle('hidden', !expanded);
+    cvUI.assistantPanel?.setAttribute('aria-hidden', String(!expanded));
+    cvUI.assistantToggle?.classList.toggle('is-open', expanded);
+    cvUI.assistantToggle?.setAttribute('aria-expanded', String(expanded));
+}
+
+function setCVProjectsOpen(open) {
+    const expanded = Boolean(open);
+    cvUI.projectsPanel?.classList.toggle('hidden', !expanded);
+    cvUI.projectsPanel?.setAttribute('aria-hidden', String(!expanded));
+    cvUI.projectsToggle?.setAttribute('aria-expanded', String(expanded));
+}
+
+function readCVRememberedModel() {
+    try {
+        const data = JSON.parse(localStorage.getItem(CV_MODEL_MEMORY_KEY) || 'null');
+        const key = data && data.provider && data.model ? data.provider + ':' + data.model : '';
+        return CV_MODEL_INFO[key] ? CV_MODEL_INFO[key] : null;
+    } catch (_) { return null; }
+}
+
+function updateCVRememberIcon() {
+    const enabled = Boolean(cvUI.rememberModelToggle?.checked);
+    cvUI.rememberIcon?.classList.toggle('fa-toggle-on', enabled);
+    cvUI.rememberIcon?.classList.toggle('fa-toggle-off', !enabled);
+}
+
+function setCVPendingModel(key) {
+    if (!CV_MODEL_INFO[key]) return;
+    cvState.pendingKey = key;
+    cvUI.modelCards?.querySelectorAll('[data-cv-model]').forEach(function(card) {
+        const cardKey = card.dataset.cvProvider + ':' + card.dataset.cvModel;
+        const selected = cardKey === key;
+        card.classList.toggle('selected', selected);
+        card.setAttribute('aria-checked', String(selected));
+    });
+}
+
+function applyCVModel(info) {
+    if (!info) return;
+    cvState.provider = info.provider;
+    cvState.model = info.model;
+    cvState.points = info.points;
+    cvState.pendingKey = info.provider + ':' + info.model;
+    if (cvUI.activeModel) cvUI.activeModel.textContent = info.label;
+    if (cvUI.generateCost) cvUI.generateCost.textContent = info.points + ' نقاط';
+    setCVPendingModel(cvState.pendingKey);
+}
+
+function setCVModelPopoverOpen(open) {
+    const expanded = Boolean(open);
+    if (expanded) setCVPendingModel(cvState.provider + ':' + cvState.model);
+    cvUI.modelPopover?.classList.toggle('hidden', !expanded);
+    cvUI.modelPopover?.setAttribute('aria-hidden', String(!expanded));
+    cvUI.modelToggle?.setAttribute('aria-expanded', String(expanded));
+}
+window.setCVModelPopoverOpen = setCVModelPopoverOpen;
+
+function confirmCVModelChoice() {
+    const info = CV_MODEL_INFO[cvState.pendingKey];
+    if (!info) return;
+    applyCVModel(info);
+    if (cvUI.rememberModelToggle?.checked) {
+        localStorage.setItem(CV_MODEL_MEMORY_KEY, JSON.stringify({ provider: info.provider, model: info.model }));
+    } else {
+        localStorage.removeItem(CV_MODEL_MEMORY_KEY);
+    }
+    setCVModelPopoverOpen(false);
+    setCVStatus('تم اعتماد ' + info.label + ' عبر الكود الوظيفي الأول.', 'success');
+}
+
+function collectCVForm() {
+    return {
+        fullName: cvUI.fullName?.value.trim() || '',
+        jobTitle: cvUI.jobTitle?.value.trim() || '',
+        language: cvUI.language?.value || 'العربية',
+        birthDate: cvUI.birthDate?.value || '',
+        age: cvUI.age?.value.trim() || '',
+        email: cvUI.email?.value.trim() || '',
+        phone: cvUI.phone?.value.trim() || '',
+        location: cvUI.location?.value.trim() || '',
+        links: cvUI.links?.value.trim() || '',
+        summary: cvUI.summary?.value.trim() || '',
+        experience: cvUI.experience?.value.trim() || '',
+        education: cvUI.education?.value.trim() || '',
+        certifications: cvUI.certifications?.value.trim() || '',
+        skills: cvUI.skills?.value.trim() || '',
+        languages: cvUI.languages?.value.trim() || '',
+        extra: cvUI.extra?.value.trim() || '',
+        prompt: cvUI.prompt?.value.trim() || '',
+        profilePhotoPath: cvState.profileImage?.path || '',
+        profilePhotoName: cvState.profileImage?.name || ''
+    };
+}
+
+function fillCVForm(form) {
+    const f = form || {};
+    const map = {
+        fullName: cvUI.fullName, jobTitle: cvUI.jobTitle, birthDate: cvUI.birthDate, age: cvUI.age,
+        email: cvUI.email, phone: cvUI.phone, location: cvUI.location, links: cvUI.links,
+        summary: cvUI.summary, experience: cvUI.experience, education: cvUI.education,
+        certifications: cvUI.certifications, skills: cvUI.skills, languages: cvUI.languages,
+        extra: cvUI.extra, prompt: cvUI.prompt
+    };
+    Object.keys(map).forEach(function(key) { if (map[key]) map[key].value = f[key] || ''; });
+    if (cvUI.language) cvUI.language.value = f.language || 'العربية';
+    if (cvUI.prompt) {
+        cvUI.prompt.style.height = 'auto';
+        cvUI.prompt.style.height = Math.min(cvUI.prompt.scrollHeight, 180) + 'px';
+    }
+}
+
+function clearCVProfileImage() {
+    cvState.profileImage = null;
+    if (cvUI.profileFile) cvUI.profileFile.value = '';
+    if (cvUI.profileThumb) cvUI.profileThumb.removeAttribute('src');
+    if (cvUI.profileName) cvUI.profileName.textContent = '';
+    cvUI.profilePreview?.classList.add('hidden');
+}
+
+function setCVProfileImage(file) {
+    if (!file) return;
+    if (!/^image\/(png|jpeg|webp)$/i.test(file.type || '')) {
+        setCVStatus('اختر صورة PNG أو JPG أو WEBP للصورة الشخصية.', 'error');
+        return;
+    }
+    if (file.size > 6 * 1024 * 1024) {
+        setCVStatus('حجم الصورة كبير. اختر صورة أقل من 6MB.', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function() {
+        cvState.profileImage = {
+            name: file.name,
+            path: 'assets/profile-photo.jpg',
+            dataUrl: String(reader.result || '')
+        };
+        const activeProject = getActiveCVProject();
+        if (activeProject) {
+            activeProject.profileImage = Object.assign({}, cvState.profileImage);
+            activeProject.updatedAt = Date.now();
+            persistCVProjects();
+        }
+        if (cvUI.profileThumb) cvUI.profileThumb.src = cvState.profileImage.dataUrl;
+        if (cvUI.profileName) cvUI.profileName.textContent = file.name + ' · سيصل للنموذج المسار ' + cvState.profileImage.path;
+        cvUI.profilePreview?.classList.remove('hidden');
+        setCVStatus('تم تجهيز الصورة محليًا. لن يُرسل ملف الصورة إلى النموذج؛ سيصله المسار فقط.', 'success');
+    };
+    reader.onerror = function() { setCVStatus('تعذر قراءة الصورة الشخصية.', 'error'); };
+    reader.readAsDataURL(file);
+}
+
+function cvField(label, value) {
+    const clean = String(value || '').trim();
+    return clean ? label + ': ' + clean : '';
+}
+
+function buildCVGenerationPrompt(form) {
+    const fields = [
+        cvField('الاسم الكامل', form.fullName),
+        cvField('المسمى الوظيفي المستهدف', form.jobTitle),
+        cvField('تاريخ الازدياد', form.birthDate),
+        cvField('العمر', form.age),
+        cvField('البريد الإلكتروني', form.email),
+        cvField('الهاتف', form.phone),
+        cvField('الموقع', form.location),
+        cvField('LinkedIn / Portfolio', form.links),
+        cvField('النبذة المهنية', form.summary),
+        cvField('الخبرات والوظائف السابقة', form.experience),
+        cvField('الدراسة والشهادات الأكاديمية', form.education),
+        cvField('الشهادات والدورات', form.certifications),
+        cvField('المهارات', form.skills),
+        cvField('اللغات', form.languages),
+        cvField('معلومات إضافية', form.extra)
+    ].filter(Boolean).join('\n\n');
+    const photoRule = form.profilePhotoPath
+        ? 'توجد صورة شخصية. استخدم هذا المسار حرفيًا داخل src للصورة: ' + form.profilePhotoPath + '. لا تطلب الصورة ولا تحولها إلى Base64 ولا تخترع رابطًا آخر.'
+        : 'لا توجد صورة شخصية مرفقة؛ لا تضف صورة وهمية ولا صورة من الإنترنت.';
+    return [
+        'أنت مصمم سير ذاتية ومهندس واجهات محترف داخل AKLAKE.',
+        'أنشئ سيرة ذاتية احترافية جدًا كوثيقة HTML واحدة كاملة تبدأ بـ <!DOCTYPE html> وتحتوي CSS داخل <style> ويمكن أن تحتوي JavaScript داخليًا عند الحاجة فقط.',
+        'الوثيقة يجب أن تكون جاهزة للعرض والطباعة على A4، متجاوبة، نظيفة، سهلة القراءة، وتستخدم البيانات المقدمة فقط دون اختراع خبرات أو شهادات أو أرقام أو جهات عمل.',
+        'اختر RTL تلقائيًا للعربية وLTR للغات الأخرى. اجعل التصميم مناسبًا للتوظيف واحترافيًا أكثر من كونه صفحة تسويق.',
+        'مهم جدًا: أعد HTML فقط دون Markdown ودون ``` ودون شرح قبل أو بعد الكود.',
+        photoRule,
+        '',
+        'لغة السيرة: ' + (form.language || 'العربية'),
+        '',
+        'تعليمات المستخدم:',
+        form.prompt || 'أنشئ CV احترافيًا اعتمادًا على المعلومات المتوفرة.',
+        '',
+        'معلومات السيرة:',
+        fields || 'لم تُدخل معلومات إضافية غير الاسم.'
+    ].join('\n');
+}
+
+function buildCVRevisionPrompt(instruction, currentHtml, form) {
+    const photoRule = form.profilePhotoPath
+        ? 'حافظ على مسار الصورة الشخصية حرفيًا: ' + form.profilePhotoPath + '.'
+        : 'لا تضف صورة شخصية غير مقدمة.';
+    return [
+        'أنت تعدّل سيرة ذاتية HTML جاهزة داخل AKLAKE.',
+        'نفّذ طلب التعديل المحدد فقط، وحافظ على جميع المعلومات الصحيحة وبقية التصميم والروابط والوظائف التي لم يطلب المستخدم تغييرها.',
+        'لا تخترع بيانات مهنية أو شهادات أو أرقامًا جديدة.',
+        photoRule,
+        'أعد وثيقة HTML كاملة فقط دون Markdown ودون شرح.',
+        '',
+        'طلب التعديل:',
+        instruction,
+        '',
+        'HTML الحالي:',
+        currentHtml
+    ].join('\n');
+}
+
+function cleanCVHtml(raw) {
+    let html = String(raw || '').trim();
+    const fenced = html.match(/```(?:html)?\s*([\s\S]*?)```/i);
+    if (fenced) html = fenced[1].trim();
+    const doctypeIndex = html.search(/<!doctype\s+html/i);
+    const htmlIndex = html.search(/<html\b/i);
+    const start = doctypeIndex >= 0 ? doctypeIndex : htmlIndex;
+    if (start > 0) html = html.slice(start);
+    const end = html.toLowerCase().lastIndexOf('</html>');
+    if (end >= 0) html = html.slice(0, end + 7);
+    return html.trim();
+}
+
+function validateCVHtml(raw) {
+    const html = cleanCVHtml(raw);
+    if (!html || !/<html\b/i.test(html) || !/<body\b/i.test(html)) {
+        return { valid: false, html: '', error: 'رد النموذج لا يحتوي على وثيقة HTML كاملة للسيرة الذاتية.' };
+    }
+    if (/id\s*=\s*["'](?:app-shell|main-inputs-wrapper|cv-builder-studio)["']/i.test(html)) {
+        return { valid: false, html: '', error: 'تم منع النتيجة لأنها أعادت واجهة AKLAKE بدل السيرة الذاتية.' };
+    }
+    return { valid: true, html: html, error: '' };
+}
+
+function hydrateCVPhoto(html, project) {
+    let output = String(html || '');
+    const photo = project?.profileImage || cvState.profileImage;
+    if (!photo?.path || !photo?.dataUrl) return output;
+    return output.split(photo.path).join(photo.dataUrl);
+}
+
+function extractCVHtml(responseData) {
+    if (!responseData) return '';
+    const candidate = responseData.data || responseData.html || responseData.code || responseData.content || responseData.output || responseData.result || '';
+    const value = candidate && typeof candidate === 'object'
+        ? (candidate.html || candidate.code || candidate.content || candidate.output || '')
+        : candidate;
+    const validation = validateCVHtml(value);
+    if (!validation.valid) throw new Error(validation.error);
+    return validation.html;
+}
+
+async function requestCVFromFirstFunction(mode, form, instruction, currentHtml) {
+    if (!currentUser) {
+        alert('يرجى تسجيل الدخول أولاً. ستبقى المعلومات التي كتبتها في مكانها.');
+        openModal();
+        return null;
+    }
+    ui.source.value = FIRST_FUNCTION_ID;
+    const prompt = mode === 'revise'
+        ? buildCVRevisionPrompt(instruction, currentHtml, form)
+        : buildCVGenerationPrompt(form);
+    const payload = {
+        userId: currentUser.$id,
+        action: 'legacy_chat',
+        mode: 'text',
+        prompt: prompt,
+        provider: cvState.provider,
+        model: cvState.model,
+        modelTier: cvState.model,
+        cvRequest: true
+    };
+    const execution = await appwriteFunctions.createExecution(
+        FIRST_FUNCTION_ID,
+        JSON.stringify(payload),
+        false,
+        '/',
+        'POST',
+        { 'Content-Type': 'application/json' }
+    );
+    let data = null;
+    try { data = execution.responseBody ? JSON.parse(execution.responseBody) : null; }
+    catch (_) { throw new Error('رد الكود الوظيفي الأول ليس JSON صالحًا.'); }
+    if (execution.status === 'failed' || Number(execution.responseStatusCode || 200) >= 400 || data?.success === false) {
+        throw new Error(data?.error || execution.errors || 'تعذر إنشاء السيرة عبر الكود الوظيفي الأول.');
+    }
+    return data || {};
+}
+
+function appendCVUserMessage(message, hasPhoto) {
+    if (!cvUI.conversation) return;
+    const row = document.createElement('div');
+    row.className = 'message-row user-message landing-user-message';
+    row.dataset.cvDynamic = 'true';
+    row.innerHTML = '<div class="message-avatar"><i class="far fa-user"></i></div><div class="message-content"><div class="message-bubble"></div>' +
+        (hasPhoto ? '<div class="message-source"><i class="far fa-image"></i> صورة شخصية مرفقة كمسار</div>' : '') + '</div>';
+    row.querySelector('.message-bubble').textContent = message;
+    cvUI.conversation.insertBefore(row, cvUI.generationCard || null);
+    row.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function clearCVDynamicMessages() {
+    cvUI.conversation?.querySelectorAll('[data-cv-dynamic="true"]').forEach(function(row) { row.remove(); });
+}
+
+function showCVGeneration(visible, name, label) {
+    cvUI.generationCard?.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    cvUI.completeCard?.classList.add('hidden');
+    if (cvUI.progressName) cvUI.progressName.textContent = name || 'السيرة الجديدة';
+    if (cvUI.progressModel) cvUI.progressModel.textContent = (label || 'إنشاء CV') + ' · ' + (CV_MODEL_INFO[cvState.provider + ':' + cvState.model]?.label || cvState.model) + ' · الكود 1';
+    cvUI.generationCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function showCVComplete(name, shouldScroll) {
+    showCVGeneration(false);
+    if (cvUI.completeTitle) cvUI.completeTitle.textContent = name || getActiveCVProject()?.title || 'CV جاهز';
+    cvUI.completeCard?.classList.remove('hidden');
+    if (shouldScroll !== false) cvUI.completeCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function saveCVVersion(html, label, form, operation) {
+    const validation = validateCVHtml(html);
+    if (!validation.valid) throw new Error(validation.error);
+    const now = Date.now();
+    let project = getActiveCVProject();
+    if (!project) {
+        project = {
+            id: createCVId('cv'),
+            title: form.fullName || 'CV جديد',
+            createdAt: now,
+            updatedAt: now,
+            form: {},
+            profileImage: null,
+            versions: []
+        };
+        cvState.projects.unshift(project);
+        cvState.activeProjectId = project.id;
+    }
+    project.title = form.fullName || project.title || 'CV جديد';
+    project.form = Object.assign({}, form, { prompt: form.prompt || project.form?.prompt || '' });
+    if (cvState.profileImage) project.profileImage = Object.assign({}, cvState.profileImage);
+    project.updatedAt = now;
+    project.versions = Array.isArray(project.versions) ? project.versions : [];
+    project.versions.push({
+        id: createCVId('cv-version'),
+        html: validation.html,
+        label: label || 'نسخة جديدة',
+        operation: operation || 'generate',
+        instruction: operation === 'revise' ? (label || '') : (form.prompt || ''),
+        createdAt: now
+    });
+    if (project.versions.length > CV_MAX_VERSIONS) project.versions = project.versions.slice(-CV_MAX_VERSIONS);
+    cvState.currentVersionIndex = project.versions.length - 1;
+    persistCVProjects();
+    renderCVProjects();
+    if (typeof renderContextHistory === 'function') renderContextHistory(false);
+    return project;
+}
+
+function renderCVProjects() {
+    if (!cvUI.projectsList) return;
+    cvUI.projectsList.innerHTML = '';
+    if (!cvState.projects.length) {
+        cvUI.projectsList.innerHTML = '<div class="landing-empty-projects"><i class="far fa-id-card"></i><span>لا توجد سير محفوظة بعد.</span></div>';
+        return;
+    }
+    cvState.projects.forEach(function(project) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'landing-project-card' + (project.id === cvState.activeProjectId ? ' active' : '');
+        const count = Array.isArray(project.versions) ? project.versions.length : 0;
+        button.innerHTML = '<span class="landing-project-icon"><i class="far fa-id-card"></i></span><span class="landing-project-copy"><strong></strong><small></small></span><span class="landing-project-count"></span>';
+        button.querySelector('strong').textContent = project.title || 'CV بدون اسم';
+        button.querySelector('small').textContent = new Date(project.updatedAt || project.createdAt || Date.now()).toLocaleDateString('ar-MA');
+        button.querySelector('.landing-project-count').textContent = count + ' نسخة';
+        button.addEventListener('click', function() { openCVProject(project.id); });
+        cvUI.projectsList.appendChild(button);
+    });
+}
+
+function showCVView(viewName) {
+    cvState.activeView = viewName === 'code' ? 'code' : 'preview';
+    const showCode = cvState.activeView === 'code';
+    cvUI.previewView?.classList.toggle('hidden', showCode);
+    cvUI.codeView?.classList.toggle('hidden', !showCode);
+    document.querySelectorAll('[data-cv-view]').forEach(function(button) {
+        button.classList.toggle('active', button.dataset.cvView === cvState.activeView);
+    });
+}
+
+function setCVDevice(device) {
+    const target = device === 'mobile' ? 'mobile' : 'desktop';
+    if (cvUI.previewShell) cvUI.previewShell.dataset.device = target;
+    document.querySelectorAll('[data-cv-device]').forEach(function(button) {
+        button.classList.toggle('active', button.dataset.cvDevice === target);
+    });
+}
+
+function updateCVVersionNavigation() {
+    const project = getActiveCVProject();
+    const total = project?.versions?.length || 0;
+    const current = total ? cvState.currentVersionIndex + 1 : 0;
+    if (cvUI.versionLabel) cvUI.versionLabel.textContent = total ? 'النسخة ' + current + ' من ' + total : 'لا توجد نسخ';
+    if (cvUI.prevVersionBtn) cvUI.prevVersionBtn.disabled = current <= 1;
+    if (cvUI.nextVersionBtn) cvUI.nextVersionBtn.disabled = !total || current >= total;
+}
+
+function showCVVersion(version) {
+    const validation = validateCVHtml(version?.html || '');
+    const hasVersion = validation.valid;
+    const project = getActiveCVProject();
+    cvUI.emptyPreview?.classList.toggle('hidden', hasVersion);
+    cvUI.previewShell?.classList.toggle('hidden', !hasVersion);
+    cvUI.revisionPanel?.classList.toggle('hidden', !hasVersion);
+    if (cvUI.previewFrame) cvUI.previewFrame.srcdoc = hasVersion ? hydrateCVPhoto(validation.html, project) : '';
+    if (cvUI.codeEditor) cvUI.codeEditor.value = hasVersion ? validation.html : '';
+    if (hasVersion) showCVComplete(project?.title, false);
+    else cvUI.completeCard?.classList.add('hidden');
+    updateCVVersionNavigation();
+}
+
+function syncCVWorkspaceLayout() {
+    const active = Boolean(cvState.previewOpen && ui?.action?.value === 'cv_builder');
+    ui?.appShell?.classList.toggle('landing-preview-layout', active);
+    cvUI.studio?.classList.toggle('is-preview-mode', active);
+    cvUI.studio?.classList.toggle('is-chat-collapsed', active && cvState.chatCollapsed);
+    document.body.classList.toggle('cv-preview-open', active);
+    if (cvUI.closeChatBtn) {
+        cvUI.closeChatBtn.setAttribute('aria-hidden', String(!active));
+        cvUI.closeChatBtn.tabIndex = active ? 0 : -1;
+    }
+}
+
+function setCVPreviewOpen(open) {
+    cvState.previewOpen = Boolean(open);
+    cvUI.output?.classList.toggle('hidden', !cvState.previewOpen);
+    if (cvState.previewOpen) {
+        cvState.chatCollapsed = false;
+        showCVView('preview');
+    } else {
+        cvState.chatCollapsed = false;
+    }
+    syncCVWorkspaceLayout();
+}
+
+function collapseCVChatPanel() {
+    if (!cvState.previewOpen) return false;
+    cvState.chatCollapsed = true;
+    syncCVWorkspaceLayout();
+    return true;
+}
+
+window.restoreCVChatPanel = function() {
+    if (!cvState.previewOpen || !cvState.chatCollapsed) return false;
+    cvState.chatCollapsed = false;
+    syncCVWorkspaceLayout();
+    requestAnimationFrame(function() { cvUI.prompt?.focus(); });
+    return true;
+};
+window.closeCVPreviewWorkspace = function() { setCVPreviewOpen(false); };
+
+function startNewCVProject() {
+    cvState.activeProjectId = null;
+    cvState.currentVersionIndex = -1;
+    cvState.profileImage = null;
+    fillCVForm({ language: 'العربية' });
+    clearCVProfileImage();
+    clearCVDynamicMessages();
+    showCVGeneration(false);
+    cvUI.completeCard?.classList.add('hidden');
+    setCVPreviewOpen(false);
+    setCVAssistantOpen(false);
+    setCVProjectsOpen(false);
+    setCVStatus('', '');
+    renderCVProjects();
+    if (typeof renderContextHistory === 'function') renderContextHistory(false);
+    requestAnimationFrame(function() { cvUI.fullName?.focus(); });
+}
+
+function openCVProject(projectId, versionId) {
+    const project = cvState.projects.find(function(item) { return item.id === projectId; });
+    if (!project) return;
+    cvState.activeProjectId = project.id;
+    fillCVForm(project.form || {});
+    cvState.profileImage = project.profileImage ? Object.assign({}, project.profileImage) : null;
+    if (cvState.profileImage?.dataUrl) {
+        if (cvUI.profileThumb) cvUI.profileThumb.src = cvState.profileImage.dataUrl;
+        if (cvUI.profileName) cvUI.profileName.textContent = cvState.profileImage.name || cvState.profileImage.path;
+        cvUI.profilePreview?.classList.remove('hidden');
+    } else clearCVProfileImage();
+    const versions = project.versions || [];
+    let index = versionId ? versions.findIndex(function(v) { return v.id === versionId; }) : versions.length - 1;
+    if (index < 0) index = Math.max(0, versions.length - 1);
+    cvState.currentVersionIndex = versions.length ? index : -1;
+    clearCVDynamicMessages();
+    showCVVersion(versions[index] || null);
+    setCVPreviewOpen(Boolean(versions[index]?.html));
+    renderCVProjects();
+    setCVProjectsOpen(false);
+    if (typeof renderContextHistory === 'function') renderContextHistory(false);
+}
+window.openCVProject = openCVProject;
+
+function moveCVVersion(direction) {
+    const project = getActiveCVProject();
+    if (!project?.versions?.length) return;
+    const next = cvState.currentVersionIndex + direction;
+    if (next < 0 || next >= project.versions.length) return;
+    cvState.currentVersionIndex = next;
+    showCVVersion(project.versions[next]);
+    setCVStatus('تم فتح ' + (project.versions[next].label || 'نسخة محفوظة') + '.', 'info');
+}
+
+async function generateCV() {
+    if (cvState.busy) return;
+    const activeProject = getActiveCVProject();
+    const activeVersion = activeProject?.versions?.[cvState.currentVersionIndex];
+    const currentPrompt = cvUI.prompt?.value.trim() || '';
+    if (cvState.previewOpen && activeVersion?.html) {
+        if (!currentPrompt) {
+            setCVStatus('اكتب التعديل المطلوب على السيرة الحالية.', 'error');
+            cvUI.prompt?.focus();
+            return;
+        }
+        if (cvUI.revisionPrompt) cvUI.revisionPrompt.value = currentPrompt;
+        if (cvUI.prompt) { cvUI.prompt.value = ''; cvUI.prompt.style.height = 'auto'; }
+        return reviseCV();
+    }
+    const form = collectCVForm();
+    const required = cvUI.fullName?.closest('.landing-required-name');
+    required?.classList.remove('has-error');
+    if (!form.fullName) {
+        required?.classList.add('has-error');
+        setCVStatus('أدخل الاسم الكامل أولاً.', 'error');
+        cvUI.fullName?.focus();
+        return;
+    }
+    const hasUsefulDetails = [form.jobTitle, form.summary, form.experience, form.education, form.skills, form.prompt].some(Boolean);
+    if (!hasUsefulDetails) {
+        setCVStatus('أضف وصفًا أو بعض الخبرات/الدراسة/المهارات حتى تكون السيرة مفيدة.', 'error');
+        cvUI.prompt?.focus();
+        return;
+    }
+    appendCVUserMessage(form.prompt || 'أنشئ سيرة ذاتية احترافية من المعلومات التي أدخلتها.', Boolean(cvState.profileImage));
+    setCVPreviewOpen(false);
+    showCVGeneration(true, form.fullName, 'إنشاء السيرة');
+    setCVAssistantOpen(false);
+    setCVModelPopoverOpen(false);
+    setCVBusy(true, 'النموذج يصمم السيرة عبر الكود الوظيفي الأول...');
+    try {
+        const response = await requestCVFromFirstFunction('generate', form, '', '');
+        if (!response) { showCVGeneration(false); return; }
+        const html = extractCVHtml(response);
+        saveCVVersion(html, 'النسخة الأولى', form, 'generate');
+        if (response.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(response.remainingTokens);
+        showCVVersion(getActiveCVProject()?.versions?.[cvState.currentVersionIndex]);
+        showCVComplete(form.fullName);
+        setCVStatus('تم إنشاء السيرة وحفظ النسخة الأولى. يمكنك معاينتها أو طلب تعديل جديد.', 'success');
+        if (cvUI.prompt) { cvUI.prompt.value = ''; cvUI.prompt.style.height = 'auto'; }
+    } catch (error) {
+        showCVGeneration(false);
+        setCVStatus(error.message || 'تعذر إنشاء السيرة الذاتية.', 'error');
+    } finally {
+        setCVBusy(false);
+    }
+}
+
+async function reviseCV() {
+    if (cvState.busy) return;
+    const project = getActiveCVProject();
+    const version = project?.versions?.[cvState.currentVersionIndex];
+    const instruction = cvUI.revisionPrompt?.value.trim() || '';
+    if (!version?.html) return setCVStatus('أنشئ سيرة أولاً قبل طلب التعديل.', 'error');
+    if (!instruction) {
+        setCVStatus('اكتب التعديل المطلوب بوضوح.', 'error');
+        cvUI.revisionPrompt?.focus();
+        return;
+    }
+    const form = Object.assign({}, project.form || collectCVForm());
+    form.profilePhotoPath = project.profileImage?.path || cvState.profileImage?.path || '';
+    appendCVUserMessage(instruction, false);
+    showCVGeneration(true, project.title, 'تعديل السيرة');
+    setCVBusy(true, 'يتم تعديل السيرة مع الحفاظ على بقية المعلومات...');
+    try {
+        const response = await requestCVFromFirstFunction('revise', form, instruction, version.html);
+        if (!response) { showCVGeneration(false); return; }
+        const html = extractCVHtml(response);
+        saveCVVersion(html, 'تعديل: ' + instruction.slice(0, 55), form, 'revise');
+        if (response.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(response.remainingTokens);
+        if (cvUI.revisionPrompt) cvUI.revisionPrompt.value = '';
+        setCVPreviewOpen(true);
+        showCVVersion(getActiveCVProject()?.versions?.[cvState.currentVersionIndex]);
+        showCVComplete(project.title, false);
+        setCVStatus('تم حفظ التعديل كنسخة جديدة، والنسخة السابقة ما زالت متاحة.', 'success');
+    } catch (error) {
+        showCVGeneration(false);
+        setCVStatus(error.message || 'تعذر تعديل السيرة.', 'error');
+    } finally {
+        setCVBusy(false);
+    }
+}
+
+function applyCVCodeManually() {
+    const validation = validateCVHtml(cvUI.codeEditor?.value || '');
+    if (!validation.valid) return setCVStatus(validation.error, 'error');
+    const project = getActiveCVProject();
+    const form = project?.form || collectCVForm();
+    saveCVVersion(validation.html, 'تعديل يدوي على الكود', form, 'manual');
+    showCVVersion(getActiveCVProject()?.versions?.[cvState.currentVersionIndex]);
+    showCVView('preview');
+    setCVStatus('تم تطبيق الكود وحفظه كنسخة جديدة.', 'success');
+}
+
+async function copyCVCode() {
+    const project = getActiveCVProject();
+    const code = hydrateCVPhoto(cvUI.codeEditor?.value || '', project);
+    if (!code) return setCVStatus('لا يوجد كود لنسخه بعد.', 'error');
+    try { await navigator.clipboard.writeText(code); }
+    catch (_) {
+        cvUI.codeEditor?.focus();
+        cvUI.codeEditor?.select();
+        document.execCommand('copy');
+    }
+    setCVStatus('تم نسخ كود السيرة، متضمنًا الصورة محليًا عند وجودها.', 'success');
+}
+
+function downloadCVCode() {
+    const project = getActiveCVProject();
+    const code = hydrateCVPhoto(cvUI.codeEditor?.value || '', project);
+    if (!code) return setCVStatus('لا يوجد CV لتنزيله بعد.', 'error');
+    const safeName = (project?.title || 'aklake-cv').replace(/[^\w\u0600-\u06FF-]+/g, '-').replace(/^-+|-+$/g, '') || 'aklake-cv';
+    const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = safeName + '-cv.html';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    setCVStatus('تم تجهيز ملف HTML للسيرة الذاتية.', 'success');
+}
+
+function initCVStudio() {
+    cacheCVUI();
+    if (!cvUI.studio || cvUI.studio.dataset.initialized === 'true') return;
+    cvUI.studio.dataset.initialized = 'true';
+    loadCVProjects();
+
+    cvUI.newProjectBtn?.addEventListener('click', startNewCVProject);
+    cvUI.closeChatBtn?.addEventListener('click', collapseCVChatPanel);
+    cvUI.projectsToggle?.addEventListener('click', function() { setCVProjectsOpen(cvUI.projectsPanel?.classList.contains('hidden')); });
+    cvUI.assistantToggle?.addEventListener('click', function() { setCVAssistantOpen(cvUI.assistantPanel?.classList.contains('hidden')); });
+    cvUI.attachBtn?.addEventListener('click', function() { cvUI.profileFile?.click(); });
+    cvUI.profileFile?.addEventListener('change', function() { if (cvUI.profileFile.files?.[0]) setCVProfileImage(cvUI.profileFile.files[0]); });
+    cvUI.removeProfileBtn?.addEventListener('click', clearCVProfileImage);
+    cvUI.fullName?.addEventListener('input', function() { cvUI.fullName.closest('.landing-required-name')?.classList.remove('has-error'); });
+    cvUI.modelToggle?.addEventListener('click', function() { setCVModelPopoverOpen(cvUI.modelPopover?.classList.contains('hidden')); });
+    cvUI.closeModelBtn?.addEventListener('click', function() { setCVModelPopoverOpen(false); });
+    cvUI.modelCards?.querySelectorAll('[data-cv-model]').forEach(function(card) {
+        card.addEventListener('click', function() { setCVPendingModel(card.dataset.cvProvider + ':' + card.dataset.cvModel); });
+    });
+    cvUI.rememberModelToggle?.addEventListener('change', updateCVRememberIcon);
+    cvUI.confirmModelBtn?.addEventListener('click', confirmCVModelChoice);
+    cvUI.generateBtn?.addEventListener('click', generateCV);
+    cvUI.openResultBtn?.addEventListener('click', function() { setCVPreviewOpen(true); });
+    cvUI.closePreviewBtn?.addEventListener('click', function() { setCVPreviewOpen(false); cvUI.completeCard?.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+    cvUI.reviseBtn?.addEventListener('click', reviseCV);
+    cvUI.applyCodeBtn?.addEventListener('click', applyCVCodeManually);
+    cvUI.copyBtn?.addEventListener('click', copyCVCode);
+    cvUI.downloadBtn?.addEventListener('click', downloadCVCode);
+    cvUI.prevVersionBtn?.addEventListener('click', function() { moveCVVersion(-1); });
+    cvUI.nextVersionBtn?.addEventListener('click', function() { moveCVVersion(1); });
+
+    document.querySelectorAll('[data-cv-view]').forEach(function(button) {
+        button.addEventListener('click', function() { showCVView(button.dataset.cvView); });
+    });
+    document.querySelectorAll('[data-cv-device]').forEach(function(button) {
+        button.addEventListener('click', function() { setCVDevice(button.dataset.cvDevice); });
+    });
+    cvUI.prompt?.addEventListener('input', function() {
+        cvUI.prompt.style.height = 'auto';
+        cvUI.prompt.style.height = Math.min(cvUI.prompt.scrollHeight, 180) + 'px';
+    });
+    cvUI.prompt?.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); generateCV(); }
+    });
+    cvUI.revisionPrompt?.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); reviseCV(); }
+    });
+
+    const remembered = readCVRememberedModel();
+    applyCVModel(remembered || CV_MODEL_INFO['openai:gpt-4.1-mini']);
+    if (cvUI.rememberModelToggle) cvUI.rememberModelToggle.checked = Boolean(remembered);
+    updateCVRememberIcon();
+    setCVAssistantOpen(false);
+    setCVProjectsOpen(false);
+    setCVModelPopoverOpen(false);
+    setCVPreviewOpen(false);
+    renderCVProjects();
+    startNewCVProject();
+}
+window.initCVStudio = initCVStudio;
+
+
+
+// ==========================================
 // منشئ المواقع — مشروع متعدد الملفات عبر الكود الوظيفي الأول
 // ==========================================
 const WEBSITE_MODEL_MEMORY_KEY = 'aklake_website_builder_model_v1';
@@ -4492,9 +5359,10 @@ function persistContextWebsiteProject(version) {
 }
 
 function contextHistoryVisibleForAction(action) {
-    if (!['website_builder', 'landing_page', 'book_outline'].includes(action)) return false;
+    if (!['website_builder', 'landing_page', 'cv_builder', 'book_outline'].includes(action)) return false;
     if (action === 'website_builder') return !websiteState.previewOpen && !websiteState.project;
     if (action === 'landing_page') return !landingState.previewOpen && !landingState.activeProjectId;
+    if (action === 'cv_builder') return !cvState.previewOpen && !cvState.activeProjectId;
     if (action === 'book_outline') {
         const viewer = document.getElementById('intro-area');
         const progress = document.getElementById('auto-generation-status');
@@ -4508,6 +5376,7 @@ function contextHistoryVisibleForAction(action) {
 function getContextToolMeta(action) {
     if (action === 'website_builder') return { title: 'مواقعك', kicker: 'WEBSITE HISTORY', icon: 'fa-code' };
     if (action === 'landing_page') return { title: 'صفحات الهبوط', kicker: 'LANDING HISTORY', icon: 'fa-window-maximize' };
+    if (action === 'cv_builder') return { title: 'السير الذاتية', kicker: 'CV HISTORY', icon: 'fa-id-card' };
     return { title: 'كتبك', kicker: 'BOOK HISTORY', icon: 'fa-book-open' };
 }
 
@@ -4670,6 +5539,34 @@ async function renderContextHistory(forceBooks) {
                     subtitle: entry.project.title || 'صفحة هبوط',
                     meta: contextDate(entry.version.createdAt) + ' ' + contextTime(entry.version.createdAt),
                     onClick: function() { openContextLandingVersion(entry.project.id, entry.version.id); }
+                }, { conversation: true, icon: 'fa-message' }));
+            });
+        }
+    } else if (action === 'cv_builder') {
+        const projects = (cvState.projects || []).slice().sort(function(a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); });
+        if (contextHistoryTab === 'projects') {
+            projects.forEach(function(project) {
+                const count = project.versions?.length || 0;
+                c.list.appendChild(contextHistoryCard({
+                    title: project.title || 'CV بدون اسم',
+                    subtitle: count + ' نسخة محفوظة',
+                    meta: contextDate(project.updatedAt),
+                    onClick: function() { openCVProject(project.id); renderContextHistory(false); }
+                }, { icon: 'fa-id-card' }));
+            });
+        } else {
+            const conversations = [];
+            projects.forEach(function(project) {
+                (project.versions || []).forEach(function(version) { conversations.push({ project, version }); });
+            });
+            conversations.sort(function(a, b) { return Number(b.version.createdAt || 0) - Number(a.version.createdAt || 0); });
+            conversations.slice(0, 50).forEach(function(entry) {
+                const isRevise = entry.version.operation === 'revise';
+                c.list.appendChild(contextHistoryCard({
+                    title: isRevise ? (entry.version.label || 'تعديل السيرة') : ('إنشاء · ' + (entry.project.title || 'CV')),
+                    subtitle: entry.project.title || 'CV',
+                    meta: contextDate(entry.version.createdAt) + ' ' + contextTime(entry.version.createdAt),
+                    onClick: function() { openCVProject(entry.project.id, entry.version.id); }
                 }, { conversation: true, icon: 'fa-message' }));
             });
         }

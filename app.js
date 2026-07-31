@@ -436,7 +436,7 @@ if (pageUI.continueBtn) {
 // واجهة المحادثة الاحترافية والتنقل بين الأدوات
 // ==========================================
 function updateUI() {
-    const basicFirstFunctionActions = new Set(['text', 'generate', 'edit', 'website_builder']);
+    const basicFirstFunctionActions = new Set(['text', 'generate', 'edit', 'website_builder', 'cv_builder']);
     if (ui.source.value === FIRST_FUNCTION_ID && !basicFirstFunctionActions.has(ui.action.value)) {
         ui.source.value = SECOND_FUNCTION_ID;
     }
@@ -476,6 +476,10 @@ function updateUI() {
     if (websiteStudio) {
         websiteStudio.classList.toggle('hidden', currentAction !== 'website_builder');
     }
+    const cvStudio = document.getElementById('cv-builder-studio');
+    if (cvStudio) {
+        cvStudio.classList.toggle('hidden', currentAction !== 'cv_builder');
+    }
 
     if (currentAction === 'book_outline') {
         ui.provider.innerHTML = '<option value="openai" selected>OpenAI</option><option value="gemini">Gemini Flash</option><option value="cloudflare">Cloudflare</option>';
@@ -484,6 +488,9 @@ function updateUI() {
     } else if (currentAction === 'landing_page') {
         ui.provider.innerHTML = '<option value="openai">OpenAI — الكود الوظيفي الثاني</option>';
     } else if (currentAction === 'website_builder') {
+        ui.source.value = FIRST_FUNCTION_ID;
+        ui.provider.innerHTML = '<option value="openai" selected>OpenAI — الكود الوظيفي الأول</option><option value="cloudflare">Cloudflare — الكود الوظيفي الأول</option>';
+    } else if (currentAction === 'cv_builder') {
         ui.source.value = FIRST_FUNCTION_ID;
         ui.provider.innerHTML = '<option value="openai" selected>OpenAI — الكود الوظيفي الأول</option><option value="cloudflare">Cloudflare — الكود الوظيفي الأول</option>';
     } else if (currentAction === 'text') {
@@ -506,6 +513,10 @@ function updateModels() {
         ui.model.innerHTML = '<option value="gpt-image-2">GPT Image 2</option>';
     } else if (action === 'landing_page') {
         ui.model.innerHTML = '<option value="gpt-4o-mini">GPT-4o mini — اقتصادي (20 نقطة)</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — متوازن (40 نقطة)</option><option value="gpt-5.5">GPT-5.5 — قياسي قوي (60 نقطة)</option>';
+    } else if (action === 'cv_builder') {
+        ui.model.innerHTML = provider === 'cloudflare'
+            ? '<option value="llama">LLaMA 3.3 — 5 نقاط</option>'
+            : '<option value="gpt-4o-mini">GPT-4o mini — 8 نقاط</option><option value="gpt-4.1-mini" selected>GPT-4.1 mini — 10 نقاط</option>';
     } else if (action === 'website_builder') {
         ui.model.innerHTML = provider === 'cloudflare'
             ? '<option value="llama">LLaMA 3.3 — 5 نقاط</option>'
@@ -543,6 +554,7 @@ window.addEventListener('DOMContentLoaded', function() {
     initArtStudio();
     initCreationLibrary();
     initLandingPageStudio();
+    if (typeof initCVStudio === 'function') initCVStudio();
     if (typeof initWebsiteBuilder === 'function') initWebsiteBuilder();
     mountBookStagesInConversation();
     initBookIntroActions();
@@ -592,6 +604,8 @@ window.addEventListener('DOMContentLoaded', function() {
                 openModelChooser(action, false);
             } else if (action === 'landing_page') {
                 document.getElementById('landing-model-cards')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (action === 'cv_builder') {
+                if (typeof setCVModelPopoverOpen === 'function') setCVModelPopoverOpen(true);
             } else if (action === 'website_builder') {
                 if (typeof setWebsiteModelPopoverOpen === 'function') setWebsiteModelPopoverOpen(true);
             } else if (action === 'art_studio') {

@@ -68,6 +68,7 @@
         <button type="button" data-welcome-tool="book_outline"><i class="fas fa-book-open"></i> إنشاء كتاب</button>
         <button type="button" data-welcome-tool="landing_page"><i class="fas fa-window-maximize"></i> صفحة هبوط</button>
         <button type="button" data-welcome-tool="website_builder"><i class="fas fa-code"></i> إنشاء موقع</button>
+        <button type="button" data-welcome-tool="cv_builder"><i class="far fa-id-card"></i> إنشاء CV</button>
         <button type="button" data-welcome-tool="generate"><i class="far fa-image"></i> إنشاء صورة</button>
         <button type="button" data-welcome-tool="art_studio"><i class="fas fa-palette"></i> استوديو اللوحات</button>
     </div>
@@ -90,6 +91,9 @@
         </button>
         <button class="tool-button" type="button" data-tool="website_builder">
             <span class="tool-icon"><i class="fas fa-code"></i></span><span>إنشاء موقع</span>
+        </button>
+        <button class="tool-button" type="button" data-tool="cv_builder">
+            <span class="tool-icon"><i class="far fa-id-card"></i></span><span>إنشاء CV</span>
         </button>
         <button class="tool-button" type="button" data-tool="art_studio">
             <span class="tool-icon"><i class="fas fa-palette"></i></span><span>رسم اللوحات</span>
@@ -149,6 +153,7 @@
                 <option value="book_outline">تأليف كتاب</option>
                 <option value="landing_page">صفحات الهبوط</option>
                 <option value="website_builder">إنشاء موقع</option>
+                <option value="cv_builder">إنشاء CV</option>
             </select>
             <select id="provider-select" tabindex="-1"></select>
             <select id="model-select" tabindex="-1"></select>
@@ -464,6 +469,168 @@
                     <button id="landing-confirm-model-btn" class="confirm-model-choice-btn" type="button"><i class="fas fa-check"></i> اعتماد الاختيار</button>
                 </div>
                 <div id="landing-status" class="landing-status" aria-live="polite"></div>
+            </div>
+        </section>
+
+
+        <section id="cv-builder-studio" class="landing-page-studio cv-builder-studio hidden" aria-label="منشئ السيرة الذاتية بالذكاء الاصطناعي">
+            <div class="landing-scroll-area">
+                <div class="landing-chat-toolbar">
+                    <div class="landing-chat-panel-label"><i class="far fa-id-card"></i><span>منشئ CV</span></div>
+                    <button id="cv-projects-toggle" type="button" aria-expanded="false" aria-controls="cv-projects-panel"><i class="far fa-folder-open"></i><span>سيرتي</span></button>
+                    <button id="cv-new-project-btn" type="button"><i class="fas fa-plus"></i><span>CV جديد</span></button>
+                    <button id="cv-close-chat-btn" class="landing-close-chat-btn" type="button" aria-label="إخفاء المحادثة" title="إخفاء المحادثة"><i class="fas fa-xmark"></i></button>
+                </div>
+
+                <aside id="cv-projects-panel" class="landing-projects-panel hidden" aria-hidden="true">
+                    <div class="landing-panel-title"><div><span class="panel-eyebrow">CV PROJECTS</span><h4>السير الذاتية المحفوظة</h4></div></div>
+                    <div id="cv-projects-list" class="landing-projects-list"></div>
+                    <div class="landing-storage-note"><i class="fas fa-floppy-disk"></i><span>تُحفظ السير والنسخ والمحادثات محليًا في المتصفح.</span></div>
+                </aside>
+
+                <div id="cv-conversation" class="landing-conversation" aria-live="polite">
+                    <div class="message-row assistant-message landing-welcome-message">
+                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل السيرة الذاتية"></div>
+                        <div class="message-content">
+                            <div class="message-bubble">مرحبًا، أخبرني عنك وعن الوظيفة التي تستهدفها، وسأحوّل معلوماتك إلى سيرة ذاتية احترافية قابلة للمعاينة والتحميل.</div>
+                            <div class="message-source">مصمم السيرة الذاتية · الكود الوظيفي الأول</div>
+                        </div>
+                    </div>
+
+                    <div id="cv-generation-card" class="message-row assistant-message landing-state-row hidden">
+                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل السيرة الذاتية"></div>
+                        <div class="message-content landing-state-content">
+                            <div class="message-bubble landing-generation-bubble">
+                                <img class="landing-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يجري إنشاء السيرة الذاتية" loading="eager">
+                                <div class="landing-live-progress" role="progressbar" aria-label="يجري إنشاء السيرة الذاتية"><span></span></div>
+                                <div class="landing-progress-info"><span>يتم الآن إعداد السيرة الذاتية لـ</span><strong id="cv-progress-name">—</strong><small id="cv-progress-model">—</small></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="cv-complete-card" class="message-row assistant-message landing-state-row hidden">
+                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل السيرة الذاتية"></div>
+                        <div class="message-content landing-state-content">
+                            <div class="message-bubble landing-complete-bubble">
+                                <span class="landing-complete-icon"><i class="fas fa-check"></i></span>
+                                <div><span>السيرة الذاتية جاهزة</span><strong id="cv-complete-title">—</strong><small>جاهزة للمعاينة أو تنزيل ملف HTML</small></div>
+                                <button id="cv-open-result-btn" type="button" aria-label="عرض السيرة الذاتية" title="عرض السيرة الذاتية"><i class="far fa-eye"></i><span>عرض</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cv-output-panel" class="landing-output-panel hidden">
+                    <div class="landing-output-toolbar">
+                        <div class="landing-view-tabs" role="tablist">
+                            <button class="active" type="button" data-cv-view="preview"><i class="far fa-eye"></i> المعاينة</button>
+                            <button type="button" data-cv-view="code"><i class="fas fa-code"></i> كود HTML</button>
+                        </div>
+                        <div class="landing-device-switch" aria-label="حجم المعاينة">
+                            <button class="active" type="button" data-cv-device="desktop" title="حاسوب"><i class="fas fa-desktop"></i></button>
+                            <button type="button" data-cv-device="mobile" title="هاتف"><i class="fas fa-mobile-screen-button"></i></button>
+                        </div>
+                        <div class="landing-code-actions">
+                            <button id="cv-copy-code-btn" type="button" title="نسخ الكود"><i class="far fa-copy"></i></button>
+                            <button id="cv-download-btn" type="button" title="تنزيل HTML"><i class="fas fa-download"></i></button>
+                            <button id="cv-close-preview-btn" type="button" title="إغلاق المعاينة"><i class="fas fa-xmark"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="cv-preview-view" class="landing-preview-view">
+                        <div id="cv-empty-preview" class="landing-empty-preview">
+                            <span><i class="far fa-id-card"></i></span><strong>ستظهر سيرتك هنا</strong><p>أدخل اسمك وبعض المعلومات، ثم أرسل طلبك من خانة المحادثة.</p>
+                        </div>
+                        <div id="cv-preview-shell" class="landing-preview-shell hidden" data-device="desktop">
+                            <div class="landing-browser-bar"><i></i><i></i><i></i><span>معاينة آمنة للسيرة الذاتية</span></div>
+                            <iframe id="cv-preview-frame" title="معاينة السيرة الذاتية" sandbox="allow-scripts allow-forms"></iframe>
+                        </div>
+                    </div>
+                    <div id="cv-code-view" class="landing-code-view hidden">
+                        <div class="landing-code-head"><span><i class="fas fa-file-code"></i> cv.html</span><small>يمكنك تعديل الكود يدويًا ثم تطبيقه على المعاينة</small></div>
+                        <textarea id="cv-code-editor" dir="ltr" spellcheck="false" aria-label="محرر كود السيرة الذاتية"></textarea>
+                        <button id="cv-apply-code-btn" type="button"><i class="fas fa-play"></i> تطبيق الكود على المعاينة</button>
+                    </div>
+
+                    <div id="cv-revision-panel" class="landing-revision-panel hidden">
+                        <div class="landing-revision-head">
+                            <div><span class="panel-eyebrow">AI REVISION</span><h4>اطلب تعديلًا على السيرة الحالية</h4></div>
+                            <div class="landing-version-nav">
+                                <button id="cv-prev-version-btn" type="button" aria-label="النسخة السابقة"><i class="fas fa-chevron-right"></i></button>
+                                <span id="cv-version-label">النسخة 1 من 1</span>
+                                <button id="cv-next-version-btn" type="button" aria-label="النسخة التالية"><i class="fas fa-chevron-left"></i></button>
+                            </div>
+                        </div>
+                        <div class="landing-revision-composer">
+                            <textarea id="cv-revision-prompt" rows="2" placeholder="مثال: اجعل التصميم أكثر رسميّة وأبرز خبرتي الأخيرة دون تغيير بقية المعلومات..."></textarea>
+                            <button id="cv-revise-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i><span>تعديل CV</span></button>
+                        </div>
+                        <p class="landing-revision-note"><i class="fas fa-clock-rotate-left"></i> كل تعديل يُحفظ كنسخة جديدة ويمكنك العودة لأي نسخة سابقة.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="landing-input-dock">
+                <div class="landing-required-row">
+                    <label class="landing-required-name" for="cv-full-name"><span><i class="far fa-user"></i> الاسم الكامل <b>مطلوب</b></span><input id="cv-full-name" type="text" placeholder="مثال: صلاح الدين ..." autocomplete="name" required></label>
+                    <button id="cv-assistant-toggle" class="landing-assistant-toggle" type="button" aria-expanded="false" aria-controls="cv-assistant-panel"><i class="fas fa-wand-magic-sparkles"></i><span>المساعد · معلومات CV</span><i class="fas fa-chevron-down"></i></button>
+                </div>
+
+                <div id="cv-assistant-panel" class="landing-assistant-panel hidden" aria-hidden="true">
+                    <div class="landing-assistant-heading"><span><i class="far fa-id-card"></i></span><div><strong>مساعد معلومات السيرة الذاتية</strong><small>املأ ما تعرفه فقط؛ الحقول تساعدك على عدم نسيان المعلومات المهمة.</small></div></div>
+                    <div class="landing-form-grid">
+                        <label class="landing-field"><span>المسمى الوظيفي المستهدف</span><input id="cv-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
+                        <label class="landing-field"><span>لغة السيرة</span><select id="cv-language"><option value="العربية" selected>العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
+                        <label class="landing-field"><span>تاريخ الازدياد</span><input id="cv-birth-date" type="date"></label>
+                        <label class="landing-field"><span>العمر</span><input id="cv-age" type="number" min="14" max="100" inputmode="numeric" placeholder="مثال: 25"></label>
+                        <label class="landing-field"><span>البريد الإلكتروني</span><input id="cv-email" type="email" dir="ltr" placeholder="name@example.com"></label>
+                        <label class="landing-field"><span>رقم الهاتف</span><input id="cv-phone" type="tel" dir="ltr" placeholder="+212 ..."></label>
+                        <label class="landing-field"><span>المدينة / البلد</span><input id="cv-location" type="text" placeholder="مثال: Settat, Morocco"></label>
+                        <label class="landing-field"><span>LinkedIn أو Portfolio</span><input id="cv-links" type="text" dir="ltr" placeholder="linkedin.com/in/... أو portfolio"></label>
+                        <label class="landing-field landing-field-wide"><span>نبذة مهنية</span><textarea id="cv-summary" rows="3" placeholder="من أنت مهنيًا؟ ما خبرتك وما نوع الفرص التي تستهدفها؟"></textarea></label>
+                        <label class="landing-field landing-field-wide"><span>الخبرات والوظائف السابقة</span><textarea id="cv-experience" rows="4" placeholder="اسم الشركة — الوظيفة — من/إلى — أهم المسؤوليات والنتائج. اكتب كل تجربة في سطر أو فقرة منفصلة."></textarea></label>
+                        <label class="landing-field landing-field-wide"><span>الدراسة والشهادات الأكاديمية</span><textarea id="cv-education" rows="3" placeholder="المؤسسة — الشهادة/التخصص — السنة"></textarea></label>
+                        <label class="landing-field landing-field-wide"><span>الشهادات والدورات</span><textarea id="cv-certifications" rows="3" placeholder="اسم الشهادة أو الدورة — الجهة — السنة"></textarea></label>
+                        <label class="landing-field landing-field-wide"><span>المهارات</span><textarea id="cv-skills" rows="3" placeholder="مهارات تقنية، مهنية، برامج، أدوات، قيادة، تواصل..."></textarea></label>
+                        <label class="landing-field"><span>اللغات</span><input id="cv-languages" type="text" placeholder="العربية، الفرنسية، الإنجليزية..."></label>
+                        <label class="landing-field"><span>اهتمامات / رخص / معلومات إضافية</span><input id="cv-extra" type="text" placeholder="اختياري"></label>
+                    </div>
+                </div>
+
+                <input id="cv-profile-image-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+                <div id="cv-profile-image-preview" class="landing-reference-preview cv-profile-image-preview hidden">
+                    <span class="cv-photo-thumb"><img id="cv-profile-image-thumb" alt="الصورة الشخصية"></span>
+                    <div><strong>الصورة الشخصية</strong><small id="cv-profile-image-name"></small></div>
+                    <button id="cv-remove-profile-image-btn" type="button" aria-label="إزالة الصورة"><i class="far fa-trash-can"></i></button>
+                </div>
+
+                <div class="landing-chat-composer">
+                    <button id="cv-attach-btn" class="landing-composer-side-btn" type="button" aria-label="إرفاق الصورة الشخصية" title="إرفاق الصورة الشخصية"><i class="fas fa-plus"></i></button>
+                    <textarea id="cv-main-prompt" rows="1" placeholder="مثال: أنشئ لي CV احترافيًا لوظيفة مطور واجهات، بتصميم نظيف ورسمي..."></textarea>
+                    <button id="cv-generate-btn" class="landing-generate-btn" type="button" aria-label="إرسال طلب إنشاء السيرة الذاتية"><i class="fas fa-arrow-up"></i></button>
+                </div>
+
+                <div class="landing-composer-tools">
+                    <button id="cv-model-toggle" type="button" aria-expanded="false" aria-controls="cv-model-popover"><i class="fas fa-microchip"></i><span id="cv-active-model">GPT-4.1 mini</span><small id="cv-generate-cost">10 نقاط</small><i class="fas fa-chevron-up"></i></button>
+                    <span><i class="far fa-image"></i> الصورة تُرسل للنموذج كمسار فقط، ولا يُرسل ملف الصورة نفسه.</span>
+                </div>
+                <div id="cv-model-popover" class="landing-model-popover model-chooser-popover hidden" aria-hidden="true">
+                    <div class="model-chooser-heading"><div><span class="panel-eyebrow">MODEL ROUTER</span><h3>اختر نموذج إنشاء السيرة</h3></div><button id="cv-close-model-btn" type="button" aria-label="إغلاق"><i class="fas fa-xmark"></i></button></div>
+                    <p class="landing-model-description">أداة CV تستخدم الكود الوظيفي الأول حصريًا. اختر النموذج المناسب لهذه السيرة وتعديلاتها.</p>
+                    <div id="cv-model-cards" class="landing-model-cards model-choices-list" role="radiogroup" aria-label="نموذج إنشاء السيرة الذاتية">
+                        <button class="landing-model-card model-choice-card" type="button" data-cv-provider="cloudflare" data-cv-model="llama" data-points="5" role="radio" aria-checked="false"><span class="model-choice-icon"><i class="fas fa-feather"></i></span><span class="model-choice-copy"><strong>LLaMA 3.3</strong><small>اقتصادي لمسودات CV البسيطة</small></span><span class="model-choice-cost">5 نقاط</span></button>
+                        <button class="landing-model-card model-choice-card" type="button" data-cv-provider="openai" data-cv-model="gpt-4o-mini" data-points="8" role="radio" aria-checked="false"><span class="model-choice-icon"><i class="fas fa-bolt"></i></span><span class="model-choice-copy"><strong>GPT-4o mini</strong><small>سريع واقتصادي لسيرة واضحة</small></span><span class="model-choice-cost">8 نقاط</span></button>
+                        <button class="landing-model-card model-choice-card selected" type="button" data-cv-provider="openai" data-cv-model="gpt-4.1-mini" data-points="10" role="radio" aria-checked="true"><span class="model-choice-icon"><i class="fas fa-brain"></i></span><span class="model-choice-copy"><strong>GPT-4.1 mini</strong><small>أفضل توازن للصياغة والتصميم المهني</small></span><span class="model-choice-cost">10 نقاط</span></button>
+                    </div>
+                    <label class="remember-model-card landing-remember-model-card">
+                        <input id="cv-remember-model-toggle" type="checkbox">
+                        <span class="memory-card-icon"><i class="fas fa-memory"></i></span>
+                        <span><strong>تذكّر اختياري</strong></span>
+                        <i class="fas fa-toggle-off cv-remember-toggle-icon"></i>
+                    </label>
+                    <button id="cv-confirm-model-btn" class="confirm-model-choice-btn" type="button"><i class="fas fa-check"></i> اعتماد الاختيار</button>
+                </div>
+                <div id="cv-status" class="landing-status" aria-live="polite"></div>
             </div>
         </section>
 
