@@ -4563,3 +4563,194 @@ body.workspace-open .app-shell.website-preview-layout[data-action="website_build
     }
     .landing-page-studio.is-preview-mode .landing-revision-panel { padding: 5px 6px; }
 }
+
+/* =========================================================
+   CONTEXT HISTORY RAIL — المحادثات والمشاريع السابقة
+   يظهر فقط في شاشة البدء للأدوات التي تنشئ مشاريع.
+   ========================================================= */
+.context-history-panel { display: none; }
+
+body.workspace-open .app-shell.has-context-history {
+    grid-template-columns: 220px minmax(0,1fr) minmax(285px, 330px);
+}
+body.workspace-open .app-shell.has-context-history .context-history-panel {
+    min-width: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(2,10,6,.96), rgba(1,7,4,.99));
+    border-inline-start: 1px solid rgba(121,226,173,.13);
+    box-shadow: 18px 0 48px rgba(0,0,0,.16) inset;
+}
+.context-history-head {
+    min-height: 78px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 15px 15px 12px;
+    border-bottom: 1px solid rgba(121,226,173,.1);
+}
+.context-history-head > div { min-width: 0; display: grid; gap: 4px; }
+.context-history-head span {
+    color: #6f9b83;
+    font-size: .56rem;
+    font-weight: 800;
+    letter-spacing: 1.35px;
+}
+.context-history-head strong {
+    overflow: hidden;
+    color: #e8fff1;
+    font-size: .9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+#context-history-refresh-btn {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    color: #8cb8a0;
+    background: rgba(121,226,173,.05);
+    border: 1px solid rgba(121,226,173,.12);
+    border-radius: 7px;
+}
+#context-history-refresh-btn:hover { color: #dffff0; background: rgba(121,226,173,.1); }
+
+.context-history-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(121,226,173,.08);
+}
+.context-history-tabs button {
+    min-width: 0;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 8px;
+    color: #769987;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    font-size: .66rem;
+    font-weight: 700;
+}
+.context-history-tabs button:hover { color: #cff4df; background: rgba(121,226,173,.05); }
+.context-history-tabs button.active {
+    color: #dffff0;
+    background: rgba(121,226,173,.09);
+    border-color: rgba(121,226,173,.16);
+}
+
+.context-history-list {
+    min-height: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px 9px 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+.context-history-card {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 34px minmax(0,1fr) auto;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 8px;
+    color: #cde5d8;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    text-align: right;
+    transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.context-history-card:hover {
+    color: #fff;
+    background: rgba(121,226,173,.055);
+    border-color: rgba(121,226,173,.11);
+    transform: translateX(1px);
+}
+.context-history-card-icon {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    color: #79e2ad;
+    background: rgba(121,226,173,.075);
+    border-radius: 6px;
+}
+.context-history-card-copy { min-width: 0; display: grid; gap: 3px; }
+.context-history-card-copy strong {
+    overflow: hidden;
+    color: inherit;
+    font-size: .7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.context-history-card-copy small {
+    overflow: hidden;
+    color: #688a78;
+    font-size: .56rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.context-history-card-meta {
+    max-width: 76px;
+    overflow: hidden;
+    color: #5f806e;
+    font-size: .51rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.context-history-card.is-conversation .context-history-card-icon { color: #ffc681; background: rgba(255,174,98,.07); }
+.context-history-card.is-conversation:hover { border-color: rgba(255,174,98,.11); }
+.context-history-empty {
+    min-height: 210px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 7px;
+    padding: 24px 18px;
+    color: #627e6f;
+    text-align: center;
+}
+.context-history-empty i { color: #79e2ad; font-size: 1.25rem; opacity: .75; }
+.context-history-empty strong { color: #a8c9b7; font-size: .75rem; }
+.context-history-empty span { max-width: 220px; font-size: .59rem; line-height: 1.7; }
+.context-history-loading {
+    min-height: 150px;
+    display: grid;
+    place-items: center;
+    color: #789988;
+    font-size: .64rem;
+}
+
+/* في المعاينة الكبيرة لا نعرض سجل البداية حتى لا نسرق أي مساحة من المنتج. */
+.app-shell.website-preview-layout .context-history-panel,
+.app-shell.landing-preview-layout .context-history-panel { display: none !important; }
+
+@media (max-width: 1380px) and (min-width: 981px) {
+    body.workspace-open .app-shell.has-context-history {
+        grid-template-columns: 200px minmax(0,1fr) 280px;
+    }
+}
+@media (max-width: 980px) {
+    body.workspace-open .app-shell.has-context-history {
+        grid-template-columns: 180px minmax(0,1fr);
+    }
+    body.workspace-open .app-shell.has-context-history .context-history-panel { display: none !important; }
+}
+@media (max-width: 720px) {
+    body.workspace-open .app-shell.has-context-history { display: block; }
+}

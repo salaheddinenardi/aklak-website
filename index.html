@@ -808,6 +808,26 @@
     </div>
 
     </main>
+
+    <aside id="context-history-panel" class="context-history-panel hidden" aria-label="سجل الأداة والمشاريع السابقة">
+        <div class="context-history-head">
+            <div>
+                <span id="context-history-kicker">WORKSPACE HISTORY</span>
+                <strong id="context-history-title">سجل الأداة</strong>
+            </div>
+            <button id="context-history-refresh-btn" type="button" aria-label="تحديث السجل" title="تحديث"><i class="fas fa-rotate"></i></button>
+        </div>
+        <div class="context-history-tabs" role="tablist" aria-label="نوع السجل">
+            <button type="button" class="active" data-context-history-tab="conversations" role="tab" aria-selected="true"><i class="far fa-message"></i><span>المحادثات</span></button>
+            <button type="button" data-context-history-tab="projects" role="tab" aria-selected="false"><i class="far fa-folder-open"></i><span>المشاريع</span></button>
+        </div>
+        <div id="context-history-list" class="context-history-list" aria-live="polite"></div>
+        <div id="context-history-empty" class="context-history-empty hidden">
+            <i class="far fa-folder-open"></i>
+            <strong>لا يوجد سجل بعد</strong>
+            <span>المشاريع والمحادثات التي تنشئها بهذه الأداة ستظهر هنا تلقائيًا.</span>
+        </div>
+    </aside>
 </div>
 
 <div class="modal" id="auth-modal">

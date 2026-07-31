@@ -4370,3 +4370,438 @@ window.initWebsiteBuilder = function() {
     w.newProjectBtn?.addEventListener('click', resetWebsiteBuilder);
     syncWebsiteWorkspaceLayout();
 };
+
+// ==========================================
+// CONTEXT HISTORY RAIL — سجل المحادثات والمشاريع حسب الأداة
+// ==========================================
+const CONTEXT_WEBSITE_PROJECTS_KEY = 'aklake_website_projects_history_v1';
+const CONTEXT_WEBSITE_MAX_PROJECTS = 12;
+const CONTEXT_WEBSITE_MAX_CONVERSATIONS = 24;
+let contextHistoryTab = 'conversations';
+let contextBookCache = [];
+let contextBookCacheUserId = '';
+let contextBookLoading = false;
+
+function getContextHistoryUI() {
+    return {
+        shell: document.getElementById('app-shell'),
+        panel: document.getElementById('context-history-panel'),
+        title: document.getElementById('context-history-title'),
+        kicker: document.getElementById('context-history-kicker'),
+        list: document.getElementById('context-history-list'),
+        empty: document.getElementById('context-history-empty'),
+        refresh: document.getElementById('context-history-refresh-btn')
+    };
+}
+
+function contextDate(value) {
+    const date = value ? new Date(value) : new Date();
+    if (Number.isNaN(date.getTime())) return '—';
+    try {
+        return date.toLocaleDateString('ar-MA', { day: 'numeric', month: 'short' });
+    } catch (_) {
+        return date.toLocaleDateString();
+    }
+}
+
+function contextTime(value) {
+    const date = value ? new Date(value) : new Date();
+    if (Number.isNaN(date.getTime())) return '';
+    try {
+        return date.toLocaleTimeString('ar-MA', { hour: '2-digit', minute: '2-digit' });
+    } catch (_) {
+        return '';
+    }
+}
+
+function readContextWebsiteProjects() {
+    try {
+        const value = JSON.parse(localStorage.getItem(CONTEXT_WEBSITE_PROJECTS_KEY) || '[]');
+        return Array.isArray(value) ? value : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function writeContextWebsiteProjects(projects) {
+    const normalized = (Array.isArray(projects) ? projects : [])
+        .slice()
+        .sort(function(a, b) { return Number(new Date(b.updatedAt || 0)) - Number(new Date(a.updatedAt || 0)); })
+        .slice(0, CONTEXT_WEBSITE_MAX_PROJECTS)
+        .map(function(item) {
+            return Object.assign({}, item, {
+                conversations: (item.conversations || []).slice(-CONTEXT_WEBSITE_MAX_CONVERSATIONS)
+            });
+        });
+    try {
+        localStorage.setItem(CONTEXT_WEBSITE_PROJECTS_KEY, JSON.stringify(normalized));
+        return normalized;
+    } catch (error) {
+        // إذا امتلأت localStorage نحافظ على أحدث المشاريع مع نسخة الكود الأخيرة فقط.
+        try {
+            const compact = normalized.slice(0, 6).map(function(item) {
+                return Object.assign({}, item, { conversations: (item.conversations || []).slice(-8) });
+            });
+            localStorage.setItem(CONTEXT_WEBSITE_PROJECTS_KEY, JSON.stringify(compact));
+            return compact;
+        } catch (_) {
+            return normalized;
+        }
+    }
+}
+
+function persistContextWebsiteProject(version) {
+    if (!version || !version.project) return;
+    if (!websiteState.historyProjectId) {
+        websiteState.historyProjectId = 'website-project-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    }
+    const projects = readContextWebsiteProjects();
+    let record = projects.find(function(item) { return item.id === websiteState.historyProjectId; });
+    const now = version.createdAt || new Date().toISOString();
+    if (!record) {
+        record = {
+            id: websiteState.historyProjectId,
+            title: version.project.name || version.title || 'موقع بدون اسم',
+            createdAt: now,
+            updatedAt: now,
+            versionCount: 0,
+            latestProject: null,
+            assetCount: 0,
+            conversations: []
+        };
+        projects.unshift(record);
+    }
+    record.title = version.project.name || version.title || record.title || 'موقع بدون اسم';
+    record.updatedAt = now;
+    record.versionCount = Math.max(Number(record.versionCount || 0), Number(version.number || 0), websiteState.versionSequence || 0);
+    record.latestProject = cloneWebsiteProject(version.project);
+    record.assetCount = websiteState.assets.length;
+    record.conversations = Array.isArray(record.conversations) ? record.conversations : [];
+    record.conversations.push({
+        id: version.id,
+        number: version.number,
+        operation: version.operation,
+        instruction: String(version.instruction || ''),
+        changedFiles: Array.isArray(version.changedFiles) ? version.changedFiles.slice() : [],
+        createdAt: now
+    });
+    if (record.conversations.length > CONTEXT_WEBSITE_MAX_CONVERSATIONS) {
+        record.conversations = record.conversations.slice(-CONTEXT_WEBSITE_MAX_CONVERSATIONS);
+    }
+    writeContextWebsiteProjects(projects);
+}
+
+function contextHistoryVisibleForAction(action) {
+    if (!['website_builder', 'landing_page', 'book_outline'].includes(action)) return false;
+    if (action === 'website_builder') return !websiteState.previewOpen && !websiteState.project;
+    if (action === 'landing_page') return !landingState.previewOpen && !landingState.activeProjectId;
+    if (action === 'book_outline') {
+        const viewer = document.getElementById('intro-area');
+        const progress = document.getElementById('auto-generation-status');
+        const viewerOpen = Boolean(viewer && !viewer.classList.contains('hidden') && viewer.classList.contains('is-book-viewer'));
+        const generating = Boolean(progress && !progress.classList.contains('hidden'));
+        return !viewerOpen && !generating;
+    }
+    return false;
+}
+
+function getContextToolMeta(action) {
+    if (action === 'website_builder') return { title: 'مواقعك', kicker: 'WEBSITE HISTORY', icon: 'fa-code' };
+    if (action === 'landing_page') return { title: 'صفحات الهبوط', kicker: 'LANDING HISTORY', icon: 'fa-window-maximize' };
+    return { title: 'كتبك', kicker: 'BOOK HISTORY', icon: 'fa-book-open' };
+}
+
+function contextHistoryCard(item, options) {
+    const opts = options || {};
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'context-history-card' + (opts.conversation ? ' is-conversation' : '');
+    button.innerHTML = '<span class="context-history-card-icon"><i class="fas ' + (opts.icon || 'fa-folder') + '"></i></span>' +
+        '<span class="context-history-card-copy"><strong></strong><small></small></span>' +
+        '<span class="context-history-card-meta"></span>';
+    button.querySelector('strong').textContent = item.title || 'بدون عنوان';
+    button.querySelector('small').textContent = item.subtitle || '';
+    button.querySelector('.context-history-card-meta').textContent = item.meta || '';
+    if (typeof item.onClick === 'function') button.addEventListener('click', item.onClick);
+    return button;
+}
+
+async function loadContextBooks(force) {
+    const userId = currentUser?.$id || '';
+    if (!userId) {
+        contextBookCache = [];
+        contextBookCacheUserId = '';
+        return;
+    }
+    if (!force && contextBookCacheUserId === userId && contextBookCache.length) return;
+    if (contextBookLoading) return;
+    contextBookLoading = true;
+    try {
+        const response = await databases.listDocuments(DB_ID, 'books', [
+            Query.equal('userId', userId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(30)
+        ]);
+        contextBookCache = Array.isArray(response.documents) ? response.documents : [];
+        contextBookCacheUserId = userId;
+    } catch (error) {
+        console.warn('تعذر تحميل سجل الكتب الجانبي:', error);
+        contextBookCache = [];
+    } finally {
+        contextBookLoading = false;
+    }
+}
+
+async function openContextLandingVersion(projectId, versionId) {
+    let project = landingState.projects.find(function(item) { return item.id === projectId; });
+    if (!project) return;
+    try { project = await ensureLandingProjectLoaded(project); }
+    catch (error) { setLandingStatus(error.message || 'تعذر فتح الصفحة.', 'error'); return; }
+    landingState.activeProjectId = project.id;
+    fillLandingForm(project.form || {});
+    setLandingModel(project.model || 'gpt-4.1-mini', Number(project.points || 40));
+    const versions = project.versions || [];
+    let index = versions.findIndex(function(version) { return version.id === versionId; });
+    if (index < 0) index = Math.max(0, versions.length - 1);
+    landingState.currentVersionIndex = index;
+    clearLandingReference();
+    clearLandingDynamicMessages();
+    showLandingVersion(versions[index] || null);
+    setLandingPreviewOpen(Boolean(versions[index]?.html));
+    if (versions[index]?.html) showLandingView('preview');
+    renderLandingProjects();
+}
+
+function openContextWebsiteProject(record, conversation) {
+    if (!record?.latestProject) return;
+    resetWebsiteBuilder();
+    websiteState.historyProjectId = record.id;
+    websiteState.versionSequence = Math.max(1, Number(record.versionCount || 1));
+    const restoredVersion = {
+        id: 'restored-' + record.id + '-' + Date.now(),
+        number: websiteState.versionSequence,
+        title: record.title || record.latestProject.name || 'موقع محفوظ',
+        operation: conversation?.operation === 'revise' ? 'revise' : 'generate',
+        instruction: conversation?.instruction || '',
+        parentVersionId: '',
+        changedFiles: Array.isArray(conversation?.changedFiles) ? conversation.changedFiles.slice() : [],
+        fileChanges: [],
+        patchMode: 'restored_local',
+        project: cloneWebsiteProject(record.latestProject),
+        createdAt: conversation?.createdAt || record.updatedAt || new Date().toISOString()
+    };
+    websiteState.versions = [restoredVersion];
+    websiteState.activeVersionId = restoredVersion.id;
+    activateWebsiteProject(restoredVersion.project, restoredVersion.changedFiles);
+    appendWebsiteVersionCard(restoredVersion);
+    openWebsitePreviewWorkspace('preview');
+    if (Number(record.assetCount || 0) > 0) {
+        setWebsiteStatus('تم فتح كود الموقع المحفوظ. ملفات assets القديمة لا يمكن استعادتها من المتصفح بعد إغلاق الجلسة؛ أعد رفعها عند الحاجة.', 'info');
+    } else {
+        setWebsiteStatus('تم فتح الموقع المحفوظ من سجل المشاريع.', 'success');
+    }
+}
+
+async function renderContextHistory(forceBooks) {
+    const c = getContextHistoryUI();
+    if (!c.panel || !c.shell || !ui?.action) return;
+    const action = ui.action.value;
+    const visible = contextHistoryVisibleForAction(action);
+    c.panel.classList.toggle('hidden', !visible);
+    c.shell.classList.toggle('has-context-history', visible);
+    if (!visible) return;
+
+    const meta = getContextToolMeta(action);
+    if (c.title) c.title.textContent = meta.title;
+    if (c.kicker) c.kicker.textContent = meta.kicker;
+    document.querySelectorAll('[data-context-history-tab]').forEach(function(tab) {
+        const active = tab.dataset.contextHistoryTab === contextHistoryTab;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', String(active));
+    });
+    c.list.innerHTML = '';
+    c.empty?.classList.add('hidden');
+
+    if (action === 'book_outline') {
+        if (contextBookLoading) c.list.innerHTML = '<div class="context-history-loading"><i class="fas fa-spinner fa-spin"></i></div>';
+        await loadContextBooks(Boolean(forceBooks));
+        c.list.innerHTML = '';
+        contextBookCache.forEach(function(book) {
+            const title = book.title || 'كتاب بدون عنوان';
+            const status = book.status === 'completed' ? 'مكتمل' : (book.status === 'failed' ? 'متوقف' : 'قيد التأليف');
+            const isConversation = contextHistoryTab === 'conversations';
+            c.list.appendChild(contextHistoryCard({
+                title: isConversation ? ('جلسة تأليف · ' + title) : title,
+                subtitle: isConversation ? ('آخر حالة: ' + status) : status,
+                meta: contextDate(book.$updatedAt || book.$createdAt),
+                onClick: function() {
+                    if (typeof loadBookFromLibrary === 'function') loadBookFromLibrary(book);
+                }
+            }, { conversation: isConversation, icon: isConversation ? 'fa-message' : 'fa-book-open' }));
+        });
+    } else if (action === 'landing_page') {
+        const projects = (landingState.projects || []).slice().sort(function(a, b) { return Number(b.updatedAt || 0) - Number(a.updatedAt || 0); });
+        if (contextHistoryTab === 'projects') {
+            projects.forEach(function(project) {
+                const count = Number(project.versionCount || (project.versions || []).length || 0);
+                c.list.appendChild(contextHistoryCard({
+                    title: project.title || 'صفحة هبوط بدون اسم',
+                    subtitle: count + ' نسخة محفوظة',
+                    meta: contextDate(project.updatedAt),
+                    onClick: async function() {
+                        await openLandingProject(project.id);
+                        const opened = getActiveLandingProject();
+                        if (opened?.versions?.length) setLandingPreviewOpen(true);
+                        renderContextHistory(false);
+                    }
+                }, { icon: 'fa-window-maximize' }));
+            });
+        } else {
+            const conversations = [];
+            projects.forEach(function(project) {
+                (project.versions || []).forEach(function(version, index) {
+                    conversations.push({ project, version, index });
+                });
+            });
+            conversations.sort(function(a, b) { return Number(b.version.createdAt || 0) - Number(a.version.createdAt || 0); });
+            conversations.slice(0, 40).forEach(function(entry) {
+                c.list.appendChild(contextHistoryCard({
+                    title: entry.version.label || ('محادثة · ' + (entry.project.title || 'صفحة هبوط')),
+                    subtitle: entry.project.title || 'صفحة هبوط',
+                    meta: contextDate(entry.version.createdAt) + ' ' + contextTime(entry.version.createdAt),
+                    onClick: function() { openContextLandingVersion(entry.project.id, entry.version.id); }
+                }, { conversation: true, icon: 'fa-message' }));
+            });
+        }
+    } else if (action === 'website_builder') {
+        const projects = readContextWebsiteProjects();
+        if (contextHistoryTab === 'projects') {
+            projects.forEach(function(record) {
+                c.list.appendChild(contextHistoryCard({
+                    title: record.title || 'موقع بدون اسم',
+                    subtitle: Number(record.versionCount || 1) + ' نسخة' + (record.assetCount ? ' · ' + record.assetCount + ' assets' : ''),
+                    meta: contextDate(record.updatedAt),
+                    onClick: function() { openContextWebsiteProject(record, null); }
+                }, { icon: 'fa-code' }));
+            });
+        } else {
+            const conversations = [];
+            projects.forEach(function(record) {
+                (record.conversations || []).forEach(function(conversation) {
+                    conversations.push({ record, conversation });
+                });
+            });
+            conversations.sort(function(a, b) {
+                return Number(new Date(b.conversation.createdAt || 0)) - Number(new Date(a.conversation.createdAt || 0));
+            });
+            conversations.slice(0, 50).forEach(function(entry) {
+                const conv = entry.conversation;
+                const instruction = String(conv.instruction || '').trim();
+                c.list.appendChild(contextHistoryCard({
+                    title: conv.operation === 'revise' ? (instruction || 'تعديل الموقع') : ('إنشاء · ' + (entry.record.title || 'موقع')),
+                    subtitle: entry.record.title || 'موقع',
+                    meta: contextDate(conv.createdAt) + ' ' + contextTime(conv.createdAt),
+                    onClick: function() { openContextWebsiteProject(entry.record, conv); }
+                }, { conversation: true, icon: 'fa-message' }));
+            });
+        }
+    }
+
+    const hasItems = Boolean(c.list.children.length);
+    c.empty?.classList.toggle('hidden', hasItems);
+}
+
+function syncContextHistoryPanel() {
+    renderContextHistory(false).catch(function(error) { console.warn('تعذر تحديث سجل الأداة:', error); });
+}
+window.syncContextHistoryPanel = syncContextHistoryPanel;
+
+// ربط السجل بالتنقل من دون تغيير منطق الأدوات نفسه.
+const _syncWorkspaceFromSelectionsForHistory = syncWorkspaceFromSelections;
+syncWorkspaceFromSelections = function() {
+    const result = _syncWorkspaceFromSelectionsForHistory.apply(this, arguments);
+    syncContextHistoryPanel();
+    return result;
+};
+window.syncWorkspaceFromSelections = syncWorkspaceFromSelections;
+
+const _recordWebsiteVersionForHistory = recordWebsiteVersion;
+recordWebsiteVersion = function(project, options) {
+    const version = _recordWebsiteVersionForHistory.apply(this, arguments);
+    persistContextWebsiteProject(version);
+    syncContextHistoryPanel();
+    return version;
+};
+window.recordWebsiteVersion = recordWebsiteVersion;
+
+const _resetWebsiteBuilderForHistory = resetWebsiteBuilder;
+resetWebsiteBuilder = function() {
+    const result = _resetWebsiteBuilderForHistory.apply(this, arguments);
+    websiteState.historyProjectId = '';
+    syncContextHistoryPanel();
+    return result;
+};
+window.resetWebsiteBuilder = resetWebsiteBuilder;
+
+const _openWebsitePreviewWorkspaceForHistory = openWebsitePreviewWorkspace;
+openWebsitePreviewWorkspace = function() {
+    const result = _openWebsitePreviewWorkspaceForHistory.apply(this, arguments);
+    syncContextHistoryPanel();
+    return result;
+};
+window.openWebsitePreviewWorkspace = openWebsitePreviewWorkspace;
+
+const _closeWebsitePreviewWorkspaceForHistory = closeWebsitePreviewWorkspace;
+closeWebsitePreviewWorkspace = function() {
+    const result = _closeWebsitePreviewWorkspaceForHistory.apply(this, arguments);
+    syncContextHistoryPanel();
+    return result;
+};
+window.closeWebsitePreviewWorkspace = closeWebsitePreviewWorkspace;
+
+const _setLandingPreviewOpenForHistory = setLandingPreviewOpen;
+setLandingPreviewOpen = function(open) {
+    const result = _setLandingPreviewOpenForHistory.apply(this, arguments);
+    syncContextHistoryPanel();
+    return result;
+};
+window.setLandingPreviewOpen = setLandingPreviewOpen;
+
+const _startNewLandingProjectForHistory = startNewLandingProject;
+startNewLandingProject = function() {
+    const result = _startNewLandingProjectForHistory.apply(this, arguments);
+    syncContextHistoryPanel();
+    return result;
+};
+window.startNewLandingProject = startNewLandingProject;
+
+const _saveLandingVersionForHistory = saveLandingVersion;
+saveLandingVersion = function() {
+    const result = _saveLandingVersionForHistory.apply(this, arguments);
+    syncContextHistoryPanel();
+    return result;
+};
+window.saveLandingVersion = saveLandingVersion;
+
+function initContextHistoryPanel() {
+    const c = getContextHistoryUI();
+    if (!c.panel) return;
+    document.querySelectorAll('[data-context-history-tab]').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            contextHistoryTab = tab.dataset.contextHistoryTab === 'projects' ? 'projects' : 'conversations';
+            syncContextHistoryPanel();
+        });
+    });
+    c.refresh?.addEventListener('click', function() {
+        renderContextHistory(true).catch(function(error) { console.warn(error); });
+    });
+    const introArea = document.getElementById('intro-area');
+    const autoGenerationStatus = document.getElementById('auto-generation-status');
+    const observer = new MutationObserver(syncContextHistoryPanel);
+    if (introArea) observer.observe(introArea, { attributes: true, attributeFilter: ['class'] });
+    if (autoGenerationStatus) observer.observe(autoGenerationStatus, { attributes: true, attributeFilter: ['class'] });
+    syncContextHistoryPanel();
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initContextHistoryPanel);
+else initContextHistoryPanel();
