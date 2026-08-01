@@ -21,7 +21,6 @@
 /* =========================================================
    LANDING CHAT — واجهة صفحات الهبوط المبسطة
    ========================================================= */
-.app-shell[data-action="landing_page"] #main-inputs-wrapper { width: min(900px, 100%); }
 .landing-page-studio {
     width: min(820px, 100%);
     margin: 0 auto;
@@ -64,9 +63,7 @@
     border-radius: 12px;
     box-shadow: 0 18px 48px rgba(0,0,0,.2);
 }
-.landing-projects-panel.hidden { display: none !important; }
 .landing-projects-panel .landing-panel-title { margin-bottom: 9px; }
-.landing-projects-panel .landing-projects-list { grid-template-columns: repeat(2, minmax(0,1fr)); margin-top: 0; overflow: visible; }
 .landing-projects-panel .landing-storage-note { margin-top: 10px; }
 
 .landing-conversation {
@@ -371,18 +368,14 @@
 
 @media (max-width: 700px) {
     .landing-page-studio { padding: 4px 0 135px; }
-    .landing-projects-panel .landing-projects-list { grid-template-columns: 1fr; }
     .landing-conversation { min-height: 260px; }
-    .landing-required-row { grid-template-columns: 1fr; }
     .landing-assistant-toggle { width: 100%; justify-content: center; }
-    .landing-assistant-panel .landing-form-grid { grid-template-columns: 1fr; }
-    .landing-assistant-panel .landing-field-wide { grid-column: auto; }
     .landing-progress-image { width: min(260px, 100%) !important; }
     .landing-state-content { width: calc(100% - 4px); max-width: calc(100% - 4px) !important; }
     .landing-complete-bubble { grid-template-columns: 40px minmax(0,1fr) 38px; gap: 8px; }
     .landing-complete-icon { width: 40px; height: 40px; }
     #landing-open-result-btn { width: 38px; height: 38px; padding: 0; justify-content: center; }
-    #landing-open-result-btn span { display: none; }
+    #landing-open-result-btn span,
     .landing-composer-tools > span { display: none; }
     .landing-model-popover { right: 0; width: 100%; }
     .landing-page-studio .landing-output-toolbar { flex-wrap: wrap; }
@@ -1209,7 +1202,7 @@ input[type="file"]::file-selector-button { color: #062017; background: var(--gre
 
 @media (max-width: 720px) {
     .tools-sidebar { grid-template-columns: repeat(6, 1fr); }
-    .cart-button-text { display: none; }
+    .cart-button-text,
     .brand-lockup small { display: none; }
     .library-drawer { top: 62px; right: 0; bottom: 68px; width: 100%; height: auto; padding: 15px; }
     .studio-intro { grid-template-columns: auto 1fr; }
@@ -1665,10 +1658,10 @@ body::after {
 .confirm-model-choice-btn:disabled { opacity: .45; cursor: not-allowed; }
 
 /*** Ø§Ù„Ø¥Ø±ÙØ§Ù‚ Ø£ØµØ¨Ø­ Ø¯Ø§Ø®Ù„ Ø®Ø§Ù†Ø© Ø§Ù„Ù…Ø­Ø§Ø¯Ø«Ø©ØŒ Ù„Ø°Ù„Ùƒ Ù„Ø§ Ù†Ø¹Ø±Ø¶ Ø®Ø§Ù†Ø© Ø§Ù„Ø±ÙØ¹ Ø§Ù„Ù‚Ø¯ÙŠÙ…Ø© */
-.app-shell[data-action="edit"] #image-upload-section { display: none !important; }
+.app-shell[data-action="edit"] #image-upload-section,
 .app-shell[data-action="book_outline"] .composer-mode-banner { display: none !important; }
 .app-shell[data-action="book_outline"] .composer-side-btn { display: grid !important; }
-.app-shell[data-action="book_outline"] .composer-attachment-preview:not(.hidden) { display: flex !important; }
+.app-shell[data-action="book_outline"] .composer-attachment-preview:not(.hidden),
 .app-shell[data-action="book_outline"] .composer-tools { display: flex !important; }
 .app-shell[data-action="book_outline"] #composer-image-mode-btn,
 .app-shell[data-action="book_outline"] .composer-shortcut { display: none !important; }
@@ -2726,8 +2719,8 @@ body::after { content: none !important; }
 @media (max-width: 700px) {
     .landing-page-studio { margin: 0 auto; padding: 4px 0 135px; }
     .landing-projects-panel { max-height: 300px; padding: 11px; border: 1px solid rgba(121,226,173,.13); }
-    .landing-projects-panel .landing-projects-list { grid-template-columns: 1fr; }
-    .landing-required-row { grid-template-columns: 1fr; }
+    .landing-projects-panel .landing-projects-list,
+    .landing-required-row,
     .landing-assistant-panel .landing-form-grid { grid-template-columns: 1fr; }
     .landing-assistant-panel .landing-field-wide { grid-column: auto; }
 }
