@@ -2,8 +2,8 @@ function syncWorkspaceChrome(inWorkspace) {
     const nav = document.querySelector('.nav');
     const brandNavigation = document.querySelector('.brand-navigation');
     const accountActions = document.querySelector('.account-actions');
-    const brandSlot = document.getElementById('workspace-brand-slot');
-    const accountSlot = document.getElementById('workspace-account-slot');
+    const brandSlot = elementById('workspace-brand-slot');
+    const accountSlot = elementById('workspace-account-slot');
 
     if (!nav || !brandNavigation || !accountActions || !brandSlot || !accountSlot) return;
 
@@ -32,7 +32,7 @@ function showHomeScreen() {
     if (ui.appShell) ui.appShell.classList.add('is-collapsed');
     document.body.classList.remove('workspace-open');
     syncWorkspaceChrome(false);
-    const libraryDrawer = document.getElementById('my-library-section');
+    const libraryDrawer = elementById('my-library-section');
     if (libraryDrawer) libraryDrawer.classList.add('hidden');
     if (typeof closeArtDialogs === 'function') closeArtDialogs();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -40,8 +40,8 @@ function showHomeScreen() {
 window.showHomeScreen = showHomeScreen;
 
 function initHomeNavigation() {
-    const homeButton = document.getElementById('home-btn');
-    const brandLink = document.getElementById('brand-link');
+    const homeButton = elementById('home-btn');
+    const brandLink = elementById('brand-link');
     if (homeButton) homeButton.addEventListener('click', showHomeScreen);
     if (brandLink) {
         brandLink.addEventListener('click', function(event) {
@@ -152,6 +152,77 @@ function autoResizeTextarea(textarea) {
     if (!textarea) return;
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 180) + 'px';
+}
+
+// أدوات واجهة صغيرة مشتركة. لا تحتوي على منطق خاص بأي أداة.
+function elementById(id) {
+    return document.getElementById(id);
+}
+
+function setStatusElement(element, baseClass, message, type, typePrefix) {
+    if (!element) return;
+    element.textContent = message || '';
+    element.className = baseClass + (type ? ' ' + (typePrefix || '') + type : '');
+}
+
+function setExpandablePanel(panel, toggle, open, activeClass) {
+    const expanded = Boolean(open);
+    panel?.classList.toggle('hidden', !expanded);
+    panel?.setAttribute('aria-hidden', String(!expanded));
+    if (activeClass) toggle?.classList.toggle(activeClass, expanded);
+    toggle?.setAttribute('aria-expanded', String(expanded));
+    return expanded;
+}
+
+function syncToggleIcon(icon, enabled) {
+    if (!icon) return;
+    icon.classList.toggle('fa-toggle-on', Boolean(enabled));
+    icon.classList.toggle('fa-toggle-off', !enabled);
+}
+
+function createScopedId(prefix) {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        return prefix + '-' + window.crypto.randomUUID();
+    }
+    return prefix + '-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+}
+
+function applyPreviewDevice(shell, selector, attributeName, device) {
+    const target = device === 'mobile' ? 'mobile' : 'desktop';
+    if (shell) shell.dataset.device = target;
+    document.querySelectorAll(selector).forEach(function(button) {
+        button.classList.toggle('active', button.getAttribute(attributeName) === target);
+    });
+    return target;
+}
+
+async function copyTextWithFallback(text, fallbackElement) {
+    try {
+        await navigator.clipboard.writeText(text);
+    } catch (_) {
+        if (!fallbackElement) throw _;
+        fallbackElement.focus();
+        fallbackElement.select();
+        document.execCommand('copy');
+    }
+}
+
+function sanitizeDownloadName(value, fallback) {
+    return String(value || fallback || 'aklake-file')
+        .replace(/[^\w\u0600-\u06FF-]+/g, '-')
+        .replace(/^-+|-+$/g, '') || fallback || 'aklake-file';
+}
+
+function downloadTextFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
 }
 
 // app.js defines SECOND_FUNCTION_ID after this file is loaded. Keep the initial
@@ -269,7 +340,7 @@ function refreshComposerModelLabel() {
 }
 
 function renderFunctionSourceSelector(action) {
-    const container = document.getElementById('function-source-selector');
+    const container = elementById('function-source-selector');
     if (!container) return;
     const allowed = isFirstFunctionAllowed(action);
     container.classList.toggle('hidden', !allowed);
@@ -340,10 +411,7 @@ function openModelChooser(action, sendAfterChoice, continuation, context) {
     if (ui.modelChooserDescription) ui.modelChooserDescription.textContent = context?.description || titles[mode][1];
     if (ui.rememberModelToggle) ui.rememberModelToggle.checked = Boolean(remembered);
     const rememberIcon = document.querySelector('.remember-toggle-icon');
-    if (rememberIcon) {
-        rememberIcon.classList.toggle('fa-toggle-on', Boolean(remembered));
-        rememberIcon.classList.toggle('fa-toggle-off', !remembered);
-    }
+    syncToggleIcon(rememberIcon, Boolean(remembered));
     if (ui.confirmModelBtn) ui.confirmModelBtn.innerHTML = sendAfterChoice
         ? '<i class="fas fa-check"></i> متابعة وإرسال'
         : '<i class="fas fa-check"></i> اعتماد الاختيار';
@@ -584,8 +652,8 @@ function syncWorkspaceFromSelections() {
         ui.attachBtn.title = attachLabel;
     }
 
-    const initialMessage = document.getElementById('initial-assistant-message');
-    const initialSource = document.getElementById('initial-assistant-source');
+    const initialMessage = elementById('initial-assistant-message');
+    const initialSource = elementById('initial-assistant-source');
     if (initialMessage) initialMessage.textContent = action === 'book_outline'
         ? 'ما شكل الكتاب الذي تريد إنجازه، أيها البشري؟ اكتب وصفًا قصيرًا أو طويلًا، وسأتولى تحويله إلى خطة كتاب.'
         : 'مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.';
@@ -634,8 +702,8 @@ window.selectAITool = function(action) {
     }
     if (action !== 'book_outline' && bookReferenceAttachment) clearBookReferenceAttachment();
 
-    const mainInputs = document.getElementById('main-inputs-wrapper');
-    const libraryDrawer = document.getElementById('my-library-section');
+    const mainInputs = elementById('main-inputs-wrapper');
+    const libraryDrawer = elementById('my-library-section');
     if (mainInputs) mainInputs.classList.remove('hidden');
     if (libraryDrawer) libraryDrawer.classList.add('hidden');
 
@@ -699,7 +767,7 @@ function getArtFrameMetrics(frameOrSize, orientation) {
     const size = frame ? frame.size : frameOrSize;
     const direction = frame ? frame.orientation : (orientation || 'horizontal');
     const info = ART_SIZE_INFO[size] || ART_SIZE_INFO.medium;
-    const layer = document.getElementById('art-frames-layer');
+    const layer = elementById('art-frames-layer');
 
     if (frame && frame.element && layer && layer.clientWidth > 0 && layer.clientHeight > 0) {
         const rect = frame.element.querySelector('.art-frame-canvas')
@@ -773,10 +841,7 @@ function findAvailableArtPosition(size, orientation, preferredFrame) {
 }
 
 function setArtStudioStatus(message, type) {
-    const status = document.getElementById('art-studio-status');
-    if (!status) return;
-    status.textContent = message || '';
-    status.className = 'art-studio-status' + (type ? ' ' + type : '');
+    setStatusElement(elementById('art-studio-status'), 'art-studio-status', message, type);
 }
 
 function renderArtFrame(frame) {
@@ -855,12 +920,12 @@ function syncArtFrameImageOrientation(frame) {
 }
 
 function updateEmptyWallHint() {
-    const hint = document.getElementById('empty-wall-hint');
+    const hint = elementById('empty-wall-hint');
     if (hint) hint.classList.toggle('hidden', artFrames.length > 0);
 }
 
 function createArtFrame(size, options) {
-    const layer = document.getElementById('art-frames-layer');
+    const layer = elementById('art-frames-layer');
     if (!layer || !ART_SIZE_INFO[size]) return null;
 
     const settings = options || {};
@@ -923,7 +988,7 @@ function handleArtFrameClick(event) {
     const action = actionButton.dataset.frameAction;
     if (action === 'drag') return;
     if (action === 'upload') {
-        const upload = document.getElementById('art-image-upload');
+        const upload = elementById('art-image-upload');
         if (upload) upload.click();
     } else if (action === 'generate') {
         openArtPromptDialog(frame, 'generate');
@@ -975,7 +1040,7 @@ function resizeArtFrame(frame, nextSize) {
 function beginArtFrameDrag(event) {
     if (event.button !== undefined && event.button !== 0) return;
     const frame = getArtFrame(event.currentTarget.dataset.frameId);
-    const layer = document.getElementById('art-frames-layer');
+    const layer = elementById('art-frames-layer');
     if (!frame || !layer) return;
 
     selectArtFrame(frame.id);
@@ -1141,8 +1206,8 @@ function setArtFrameProcessing(frame, processing) {
 }
 
 function closeArtDialogs(clearPending) {
-    const promptModal = document.getElementById('art-prompt-modal');
-    const replaceModal = document.getElementById('art-replace-modal');
+    const promptModal = elementById('art-prompt-modal');
+    const replaceModal = elementById('art-replace-modal');
     if (promptModal) promptModal.classList.add('hidden');
     if (replaceModal) replaceModal.classList.add('hidden');
     if (clearPending !== false) pendingArtOperation = null;
@@ -1153,8 +1218,8 @@ function getArtModelChoices(mode) {
 }
 
 function renderArtModelChoices(mode) {
-    const list = document.getElementById('art-model-choices');
-    const label = document.getElementById('art-model-choice-label');
+    const list = elementById('art-model-choices');
+    const label = elementById('art-model-choice-label');
     if (!list || !pendingArtOperation) return;
 
     const choices = getArtModelChoices(mode);
@@ -1195,12 +1260,12 @@ function openArtPromptDialog(frame, mode) {
         prompt: '',
         modelChoice: getArtModelChoices(mode)[0] || null
     };
-    const promptInput = document.getElementById('art-prompt');
-    const title = document.getElementById('art-prompt-modal-title');
+    const promptInput = elementById('art-prompt');
+    const title = elementById('art-prompt-modal-title');
     if (promptInput) promptInput.value = frame.prompt || '';
     if (title) title.textContent = mode === 'edit' ? 'كيف تريد تحويل هذه الصورة؟' : 'صف اللوحة التي تريد إنشاءها';
     renderArtModelChoices(mode);
-    const modal = document.getElementById('art-prompt-modal');
+    const modal = elementById('art-prompt-modal');
     if (modal) modal.classList.remove('hidden');
     if (promptInput) setTimeout(function() { promptInput.focus(); }, 30);
 }
@@ -1208,7 +1273,7 @@ function openArtPromptDialog(frame, mode) {
 function confirmArtPrompt() {
     if (!pendingArtOperation) return;
     const frame = getArtFrame(pendingArtOperation.frameId);
-    const promptInput = document.getElementById('art-prompt');
+    const promptInput = elementById('art-prompt');
     const prompt = promptInput ? promptInput.value.trim() : '';
     if (!frame) {
         closeArtDialogs();
@@ -1225,11 +1290,11 @@ function confirmArtPrompt() {
     }
     frame.prompt = prompt;
     pendingArtOperation.prompt = prompt;
-    const promptModal = document.getElementById('art-prompt-modal');
+    const promptModal = elementById('art-prompt-modal');
     if (promptModal) promptModal.classList.add('hidden');
 
     if (frame.hasGenerated && frame.imageData) {
-        const replaceModal = document.getElementById('art-replace-modal');
+        const replaceModal = elementById('art-replace-modal');
         if (replaceModal) replaceModal.classList.remove('hidden');
     } else {
         const operation = pendingArtOperation;
@@ -1382,7 +1447,7 @@ function removeCartArtwork(id) {
 }
 
 function renderArtworksLibrary() {
-    const list = document.getElementById('artworks-library-list');
+    const list = elementById('artworks-library-list');
     if (!list) return;
     list.innerHTML = '';
     const artworks = safeReadLocalList(ARTWORKS_STORAGE_KEY);
@@ -1418,10 +1483,10 @@ function renderArtworksLibrary() {
 }
 
 function renderArtCart() {
-    const list = document.getElementById('cart-list');
-    const total = document.getElementById('cart-total');
-    const count = document.getElementById('cart-count');
-    const drawerCount = document.getElementById('drawer-cart-count');
+    const list = elementById('cart-list');
+    const total = elementById('cart-total');
+    const count = elementById('cart-count');
+    const drawerCount = elementById('drawer-cart-count');
     const cart = safeReadLocalList(ART_CART_STORAGE_KEY);
     if (count) count.textContent = cart.length;
     if (drawerCount) drawerCount.textContent = cart.length;
@@ -1463,7 +1528,7 @@ function renderArtCart() {
 }
 
 function openCreationLibraryTab(tabName) {
-    const drawer = document.getElementById('my-library-section');
+    const drawer = elementById('my-library-section');
     if (drawer) drawer.classList.remove('hidden');
     document.querySelectorAll('[data-library-tab]').forEach(function(button) {
         button.classList.toggle('active', button.dataset.libraryTab === tabName);
@@ -1481,7 +1546,7 @@ function initCreationLibrary() {
         button.addEventListener('click', function() { openCreationLibraryTab(button.dataset.libraryTab); });
     });
 
-    const headerCart = document.getElementById('cart-header-btn');
+    const headerCart = elementById('cart-header-btn');
     if (headerCart) {
         headerCart.addEventListener('click', function() {
             openWorkspace();
@@ -1489,7 +1554,7 @@ function initCreationLibrary() {
         });
     }
 
-    const checkout = document.getElementById('checkout-btn');
+    const checkout = elementById('checkout-btn');
     if (checkout) {
         checkout.addEventListener('click', function() {
             alert('تم تجهيز السلة في الواجهة. سنربط زر الشراء بالدفع والكود الوظيفي في المرحلة التالية.');
@@ -1505,10 +1570,10 @@ function initArtStudio() {
     document.addEventListener('pointerup', endArtFrameDrag);
     document.addEventListener('pointercancel', endArtFrameDrag);
 
-    const stage = document.getElementById('art-wall-stage');
+    const stage = elementById('art-wall-stage');
     if (stage) stage.addEventListener('click', function() { selectArtFrame(null); });
 
-    const upload = document.getElementById('art-image-upload');
+    const upload = elementById('art-image-upload');
     if (upload) {
         upload.addEventListener('change', function() {
             if (upload.files && upload.files[0]) loadImageIntoSelectedFrame(upload.files[0]);
@@ -1516,7 +1581,7 @@ function initArtStudio() {
         });
     }
 
-    const promptInput = document.getElementById('art-prompt');
+    const promptInput = elementById('art-prompt');
     document.querySelectorAll('[data-art-prompt]').forEach(function(button) {
         button.addEventListener('click', function() {
             if (!promptInput) return;
@@ -1524,9 +1589,9 @@ function initArtStudio() {
         });
     });
 
-    const confirmPrompt = document.getElementById('art-prompt-confirm-btn');
-    const replaceOld = document.getElementById('replace-old-art-btn');
-    const duplicate = document.getElementById('duplicate-art-btn');
+    const confirmPrompt = elementById('art-prompt-confirm-btn');
+    const replaceOld = elementById('replace-old-art-btn');
+    const duplicate = elementById('duplicate-art-btn');
     if (confirmPrompt) confirmPrompt.addEventListener('click', confirmArtPrompt);
     if (replaceOld) replaceOld.addEventListener('click', function() { continueArtOperation(true); });
     if (duplicate) duplicate.addEventListener('click', function() { continueArtOperation(false); });
@@ -1583,86 +1648,75 @@ const landingState = {
 
 const landingUI = {};
 
-function landingElement(id) {
-    return document.getElementById(id);
-}
-
 function cacheLandingUI() {
     Object.assign(landingUI, {
-        studio: landingElement('landing-page-studio'),
-        projectsList: landingElement('landing-projects-list'),
-        projectsPanel: landingElement('landing-projects-panel'),
-        projectsToggle: landingElement('landing-projects-toggle'),
-        newProjectBtn: landingElement('landing-new-project-btn'),
-        closeChatBtn: landingElement('landing-close-chat-btn'),
-        conversation: landingElement('landing-conversation'),
-        generationCard: landingElement('landing-generation-card'),
-        progressProduct: landingElement('landing-progress-product'),
-        progressModel: landingElement('landing-progress-model'),
-        completeCard: landingElement('landing-complete-card'),
-        completeTitle: landingElement('landing-complete-title'),
-        openResultBtn: landingElement('landing-open-result-btn'),
-        prompt: landingElement('landing-main-prompt'),
-        productName: landingElement('landing-product-name'),
-        audience: landingElement('landing-audience'),
-        productDetails: landingElement('landing-product-details'),
-        phone: landingElement('landing-phone'),
-        whatsapp: landingElement('landing-whatsapp'),
-        ctaUrl: landingElement('landing-cta-url'),
-        language: landingElement('landing-language'),
-        modelCards: landingElement('landing-model-cards'),
-        modelToggle: landingElement('landing-model-toggle'),
-        modelPopover: landingElement('landing-model-popover'),
-        closeModelBtn: landingElement('landing-close-model-btn'),
-        rememberModelToggle: landingElement('landing-remember-model-toggle'),
+        studio: elementById('landing-page-studio'),
+        projectsList: elementById('landing-projects-list'),
+        projectsPanel: elementById('landing-projects-panel'),
+        projectsToggle: elementById('landing-projects-toggle'),
+        newProjectBtn: elementById('landing-new-project-btn'),
+        closeChatBtn: elementById('landing-close-chat-btn'),
+        conversation: elementById('landing-conversation'),
+        generationCard: elementById('landing-generation-card'),
+        progressProduct: elementById('landing-progress-product'),
+        progressModel: elementById('landing-progress-model'),
+        completeCard: elementById('landing-complete-card'),
+        completeTitle: elementById('landing-complete-title'),
+        openResultBtn: elementById('landing-open-result-btn'),
+        prompt: elementById('landing-main-prompt'),
+        productName: elementById('landing-product-name'),
+        audience: elementById('landing-audience'),
+        productDetails: elementById('landing-product-details'),
+        phone: elementById('landing-phone'),
+        whatsapp: elementById('landing-whatsapp'),
+        ctaUrl: elementById('landing-cta-url'),
+        language: elementById('landing-language'),
+        modelCards: elementById('landing-model-cards'),
+        modelToggle: elementById('landing-model-toggle'),
+        modelPopover: elementById('landing-model-popover'),
+        closeModelBtn: elementById('landing-close-model-btn'),
+        rememberModelToggle: elementById('landing-remember-model-toggle'),
         rememberModelIcon: document.querySelector('.landing-remember-toggle-icon'),
-        confirmModelBtn: landingElement('landing-confirm-model-btn'),
-        activeModel: landingElement('landing-active-model'),
-        generateBtn: landingElement('landing-generate-btn'),
-        generateCost: landingElement('landing-generate-cost'),
-        status: landingElement('landing-status'),
-        output: landingElement('landing-output-panel'),
-        emptyPreview: landingElement('landing-empty-preview'),
-        previewShell: landingElement('landing-preview-shell'),
-        previewFrame: landingElement('landing-preview-frame'),
-        previewView: landingElement('landing-preview-view'),
-        codeView: landingElement('landing-code-view'),
-        codeEditor: landingElement('landing-code-editor'),
-        applyCodeBtn: landingElement('landing-apply-code-btn'),
-        copyBtn: landingElement('landing-copy-code-btn'),
-        downloadBtn: landingElement('landing-download-btn'),
-        closePreviewBtn: landingElement('landing-close-preview-btn'),
-        assistantToggle: landingElement('landing-assistant-toggle'),
-        assistantPanel: landingElement('landing-assistant-panel'),
-        referenceFile: landingElement('landing-reference-file'),
-        attachBtn: landingElement('landing-attach-btn'),
-        referencePreview: landingElement('landing-reference-preview'),
-        referenceIcon: landingElement('landing-reference-icon'),
-        referenceTitle: landingElement('landing-reference-title'),
-        referenceName: landingElement('landing-reference-name'),
-        removeReferenceBtn: landingElement('landing-remove-reference-btn'),
-        revisionPanel: landingElement('landing-revision-panel'),
-        revisionPrompt: landingElement('landing-revision-prompt'),
-        reviseBtn: landingElement('landing-revise-btn'),
-        prevVersionBtn: landingElement('landing-prev-version-btn'),
-        nextVersionBtn: landingElement('landing-next-version-btn'),
-        versionLabel: landingElement('landing-version-label')
+        confirmModelBtn: elementById('landing-confirm-model-btn'),
+        activeModel: elementById('landing-active-model'),
+        generateBtn: elementById('landing-generate-btn'),
+        generateCost: elementById('landing-generate-cost'),
+        status: elementById('landing-status'),
+        output: elementById('landing-output-panel'),
+        emptyPreview: elementById('landing-empty-preview'),
+        previewShell: elementById('landing-preview-shell'),
+        previewFrame: elementById('landing-preview-frame'),
+        previewView: elementById('landing-preview-view'),
+        codeView: elementById('landing-code-view'),
+        codeEditor: elementById('landing-code-editor'),
+        applyCodeBtn: elementById('landing-apply-code-btn'),
+        copyBtn: elementById('landing-copy-code-btn'),
+        downloadBtn: elementById('landing-download-btn'),
+        closePreviewBtn: elementById('landing-close-preview-btn'),
+        assistantToggle: elementById('landing-assistant-toggle'),
+        assistantPanel: elementById('landing-assistant-panel'),
+        referenceFile: elementById('landing-reference-file'),
+        attachBtn: elementById('landing-attach-btn'),
+        referencePreview: elementById('landing-reference-preview'),
+        referenceIcon: elementById('landing-reference-icon'),
+        referenceTitle: elementById('landing-reference-title'),
+        referenceName: elementById('landing-reference-name'),
+        removeReferenceBtn: elementById('landing-remove-reference-btn'),
+        revisionPanel: elementById('landing-revision-panel'),
+        revisionPrompt: elementById('landing-revision-prompt'),
+        reviseBtn: elementById('landing-revise-btn'),
+        prevVersionBtn: elementById('landing-prev-version-btn'),
+        nextVersionBtn: elementById('landing-next-version-btn'),
+        versionLabel: elementById('landing-version-label')
     });
 }
 
 function setLandingAssistantOpen(open) {
-    const expanded = Boolean(open);
-    landingUI.assistantPanel?.classList.toggle('hidden', !expanded);
-    landingUI.assistantPanel?.setAttribute('aria-hidden', String(!expanded));
-    landingUI.assistantToggle?.classList.toggle('is-open', expanded);
-    landingUI.assistantToggle?.setAttribute('aria-expanded', String(expanded));
+    setExpandablePanel(landingUI.assistantPanel, landingUI.assistantToggle, open, 'is-open');
 }
 
 function setLandingProjectsOpen(open) {
-    const expanded = Boolean(open);
-    landingUI.projectsPanel?.classList.toggle('hidden', !expanded);
-    landingUI.projectsPanel?.setAttribute('aria-hidden', String(!expanded));
-    landingUI.projectsToggle?.setAttribute('aria-expanded', String(expanded));
+    setExpandablePanel(landingUI.projectsPanel, landingUI.projectsToggle, open);
 }
 
 function setLandingModelPopoverOpen(open) {
@@ -1828,13 +1882,6 @@ async function setLandingReferenceFile(file) {
     }
 }
 
-function createLandingId(prefix) {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-        return prefix + '-' + window.crypto.randomUUID();
-    }
-    return prefix + '-' + Date.now() + '-' + Math.random().toString(16).slice(2);
-}
-
 function loadLandingProjects() {
     try {
         const stored = JSON.parse(localStorage.getItem(LANDING_STORAGE_KEY) || '[]');
@@ -1952,9 +1999,7 @@ function fillLandingForm(form) {
 }
 
 function setLandingStatus(message, type) {
-    if (!landingUI.status) return;
-    landingUI.status.textContent = message || '';
-    landingUI.status.className = 'landing-status' + (type ? ' ' + type : '');
+    setStatusElement(landingUI.status, 'landing-status', message, type);
 }
 
 function setLandingBusy(isBusy, label) {
@@ -2098,16 +2143,14 @@ function syncLandingRememberModelUI() {
     const remembered = readLandingRememberedModel();
     if (landingUI.rememberModelToggle) landingUI.rememberModelToggle.checked = Boolean(remembered);
     if (landingUI.rememberModelIcon) {
-        landingUI.rememberModelIcon.classList.toggle('fa-toggle-on', Boolean(remembered));
-        landingUI.rememberModelIcon.classList.toggle('fa-toggle-off', !remembered);
+        syncToggleIcon(landingUI.rememberModelIcon, Boolean(remembered));
     }
 }
 
 function updateLandingRememberModelIcon() {
     const checked = Boolean(landingUI.rememberModelToggle?.checked);
     if (landingUI.rememberModelIcon) {
-        landingUI.rememberModelIcon.classList.toggle('fa-toggle-on', checked);
-        landingUI.rememberModelIcon.classList.toggle('fa-toggle-off', !checked);
+        syncToggleIcon(landingUI.rememberModelIcon, checked);
     }
 }
 
@@ -2278,7 +2321,7 @@ function normalizeLandingProject(sourceProject, fallbackHtml) {
         return version.html === fallbackValidation.html;
     })) {
         safeVersions.push({
-            id: createLandingId('version'),
+            id: createScopedId('version'),
             html: fallbackValidation.html,
             label: safeVersions.length ? 'النسخة الأحدث' : 'النسخة الأولى',
             createdAt: Date.now()
@@ -2344,7 +2387,7 @@ function saveLandingVersion(html, label, form) {
     const now = Date.now();
     if (!project) {
         project = {
-            id: createLandingId('landing'),
+            id: createScopedId('landing'),
             title: form.productName || 'صفحة هبوط جديدة',
             createdAt: now,
             updatedAt: now,
@@ -2363,7 +2406,7 @@ function saveLandingVersion(html, label, form) {
     project.updatedAt = now;
     project.versions = project.versions || [];
     project.versions.push({
-        id: createLandingId('version'),
+        id: createScopedId('version'),
         html: html,
         label: label || 'نسخة جديدة',
         createdAt: now
@@ -2440,11 +2483,7 @@ function showLandingView(viewName) {
 }
 
 function setLandingDevice(device) {
-    const target = device === 'mobile' ? 'mobile' : 'desktop';
-    if (landingUI.previewShell) landingUI.previewShell.dataset.device = target;
-    document.querySelectorAll('[data-landing-device]').forEach(function(button) {
-        button.classList.toggle('active', button.dataset.landingDevice === target);
-    });
+    applyPreviewDevice(landingUI.previewShell, '[data-landing-device]', 'data-landing-device', device);
 }
 
 async function generateLandingPage() {
@@ -2607,40 +2646,18 @@ async function applyLandingCodeManually() {
 }
 
 async function copyLandingCode() {
-    const code = landingUI.codeEditor ? landingUI.codeEditor.value : '';
-    if (!code) {
-        setLandingStatus('لا يوجد كود لنسخه بعد.', 'error');
-        return;
-    }
-    try {
-        await navigator.clipboard.writeText(code);
-        setLandingStatus('تم نسخ كود HTML.', 'success');
-    } catch (error) {
-        landingUI.codeEditor.focus();
-        landingUI.codeEditor.select();
-        document.execCommand('copy');
-        setLandingStatus('تم نسخ كود HTML.', 'success');
-    }
+    const code = landingUI.codeEditor?.value || '';
+    if (!code) return setLandingStatus('لا يوجد كود لنسخه بعد.', 'error');
+    await copyTextWithFallback(code, landingUI.codeEditor);
+    setLandingStatus('تم نسخ كود HTML.', 'success');
 }
 
 function downloadLandingCode() {
-    const code = landingUI.codeEditor ? landingUI.codeEditor.value : '';
-    if (!code) {
-        setLandingStatus('لا يوجد كود لتنزيله بعد.', 'error');
-        return;
-    }
+    const code = landingUI.codeEditor?.value || '';
+    if (!code) return setLandingStatus('لا يوجد كود لتنزيله بعد.', 'error');
     const project = getActiveLandingProject();
-    const safeName = ((project && project.title) || 'aklake-landing-page')
-        .replace(/[^\w\u0600-\u06FF-]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'aklake-landing-page';
-    const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = safeName + '.html';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000);
+    const safeName = sanitizeDownloadName(project?.title, 'aklake-landing-page');
+    downloadTextFile(code, safeName + '.html', 'text/html;charset=utf-8');
     setLandingStatus('تم تجهيز ملف HTML للتنزيل.', 'success');
 }
 
@@ -2808,114 +2825,107 @@ const cvState = {
 };
 
 const cvUI = {};
-function cvElement(id) { return document.getElementById(id); }
-
 function cacheCVUI() {
     Object.assign(cvUI, {
-        studio: cvElement('cv-builder-studio'),
-        conversation: cvElement('cv-conversation'),
-        generationCard: cvElement('cv-generation-card'),
-        completeCard: cvElement('cv-complete-card'),
-        progressName: cvElement('cv-progress-name'),
-        progressModel: cvElement('cv-progress-model'),
-        completeTitle: cvElement('cv-complete-title'),
-        openResultBtn: cvElement('cv-open-result-btn'),
-        projectsToggle: cvElement('cv-projects-toggle'),
-        projectsPanel: cvElement('cv-projects-panel'),
-        projectsList: cvElement('cv-projects-list'),
-        newProjectBtn: cvElement('cv-new-project-btn'),
-        closeChatBtn: cvElement('cv-close-chat-btn'),
-        output: cvElement('cv-output-panel'),
-        previewView: cvElement('cv-preview-view'),
-        emptyPreview: cvElement('cv-empty-preview'),
-        previewShell: cvElement('cv-preview-shell'),
-        previewFrame: cvElement('cv-preview-frame'),
-        codeView: cvElement('cv-code-view'),
-        editView: cvElement('cv-edit-info-view'),
-        editSubmitBtn: cvElement('cv-edit-submit-btn'),
-        editNote: cvElement('cv-edit-note'),
-        editFullName: cvElement('cv-edit-full-name'),
-        editJobTitle: cvElement('cv-edit-job-title'),
-        editLanguage: cvElement('cv-edit-language'),
-        editBirthDate: cvElement('cv-edit-birth-date'),
-        editAge: cvElement('cv-edit-age'),
-        editEmail: cvElement('cv-edit-email'),
-        editPhone: cvElement('cv-edit-phone'),
-        editLocation: cvElement('cv-edit-location'),
-        editLinks: cvElement('cv-edit-links'),
-        editSummary: cvElement('cv-edit-summary'),
-        editExperience: cvElement('cv-edit-experience'),
-        editEducation: cvElement('cv-edit-education'),
-        editCertifications: cvElement('cv-edit-certifications'),
-        editSkills: cvElement('cv-edit-skills'),
-        editLanguages: cvElement('cv-edit-languages'),
-        editExtra: cvElement('cv-edit-extra'),
-        codeEditor: cvElement('cv-code-editor'),
-        applyCodeBtn: cvElement('cv-apply-code-btn'),
-        copyBtn: cvElement('cv-copy-code-btn'),
-        downloadBtn: cvElement('cv-download-btn'),
-        closePreviewBtn: cvElement('cv-close-preview-btn'),
-        revisionPanel: cvElement('cv-revision-panel'),
-        revisionPrompt: cvElement('cv-revision-prompt'),
-        reviseBtn: cvElement('cv-revise-btn'),
-        prevVersionBtn: cvElement('cv-prev-version-btn'),
-        nextVersionBtn: cvElement('cv-next-version-btn'),
-        versionLabel: cvElement('cv-version-label'),
-        fullName: cvElement('cv-full-name'),
-        jobTitle: cvElement('cv-job-title'),
-        language: cvElement('cv-language'),
-        birthDate: cvElement('cv-birth-date'),
-        age: cvElement('cv-age'),
-        email: cvElement('cv-email'),
-        phone: cvElement('cv-phone'),
-        location: cvElement('cv-location'),
-        links: cvElement('cv-links'),
-        summary: cvElement('cv-summary'),
-        experience: cvElement('cv-experience'),
-        education: cvElement('cv-education'),
-        certifications: cvElement('cv-certifications'),
-        skills: cvElement('cv-skills'),
-        languages: cvElement('cv-languages'),
-        extra: cvElement('cv-extra'),
-        assistantToggle: cvElement('cv-assistant-toggle'),
-        assistantPanel: cvElement('cv-assistant-panel'),
-        assistantCloseBtn: cvElement('cv-assistant-close-btn'),
-        photoAssistantHost: cvElement('cv-photo-assistant-host'),
-        photoEditHost: cvElement('cv-photo-edit-host'),
-        photoEditorBlock: cvElement('cv-photo-editor-block'),
-        photoEditorPanel: cvElement('cv-photo-editor-panel'),
-        photoCanvas: cvElement('cv-photo-canvas'),
-        photoZoom: cvElement('cv-photo-zoom'),
-        photoRotateLeft: cvElement('cv-photo-rotate-left'),
-        photoRotateRight: cvElement('cv-photo-rotate-right'),
-        photoFlip: cvElement('cv-photo-flip'),
-        photoReset: cvElement('cv-photo-reset'),
-        photoReplace: cvElement('cv-photo-replace'),
-        photoApplyBtn: cvElement('cv-photo-apply-btn'),
-        profileFile: cvElement('cv-profile-image-file'),
-        profilePreview: cvElement('cv-profile-image-preview'),
-        profileThumb: cvElement('cv-profile-image-thumb'),
-        profileName: cvElement('cv-profile-image-name'),
-        removeProfileBtn: cvElement('cv-remove-profile-image-btn'),
-        attachBtn: cvElement('cv-attach-btn'),
-        prompt: cvElement('cv-main-prompt'),
-        generateBtn: cvElement('cv-generate-btn'),
-        modelToggle: cvElement('cv-model-toggle'),
-        modelPopover: cvElement('cv-model-popover'),
-        modelCards: cvElement('cv-model-cards'),
-        activeModel: cvElement('cv-active-model'),
-        generateCost: cvElement('cv-generate-cost'),
-        rememberModelToggle: cvElement('cv-remember-model-toggle'),
+        studio: elementById('cv-builder-studio'),
+        conversation: elementById('cv-conversation'),
+        generationCard: elementById('cv-generation-card'),
+        completeCard: elementById('cv-complete-card'),
+        progressName: elementById('cv-progress-name'),
+        progressModel: elementById('cv-progress-model'),
+        completeTitle: elementById('cv-complete-title'),
+        openResultBtn: elementById('cv-open-result-btn'),
+        projectsToggle: elementById('cv-projects-toggle'),
+        projectsPanel: elementById('cv-projects-panel'),
+        projectsList: elementById('cv-projects-list'),
+        newProjectBtn: elementById('cv-new-project-btn'),
+        closeChatBtn: elementById('cv-close-chat-btn'),
+        output: elementById('cv-output-panel'),
+        previewView: elementById('cv-preview-view'),
+        emptyPreview: elementById('cv-empty-preview'),
+        previewShell: elementById('cv-preview-shell'),
+        previewFrame: elementById('cv-preview-frame'),
+        codeView: elementById('cv-code-view'),
+        editView: elementById('cv-edit-info-view'),
+        editSubmitBtn: elementById('cv-edit-submit-btn'),
+        editNote: elementById('cv-edit-note'),
+        editFullName: elementById('cv-edit-full-name'),
+        editJobTitle: elementById('cv-edit-job-title'),
+        editLanguage: elementById('cv-edit-language'),
+        editBirthDate: elementById('cv-edit-birth-date'),
+        editAge: elementById('cv-edit-age'),
+        editEmail: elementById('cv-edit-email'),
+        editPhone: elementById('cv-edit-phone'),
+        editLocation: elementById('cv-edit-location'),
+        editLinks: elementById('cv-edit-links'),
+        editSummary: elementById('cv-edit-summary'),
+        editExperience: elementById('cv-edit-experience'),
+        editEducation: elementById('cv-edit-education'),
+        editCertifications: elementById('cv-edit-certifications'),
+        editSkills: elementById('cv-edit-skills'),
+        editLanguages: elementById('cv-edit-languages'),
+        editExtra: elementById('cv-edit-extra'),
+        codeEditor: elementById('cv-code-editor'),
+        applyCodeBtn: elementById('cv-apply-code-btn'),
+        copyBtn: elementById('cv-copy-code-btn'),
+        downloadBtn: elementById('cv-download-btn'),
+        closePreviewBtn: elementById('cv-close-preview-btn'),
+        revisionPanel: elementById('cv-revision-panel'),
+        revisionPrompt: elementById('cv-revision-prompt'),
+        reviseBtn: elementById('cv-revise-btn'),
+        prevVersionBtn: elementById('cv-prev-version-btn'),
+        nextVersionBtn: elementById('cv-next-version-btn'),
+        versionLabel: elementById('cv-version-label'),
+        fullName: elementById('cv-full-name'),
+        jobTitle: elementById('cv-job-title'),
+        language: elementById('cv-language'),
+        birthDate: elementById('cv-birth-date'),
+        age: elementById('cv-age'),
+        email: elementById('cv-email'),
+        phone: elementById('cv-phone'),
+        location: elementById('cv-location'),
+        links: elementById('cv-links'),
+        summary: elementById('cv-summary'),
+        experience: elementById('cv-experience'),
+        education: elementById('cv-education'),
+        certifications: elementById('cv-certifications'),
+        skills: elementById('cv-skills'),
+        languages: elementById('cv-languages'),
+        extra: elementById('cv-extra'),
+        assistantToggle: elementById('cv-assistant-toggle'),
+        assistantPanel: elementById('cv-assistant-panel'),
+        assistantCloseBtn: elementById('cv-assistant-close-btn'),
+        photoAssistantHost: elementById('cv-photo-assistant-host'),
+        photoEditHost: elementById('cv-photo-edit-host'),
+        photoEditorBlock: elementById('cv-photo-editor-block'),
+        photoEditorPanel: elementById('cv-photo-editor-panel'),
+        photoCanvas: elementById('cv-photo-canvas'),
+        photoZoom: elementById('cv-photo-zoom'),
+        photoRotateLeft: elementById('cv-photo-rotate-left'),
+        photoRotateRight: elementById('cv-photo-rotate-right'),
+        photoFlip: elementById('cv-photo-flip'),
+        photoReset: elementById('cv-photo-reset'),
+        photoReplace: elementById('cv-photo-replace'),
+        photoApplyBtn: elementById('cv-photo-apply-btn'),
+        profileFile: elementById('cv-profile-image-file'),
+        profilePreview: elementById('cv-profile-image-preview'),
+        profileThumb: elementById('cv-profile-image-thumb'),
+        profileName: elementById('cv-profile-image-name'),
+        removeProfileBtn: elementById('cv-remove-profile-image-btn'),
+        attachBtn: elementById('cv-attach-btn'),
+        prompt: elementById('cv-main-prompt'),
+        generateBtn: elementById('cv-generate-btn'),
+        modelToggle: elementById('cv-model-toggle'),
+        modelPopover: elementById('cv-model-popover'),
+        modelCards: elementById('cv-model-cards'),
+        activeModel: elementById('cv-active-model'),
+        generateCost: elementById('cv-generate-cost'),
+        rememberModelToggle: elementById('cv-remember-model-toggle'),
         rememberIcon: document.querySelector('.cv-remember-toggle-icon'),
-        confirmModelBtn: cvElement('cv-confirm-model-btn'),
-        closeModelBtn: cvElement('cv-close-model-btn'),
-        status: cvElement('cv-status')
+        confirmModelBtn: elementById('cv-confirm-model-btn'),
+        closeModelBtn: elementById('cv-close-model-btn'),
+        status: elementById('cv-status')
     });
-}
-
-function createCVId(prefix) {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') return prefix + '-' + window.crypto.randomUUID();
-    return prefix + '-' + Date.now() + '-' + Math.random().toString(16).slice(2);
 }
 
 function loadCVProjects() {
@@ -2943,9 +2953,7 @@ function getActiveCVProject() {
 }
 
 function setCVStatus(message, type) {
-    if (!cvUI.status) return;
-    cvUI.status.textContent = message || '';
-    cvUI.status.className = 'landing-status' + (type ? ' is-' + type : '');
+    setStatusElement(cvUI.status, 'landing-status', message, type, 'is-');
 }
 
 function setCVBusy(busy, message) {
@@ -2973,10 +2981,7 @@ function setCVAssistantOpen(open) {
 }
 
 function setCVProjectsOpen(open) {
-    const expanded = Boolean(open);
-    cvUI.projectsPanel?.classList.toggle('hidden', !expanded);
-    cvUI.projectsPanel?.setAttribute('aria-hidden', String(!expanded));
-    cvUI.projectsToggle?.setAttribute('aria-expanded', String(expanded));
+    setExpandablePanel(cvUI.projectsPanel, cvUI.projectsToggle, open);
 }
 
 function readCVRememberedModel() {
@@ -2988,9 +2993,7 @@ function readCVRememberedModel() {
 }
 
 function updateCVRememberIcon() {
-    const enabled = Boolean(cvUI.rememberModelToggle?.checked);
-    cvUI.rememberIcon?.classList.toggle('fa-toggle-on', enabled);
-    cvUI.rememberIcon?.classList.toggle('fa-toggle-off', !enabled);
+    syncToggleIcon(cvUI.rememberIcon, Boolean(cvUI.rememberModelToggle?.checked));
 }
 
 function setCVPendingModel(key) {
@@ -3592,7 +3595,7 @@ function saveCVVersion(html, label, form, operation) {
     let project = getActiveCVProject();
     if (!project) {
         project = {
-            id: createCVId('cv'),
+            id: createScopedId('cv'),
             title: form.fullName || 'CV جديد',
             createdAt: now,
             updatedAt: now,
@@ -3610,7 +3613,7 @@ function saveCVVersion(html, label, form, operation) {
     project.updatedAt = now;
     project.versions = Array.isArray(project.versions) ? project.versions : [];
     project.versions.push({
-        id: createCVId('cv-version'),
+        id: createScopedId('cv-version'),
         html: validation.html,
         label: label || 'نسخة جديدة',
         operation: operation || 'generate',
@@ -3690,11 +3693,7 @@ function showCVView(viewName) {
 }
 
 function setCVDevice(device) {
-    const target = device === 'mobile' ? 'mobile' : 'desktop';
-    if (cvUI.previewShell) cvUI.previewShell.dataset.device = target;
-    document.querySelectorAll('[data-cv-device]').forEach(function(button) {
-        button.classList.toggle('active', button.dataset.cvDevice === target);
-    });
+    applyPreviewDevice(cvUI.previewShell, '[data-cv-device]', 'data-cv-device', device);
 }
 
 function updateCVVersionNavigation() {
@@ -3964,12 +3963,7 @@ async function copyCVCode() {
     const project = getActiveCVProject();
     const code = hydrateCVPhoto(cvUI.codeEditor?.value || '', project);
     if (!code) return setCVStatus('لا يوجد كود لنسخه بعد.', 'error');
-    try { await navigator.clipboard.writeText(code); }
-    catch (_) {
-        cvUI.codeEditor?.focus();
-        cvUI.codeEditor?.select();
-        document.execCommand('copy');
-    }
+    await copyTextWithFallback(code, cvUI.codeEditor);
     setCVStatus('تم نسخ كود السيرة، متضمنًا الصورة محليًا عند وجودها.', 'success');
 }
 
@@ -3977,16 +3971,8 @@ function downloadCVCode() {
     const project = getActiveCVProject();
     const code = hydrateCVPhoto(cvUI.codeEditor?.value || '', project);
     if (!code) return setCVStatus('لا يوجد CV لتنزيله بعد.', 'error');
-    const safeName = (project?.title || 'aklake-cv').replace(/[^\w\u0600-\u06FF-]+/g, '-').replace(/^-+|-+$/g, '') || 'aklake-cv';
-    const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = safeName + '-cv.html';
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+    const safeName = sanitizeDownloadName(project?.title, 'aklake-cv');
+    downloadTextFile(code, safeName + '-cv.html', 'text/html;charset=utf-8');
     setCVStatus('تم تجهيز ملف HTML للسيرة الذاتية.', 'success');
 }
 
@@ -4184,73 +4170,70 @@ const WEBSITE_MODEL_INFO = {
 
 function getWebsiteUI() {
     return {
-        studio: document.getElementById('website-builder-studio'),
-        conversation: document.getElementById('website-conversation'),
-        generationCard: document.getElementById('website-generation-card'),
-        completeCard: document.getElementById('website-complete-card'),
-        completeTitle: document.getElementById('website-complete-title'),
-        completeMeta: document.getElementById('website-complete-meta'),
-        progressModel: document.getElementById('website-progress-model'),
-        progressTitle: document.getElementById('website-progress-title'),
-        output: document.getElementById('website-output-panel'),
+        studio: elementById('website-builder-studio'),
+        conversation: elementById('website-conversation'),
+        generationCard: elementById('website-generation-card'),
+        completeCard: elementById('website-complete-card'),
+        completeTitle: elementById('website-complete-title'),
+        completeMeta: elementById('website-complete-meta'),
+        progressModel: elementById('website-progress-model'),
+        progressTitle: elementById('website-progress-title'),
+        output: elementById('website-output-panel'),
         outputStage: document.querySelector('#website-output-panel .website-output-stage'),
-        revisionOverlay: document.getElementById('website-revision-overlay'),
-        previewView: document.getElementById('website-preview-view'),
-        filesView: document.getElementById('website-files-view'),
-        previewShell: document.getElementById('website-preview-shell'),
-        previewFrame: document.getElementById('website-preview-frame'),
-        previewDiagnostics: document.getElementById('website-preview-diagnostics'),
-        previewHealthHtml: document.getElementById('website-preview-health-html'),
-        previewHealthCss: document.getElementById('website-preview-health-css'),
-        previewHealthJs: document.getElementById('website-preview-health-js'),
-        previewRuntimeMessage: document.getElementById('website-preview-runtime-message'),
-        previewErrorLog: document.getElementById('website-preview-error-log'),
-        fileTree: document.getElementById('website-file-tree'),
-        activeFilePath: document.getElementById('website-active-file-path'),
-        activeFileLanguage: document.getElementById('website-active-file-language'),
-        codeEditor: document.getElementById('website-code-editor'),
-        prompt: document.getElementById('website-main-prompt'),
-        generateBtn: document.getElementById('website-generate-btn'),
-        attachBtn: document.getElementById('website-attach-btn'),
-        referenceFile: document.getElementById('website-reference-file'),
-        assetsTray: document.getElementById('website-assets-tray'),
-        assetsList: document.getElementById('website-assets-list'),
-        assetsCount: document.getElementById('website-assets-count'),
-        modelToggle: document.getElementById('website-model-toggle'),
-        modelPopover: document.getElementById('website-model-popover'),
-        modelCards: document.getElementById('website-model-cards'),
-        activeModel: document.getElementById('website-active-model'),
-        generateCost: document.getElementById('website-generate-cost'),
-        rememberModelToggle: document.getElementById('website-remember-model-toggle'),
+        revisionOverlay: elementById('website-revision-overlay'),
+        previewView: elementById('website-preview-view'),
+        filesView: elementById('website-files-view'),
+        previewShell: elementById('website-preview-shell'),
+        previewFrame: elementById('website-preview-frame'),
+        previewDiagnostics: elementById('website-preview-diagnostics'),
+        previewHealthHtml: elementById('website-preview-health-html'),
+        previewHealthCss: elementById('website-preview-health-css'),
+        previewHealthJs: elementById('website-preview-health-js'),
+        previewRuntimeMessage: elementById('website-preview-runtime-message'),
+        previewErrorLog: elementById('website-preview-error-log'),
+        fileTree: elementById('website-file-tree'),
+        activeFilePath: elementById('website-active-file-path'),
+        activeFileLanguage: elementById('website-active-file-language'),
+        codeEditor: elementById('website-code-editor'),
+        prompt: elementById('website-main-prompt'),
+        generateBtn: elementById('website-generate-btn'),
+        attachBtn: elementById('website-attach-btn'),
+        referenceFile: elementById('website-reference-file'),
+        assetsTray: elementById('website-assets-tray'),
+        assetsList: elementById('website-assets-list'),
+        assetsCount: elementById('website-assets-count'),
+        modelToggle: elementById('website-model-toggle'),
+        modelPopover: elementById('website-model-popover'),
+        modelCards: elementById('website-model-cards'),
+        activeModel: elementById('website-active-model'),
+        generateCost: elementById('website-generate-cost'),
+        rememberModelToggle: elementById('website-remember-model-toggle'),
         rememberIcon: document.querySelector('.website-remember-toggle-icon'),
-        confirmModelBtn: document.getElementById('website-confirm-model-btn'),
-        closeModelBtn: document.getElementById('website-close-model-btn'),
-        status: document.getElementById('website-status'),
-        newProjectBtn: document.getElementById('website-new-project-btn'),
-        openResultBtn: document.getElementById('website-open-result-btn'),
-        closeChatBtn: document.getElementById('website-close-chat-btn'),
-        closePreviewBtn: document.getElementById('website-close-preview-btn'),
-        refreshPreviewBtn: document.getElementById('website-refresh-preview-btn'),
-        openBrowserBtn: document.getElementById('website-open-browser-btn'),
-        copyCodeBtn: document.getElementById('website-copy-code-btn'),
-        downloadBtn: document.getElementById('website-download-btn'),
-        applyCodeBtn: document.getElementById('website-apply-code-btn'),
-        assetViewer: document.getElementById('website-asset-viewer'),
-        assetPreview: document.getElementById('website-asset-preview'),
-        activeAssetName: document.getElementById('website-active-asset-name'),
-        activeAssetMeta: document.getElementById('website-active-asset-meta'),
-        copyAssetPathBtn: document.getElementById('website-copy-asset-path-btn'),
-        removeAssetBtn: document.getElementById('website-remove-asset-btn'),
-        revisionPrompt: document.getElementById('website-revision-prompt'),
-        reviseBtn: document.getElementById('website-revise-btn')
+        confirmModelBtn: elementById('website-confirm-model-btn'),
+        closeModelBtn: elementById('website-close-model-btn'),
+        status: elementById('website-status'),
+        newProjectBtn: elementById('website-new-project-btn'),
+        openResultBtn: elementById('website-open-result-btn'),
+        closeChatBtn: elementById('website-close-chat-btn'),
+        closePreviewBtn: elementById('website-close-preview-btn'),
+        refreshPreviewBtn: elementById('website-refresh-preview-btn'),
+        openBrowserBtn: elementById('website-open-browser-btn'),
+        copyCodeBtn: elementById('website-copy-code-btn'),
+        downloadBtn: elementById('website-download-btn'),
+        applyCodeBtn: elementById('website-apply-code-btn'),
+        assetViewer: elementById('website-asset-viewer'),
+        assetPreview: elementById('website-asset-preview'),
+        activeAssetName: elementById('website-active-asset-name'),
+        activeAssetMeta: elementById('website-active-asset-meta'),
+        copyAssetPathBtn: elementById('website-copy-asset-path-btn'),
+        removeAssetBtn: elementById('website-remove-asset-btn'),
+        revisionPrompt: elementById('website-revision-prompt'),
+        reviseBtn: elementById('website-revise-btn')
     };
 }
 
 function setWebsiteStatus(message, type) {
-    const el = document.getElementById('website-status');
-    if (!el) return;
-    el.textContent = message || '';
-    el.className = 'website-status' + (type ? ' ' + type : '');
+    setStatusElement(elementById('website-status'), 'website-status', message, type);
 }
 
 function setWebsiteBusy(value, label) {
@@ -4385,7 +4368,7 @@ function restoreWebsiteModelChoice() {
             websiteState.points = WEBSITE_MODEL_INFO[key].points;
             const w = getWebsiteUI();
             if (w.rememberModelToggle) w.rememberModelToggle.checked = true;
-            if (w.rememberIcon) { w.rememberIcon.classList.add('fa-toggle-on'); w.rememberIcon.classList.remove('fa-toggle-off'); }
+            syncToggleIcon(w.rememberIcon, true);
         }
     } catch (error) {}
     syncWebsiteModelUI();
@@ -5109,7 +5092,7 @@ function openWebsiteInExternalTab() {
     const wrapper = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
         '<title>AKLAKE Preview</title><style>html,body,iframe{width:100%;height:100%;margin:0;border:0;display:block;background:#fff}body{overflow:hidden}</style></head><body>' +
         '<iframe id="aklake-external-preview" sandbox="allow-scripts allow-forms allow-modals allow-downloads" referrerpolicy="no-referrer"></iframe>' +
-        '<script>document.getElementById("aklake-external-preview").srcdoc=' + safeDoc + ';<\\/script></body></html>';
+        '<script>elementById("aklake-external-preview").srcdoc=' + safeDoc + ';<\\/script></body></html>';
     const blob = new Blob([wrapper], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const opened = window.open(url, '_blank');
@@ -5694,7 +5677,7 @@ window.initWebsiteBuilder = function() {
         });
     });
     w.rememberModelToggle?.addEventListener('change', function() {
-        if (w.rememberIcon) { w.rememberIcon.classList.toggle('fa-toggle-on', w.rememberModelToggle.checked); w.rememberIcon.classList.toggle('fa-toggle-off', !w.rememberModelToggle.checked); }
+        syncToggleIcon(w.rememberIcon, w.rememberModelToggle.checked);
     });
     w.confirmModelBtn?.addEventListener('click', function() {
         if (w.rememberModelToggle?.checked) localStorage.setItem(WEBSITE_MODEL_MEMORY_KEY, JSON.stringify({ provider: websiteState.provider, model: websiteState.model }));
@@ -5780,13 +5763,13 @@ let contextBookLoading = false;
 
 function getContextHistoryUI() {
     return {
-        shell: document.getElementById('app-shell'),
-        panel: document.getElementById('context-history-panel'),
-        title: document.getElementById('context-history-title'),
-        kicker: document.getElementById('context-history-kicker'),
-        list: document.getElementById('context-history-list'),
-        empty: document.getElementById('context-history-empty'),
-        refresh: document.getElementById('context-history-refresh-btn')
+        shell: elementById('app-shell'),
+        panel: elementById('context-history-panel'),
+        title: elementById('context-history-title'),
+        kicker: elementById('context-history-kicker'),
+        list: elementById('context-history-list'),
+        empty: elementById('context-history-empty'),
+        refresh: elementById('context-history-refresh-btn')
     };
 }
 
@@ -5893,8 +5876,8 @@ function contextHistoryVisibleForAction(action) {
     if (action === 'landing_page') return !landingState.previewOpen && !landingState.activeProjectId;
     if (action === 'cv_builder') return !cvState.previewOpen && !cvState.activeProjectId;
     if (action === 'book_outline') {
-        const viewer = document.getElementById('intro-area');
-        const progress = document.getElementById('auto-generation-status');
+        const viewer = elementById('intro-area');
+        const progress = elementById('auto-generation-status');
         const viewerOpen = Boolean(viewer && !viewer.classList.contains('hidden') && viewer.classList.contains('is-book-viewer'));
         const generating = Boolean(progress && !progress.classList.contains('hidden'));
         return !viewerOpen && !generating;
@@ -6221,8 +6204,8 @@ function initContextHistoryPanel() {
     c.refresh?.addEventListener('click', function() {
         renderContextHistory(true).catch(function(error) { console.warn(error); });
     });
-    const introArea = document.getElementById('intro-area');
-    const autoGenerationStatus = document.getElementById('auto-generation-status');
+    const introArea = elementById('intro-area');
+    const autoGenerationStatus = elementById('auto-generation-status');
     const observer = new MutationObserver(syncContextHistoryPanel);
     if (introArea) observer.observe(introArea, { attributes: true, attributeFilter: ['class'] });
     if (autoGenerationStatus) observer.observe(autoGenerationStatus, { attributes: true, attributeFilter: ['class'] });
