@@ -621,6 +621,30 @@
                                     <span><i class="fas fa-check-circle"></i></span><small id="cv-profile-image-name"></small>
                                     <button id="cv-remove-profile-image-btn" type="button" aria-label="إزالة الصورة"><i class="fas fa-trash"></i></button>
                                 </div>
+                                <section id="cv-photo-ai-panel" class="cv-photo-ai-panel hidden" aria-label="تحسين الصورة الشخصية بالذكاء الاصطناعي">
+                                    <div class="cv-photo-ai-head">
+                                        <span><i class="fas fa-wand-magic-sparkles"></i></span>
+                                        <div><strong>تحسين الصورة بالذكاء الاصطناعي</strong><small>اطلب بدلة رسمية، تحسين الإضاءة، تنظيف الخلفية أو مظهرًا مهنيًا مناسبًا للسيرة.</small></div>
+                                    </div>
+                                    <textarea id="cv-photo-ai-prompt" rows="3" placeholder="مثال: ألبسني بدلة رسمية داكنة، حسّن الإضاءة واجعل الخلفية محايدة، مع الحفاظ على ملامح وجهي الطبيعية."></textarea>
+                                    <div class="cv-photo-ai-controls">
+                                        <label><span>نموذج التعديل</span><select id="cv-photo-ai-model">
+                                            <option value="gpt-image-1-mini">تعديل بسيط · 10 نقاط</option>
+                                            <option value="gpt-image-1.5" selected>تعديل متوازن · 15 نقطة</option>
+                                            <option value="gpt-image-2">تعديل احترافي · 20 نقطة</option>
+                                        </select></label>
+                                        <button id="cv-photo-ai-edit-btn" type="button"><i class="fas fa-wand-magic-sparkles"></i><span>تعديل الصورة</span></button>
+                                    </div>
+                                    <div id="cv-photo-ai-status" class="cv-photo-ai-status" aria-live="polite"></div>
+                                    <div id="cv-photo-ai-result" class="cv-photo-ai-result hidden">
+                                        <figure class="cv-photo-ai-new"><figcaption><i class="fas fa-sparkles"></i> الصورة الجديدة</figcaption><img id="cv-photo-ai-new-image" alt="الصورة الشخصية بعد التعديل"></figure>
+                                        <figure><figcaption><i class="far fa-image"></i> الصورة الأصلية</figcaption><img id="cv-photo-ai-original-image" alt="الصورة الشخصية الأصلية"></figure>
+                                        <div class="cv-photo-ai-actions">
+                                            <button id="cv-photo-ai-download-btn" type="button"><i class="fas fa-download"></i><span>تحميل الصورة</span></button>
+                                            <button id="cv-photo-ai-use-btn" class="primary" type="button"><i class="fas fa-check"></i><span>اعتمادها وتحديث CV</span></button>
+                                        </div>
+                                    </div>
+                                </section>
                             </section>
                         </div>
                         <div class="landing-form-grid">
@@ -748,6 +772,10 @@
                                     <small id="website-preview-runtime-message"></small>
                                 </div>
                                 <pre id="website-preview-error-log" class="website-preview-error-log hidden" dir="ltr" aria-label="أخطاء تشغيل المعاينة"></pre>
+                                <div id="website-preview-loader" class="website-preview-loader hidden" aria-live="polite" aria-hidden="true">
+                                    <span class="website-preview-loader-spinner"><i class="fas fa-spinner fa-spin"></i></span>
+                                    <div><strong>يتم تجهيز المعاينة</strong><small>دمج HTML وCSS وJavaScript وتشغيل الموقع...</small></div>
+                                </div>
                                 <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms allow-modals allow-downloads"></iframe>
                             </div>
                         </div>
@@ -919,7 +947,7 @@
             <button id="close-book-viewer-btn" type="button" aria-label="إغلاق معاينة الكتاب" title="إغلاق المعاينة"><i class="fas fa-xmark"></i></button>
         </div>
         
-        <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) ----->
+        <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
         <!-- التعديل: شريط أدوات الكتاب (الألوان، الخط، إعادة التقسيم) -->
         <div class="book-toolbar">
             <div style="display: flex; align-items: center; gap: 5px; margin-left: 15px;">
@@ -942,7 +970,7 @@
             </div>
         </div>
 
-        <!-- التعديل: إظهار عنوان الغلاف ----->
+        <!-- التعديل: إظهار عنوان الغلاف -->
         <div id="book-cover-display" class="book-cover-title hidden"></div>
 
         <div id="book-container" class="theme-white" style="width: 100%; max-width: 700px; min-height: 600px; padding: 40px; border-radius: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; border: 1px solid #e5e7eb; box-sizing: border-box; margin-bottom: 20px; transition: background 0.3s, color 0.3s;">
@@ -976,7 +1004,7 @@
 
     <div id="auto-generation-status" class="book-generation-status hidden">
         <div class="book-progress-shell">
-            <!-- تُعرض الصورة نفسها مباشرة بلا إطار أو حاوية تقصّ أطرافها. ----->
+            <!-- تُعرض الصورة نفسها مباشرة بلا إطار أو حاوية تقصّ أطرافها. -->
             <img id="book-progress-image" class="book-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يتم الآن تأليف الكتاب" loading="eager">
             <div class="book-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                 <span id="book-progress-bar"></span>

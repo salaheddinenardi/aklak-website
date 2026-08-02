@@ -2809,6 +2809,12 @@ const cvState = {
     editBaseline: null,
     editPhotoBaseline: '',
     editVersionId: null,
+    photoAI: {
+        busy: false,
+        sourceDataUrl: '',
+        resultDataUrl: '',
+        model: 'gpt-image-1.5'
+    },
     photoEditor: {
         image: null,
         sourceDataUrl: '',
@@ -2914,6 +2920,16 @@ function cacheCVUI() {
         profileName: elementById('cv-profile-image-name'),
         removeProfileBtn: elementById('cv-remove-profile-image-btn'),
         attachBtn: elementById('cv-attach-btn'),
+        photoAIPanel: elementById('cv-photo-ai-panel'),
+        photoAIPrompt: elementById('cv-photo-ai-prompt'),
+        photoAIModel: elementById('cv-photo-ai-model'),
+        photoAIEditBtn: elementById('cv-photo-ai-edit-btn'),
+        photoAIStatus: elementById('cv-photo-ai-status'),
+        photoAIResult: elementById('cv-photo-ai-result'),
+        photoAINewImage: elementById('cv-photo-ai-new-image'),
+        photoAIOriginalImage: elementById('cv-photo-ai-original-image'),
+        photoAIDownloadBtn: elementById('cv-photo-ai-download-btn'),
+        photoAIUseBtn: elementById('cv-photo-ai-use-btn'),
         prompt: elementById('cv-main-prompt'),
         generateBtn: elementById('cv-generate-btn'),
         modelToggle: elementById('cv-model-toggle'),
@@ -2963,6 +2979,8 @@ function setCVBusy(busy, message) {
     if (cvUI.reviseBtn) cvUI.reviseBtn.disabled = cvState.busy;
     if (cvUI.editSubmitBtn) cvUI.editSubmitBtn.disabled = cvState.busy;
     if (cvUI.photoApplyBtn) cvUI.photoApplyBtn.disabled = cvState.busy;
+    if (cvUI.photoAIEditBtn) cvUI.photoAIEditBtn.disabled = cvState.busy || cvState.photoAI.busy;
+    if (cvUI.photoAIUseBtn) cvUI.photoAIUseBtn.disabled = cvState.busy || cvState.photoAI.busy;
     if (cvState.busy && message) setCVStatus(message, 'loading');
 }
 
@@ -3181,6 +3199,7 @@ function updateCVPhotoTile() {
     cvUI.attachBtn?.classList.toggle('has-image', hasPhoto);
     cvUI.profilePreview?.classList.toggle('hidden', !hasPhoto);
     if (cvUI.profileName) cvUI.profileName.textContent = hasPhoto ? (photo.name || 'الصورة الشخصية جاهزة') : '';
+    syncCVPhotoAIPanel();
 }
 
 function clearCVProfileImage(markDirty) {
@@ -3198,6 +3217,7 @@ function clearCVProfileImage(markDirty) {
     cvState.photoEditor.offsetY = 0;
     if (cvUI.profileFile) cvUI.profileFile.value = '';
     cvUI.photoEditorPanel?.classList.add('hidden');
+    resetCVPhotoAIResult(true);
     updateCVPhotoTile();
     drawCVPhotoEditor();
 }
@@ -3356,6 +3376,7 @@ function commitCVPhotoCrop(closeEditor) {
         }
     };
     cvState.profileImageDirty = true;
+    resetCVPhotoAIResult(false);
     updateCVPhotoTile();
     if (closeEditor !== false) cvUI.photoEditorPanel?.classList.add('hidden');
     setCVStatus('تم اعتماد الصورة بالشكل والقص الحاليين.', 'success');
@@ -3374,6 +3395,7 @@ function openExistingCVPhotoEditor() {
 
 function setCVProfileImage(file) {
     if (!file) return;
+    resetCVPhotoAIResult(false);
     if (!/^image\/(png|jpeg|webp)$/i.test(file.type || '')) {
         setCVStatus('اختر صورة PNG أو JPG أو WEBP للصورة الشخصية.', 'error');
         return;
@@ -3397,6 +3419,224 @@ function setCVProfileImage(file) {
 function ensureCVProfileImageFinal() {
     if (cvState.photoEditor.image && !cvUI.photoEditorPanel?.classList.contains('hidden')) commitCVPhotoCrop(true);
     return cvState.profileImage;
+}
+
+function setCVPhotoAIStatus(message, type) {
+    if (!cvUI.photoAIStatus) return;
+    cvUI.photoAIStatus.textContent = message || '';
+    cvUI.photoAIStatus.className = 'cv-photo-ai-status' + (type ? ' is-' + type : '');
+}
+
+function setCVPhotoAIBusy(busy) {
+    cvState.photoAI.busy = Boolean(busy);
+    if (cvUI.photoAIEditBtn) {
+        cvUI.photoAIEditBtn.disabled = cvState.photoAI.busy || cvState.busy;
+        cvUI.photoAIEditBtn.innerHTML = cvState.photoAI.busy
+            ? '<i class="fas fa-spinner fa-spin"></i><span>يتم تعديل الصورة</span>'
+            : '<i class="fas fa-wand-magic-sparkles"></i><span>تعديل الصورة</span>';
+    }
+    if (cvUI.photoAIUseBtn) cvUI.photoAIUseBtn.disabled = cvState.photoAI.busy || cvState.busy;
+    if (cvUI.photoAIDownloadBtn) cvUI.photoAIDownloadBtn.disabled = cvState.photoAI.busy;
+}
+
+function syncCVPhotoAIPanel() {
+    const hasPhoto = Boolean(cvState.profileImage?.dataUrl);
+    cvUI.photoAIPanel?.classList.toggle('hidden', !hasPhoto);
+    if (hasPhoto && !cvState.photoAI.resultDataUrl && cvUI.photoAIOriginalImage) {
+        cvUI.photoAIOriginalImage.src = cvState.profileImage.dataUrl;
+    }
+    if (!hasPhoto) resetCVPhotoAIResult(false);
+}
+
+function resetCVPhotoAIResult(clearPrompt) {
+    cvState.photoAI.sourceDataUrl = '';
+    cvState.photoAI.resultDataUrl = '';
+    cvUI.photoAIResult?.classList.add('hidden');
+    if (cvUI.photoAINewImage) cvUI.photoAINewImage.removeAttribute('src');
+    if (cvUI.photoAIOriginalImage) cvUI.photoAIOriginalImage.removeAttribute('src');
+    if (clearPrompt && cvUI.photoAIPrompt) cvUI.photoAIPrompt.value = '';
+    setCVPhotoAIStatus('', '');
+}
+
+function readBlobAsDataURL(blob) {
+    return new Promise(function(resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function() { resolve(String(reader.result || '')); };
+        reader.onerror = function() { reject(reader.error || new Error('تعذر قراءة الصورة الناتجة.')); };
+        reader.readAsDataURL(blob);
+    });
+}
+
+async function normalizeCVPhotoAIResult(source) {
+    const value = String(source || '').trim();
+    if (!value) throw new Error('لم يرجع نموذج الصور نتيجة صالحة.');
+    if (/^data:image\//i.test(value)) return value;
+    try {
+        const response = await fetch(value);
+        if (!response.ok) throw new Error('تعذر تحميل الصورة الناتجة من الخادم.');
+        return await readBlobAsDataURL(await response.blob());
+    } catch (_) {
+        // بعض مزودي الصور يعيدون رابطًا صالحًا للعرض لكنهم يمنعون تحويله إلى Base64 عبر CORS.
+        return value;
+    }
+}
+
+function loadCVAIImage(dataUrl) {
+    return new Promise(function(resolve, reject) {
+        const image = new Image();
+        image.onload = function() { resolve(image); };
+        image.onerror = function() { reject(new Error('تعذر فتح الصورة الناتجة.')); };
+        image.src = dataUrl;
+    });
+}
+
+async function buildCVAIProfileImage(dataUrl) {
+    const image = await loadCVAIImage(dataUrl);
+    const size = 720;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    const shape = cvState.profileImage?.crop?.shape || cvState.photoEditor.shape || 'square';
+    const scale = Math.max(size / Math.max(1, image.naturalWidth), size / Math.max(1, image.naturalHeight));
+    const width = image.naturalWidth * scale;
+    const height = image.naturalHeight * scale;
+    ctx.save();
+    buildCVPhotoShapePath(ctx, size, shape);
+    ctx.clip();
+    ctx.drawImage(image, (size - width) / 2, (size - height) / 2, width, height);
+    ctx.restore();
+    return canvas.toDataURL('image/png');
+}
+
+async function editCVPhotoWithAI() {
+    if (cvState.photoAI.busy || cvState.busy) return;
+    const photo = ensureCVProfileImageFinal();
+    const prompt = cvUI.photoAIPrompt?.value.trim() || '';
+    if (!photo?.dataUrl) return setCVPhotoAIStatus('ارفع صورة شخصية واعتمدها أولًا.', 'error');
+    if (!prompt) {
+        setCVPhotoAIStatus('اكتب التعديل المطلوب على الصورة.', 'error');
+        cvUI.photoAIPrompt?.focus();
+        return;
+    }
+    if (!currentUser) {
+        setCVPhotoAIStatus('سجّل الدخول أولًا لتعديل الصورة بالذكاء الاصطناعي.', 'error');
+        openModal();
+        return;
+    }
+
+    const model = cvUI.photoAIModel?.value || 'gpt-image-1.5';
+    const modelChoice = (MODEL_CATALOG.edit || []).find(function(item) { return item.model === model; })
+        || (MODEL_CATALOG.edit || [])[0]
+        || { model: model, modelTier: model, quality: 'medium' };
+    cvState.photoAI.model = modelChoice.model;
+    cvState.photoAI.sourceDataUrl = photo.dataUrl;
+    if (cvUI.photoAIOriginalImage) cvUI.photoAIOriginalImage.src = photo.dataUrl;
+    cvUI.photoAIResult?.classList.add('hidden');
+    setCVPhotoAIBusy(true);
+    setCVPhotoAIStatus('يتم تعديل الصورة مع الحفاظ على ملامح الوجه...', 'loading');
+
+    try {
+        const payload = {
+            userId: currentUser.$id,
+            action: 'legacy_chat',
+            mode: 'edit',
+            prompt: prompt,
+            provider: 'openai',
+            model: modelChoice.model,
+            imageModel: modelChoice.model,
+            modelTier: modelChoice.modelTier || modelChoice.model,
+            quality: modelChoice.quality || 'medium',
+            clientFeature: 'cv_profile_photo_edit',
+            imageBase64: photo.dataUrl
+        };
+        if (modelChoice.inputFidelity) payload.inputFidelity = modelChoice.inputFidelity;
+        const responseData = await executeRequest(payload);
+        const result = normalizeImageResult(responseData);
+        if (!responseData?.success || !result) throw new Error(responseData?.error || 'لم يرجع نموذج الصور صورة معدلة.');
+        cvState.photoAI.resultDataUrl = await normalizeCVPhotoAIResult(result);
+        if (cvUI.photoAINewImage) cvUI.photoAINewImage.src = cvState.photoAI.resultDataUrl;
+        cvUI.photoAIResult?.classList.remove('hidden');
+        if (responseData.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') {
+            syncCreditDisplays(responseData.remainingTokens);
+        }
+        setCVPhotoAIStatus('اكتملت الصورة الجديدة. يمكنك تنزيلها أو اعتمادها داخل السيرة.', 'success');
+    } catch (error) {
+        setCVPhotoAIStatus(error.message || 'تعذر تعديل الصورة.', 'error');
+    } finally {
+        setCVPhotoAIBusy(false);
+    }
+}
+
+function downloadCVPhotoAIResult() {
+    const dataUrl = cvState.photoAI.resultDataUrl;
+    if (!dataUrl) return setCVPhotoAIStatus('أنشئ صورة معدلة أولًا.', 'error');
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = 'aklake-cv-profile-ai.png';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setCVPhotoAIStatus('تم تجهيز الصورة الجديدة للتنزيل.', 'success');
+}
+
+async function adoptCVPhotoAIResult() {
+    if (cvState.photoAI.busy || cvState.busy) return;
+    const resultDataUrl = cvState.photoAI.resultDataUrl;
+    if (!resultDataUrl) return setCVPhotoAIStatus('أنشئ صورة معدلة أولًا.', 'error');
+
+    setCVPhotoAIBusy(true);
+    setCVPhotoAIStatus('يتم اعتماد الصورة الجديدة...', 'loading');
+    try {
+        let shapedDataUrl = resultDataUrl;
+        try { shapedDataUrl = await buildCVAIProfileImage(resultDataUrl); } catch (_) {}
+        const shape = cvState.profileImage?.crop?.shape || cvState.photoEditor.shape || 'square';
+        const oldPath = cvState.profileImage?.path || 'assets/profile-photo.png';
+        const newPath = 'assets/profile-photo-ai-' + Date.now() + '.png';
+        cvState.profileImage = {
+            name: 'profile-photo-ai.png',
+            path: newPath,
+            dataUrl: shapedDataUrl,
+            originalDataUrl: resultDataUrl,
+            crop: { shape: shape, zoom: 1, rotation: 0, flipX: 1, offsetXRatio: 0, offsetYRatio: 0 }
+        };
+        cvState.profileImageDirty = true;
+        updateCVPhotoTile();
+
+        const project = getActiveCVProject();
+        const version = project?.versions?.[cvState.currentVersionIndex];
+        if (!version?.html) {
+            setCVPhotoAIStatus('تم اعتماد الصورة الجديدة. ستُستخدم عند إنشاء السيرة.', 'success');
+            return;
+        }
+
+        const form = cloneCVForm(version.form || project.form || collectCVForm());
+        form.profilePhotoPath = newPath;
+        form.profilePhotoName = 'profile-photo-ai.png';
+        const instruction = 'غيّر فقط مسار src للصورة الشخصية من ' + oldPath + ' إلى ' + newPath + '. لا تعدل أي نص أو لون أو تخطيط أو مقاس أو قسم آخر داخل السيرة.';
+        appendCVUserMessage('تحديث الصورة الشخصية الاحترافية فقط', true);
+        showCVGeneration(true, project.title, 'تحديث مسار الصورة');
+        setCVBusy(true, 'يتم تحديث مسار الصورة داخل HTML الحالي فقط...');
+        const response = await requestCVFromFirstFunction('revise', form, instruction, version.html, [], 'replace');
+        if (!response) { showCVGeneration(false); return; }
+        const html = extractCVHtml(response);
+        saveCVVersion(html, 'تحديث الصورة الشخصية', form, 'revise');
+        if (response.remainingTokens !== undefined && typeof syncCreditDisplays === 'function') syncCreditDisplays(response.remainingTokens);
+        fillCVForm(form);
+        setCVPreviewOpen(true);
+        showCVVersion(getActiveCVProject()?.versions?.[cvState.currentVersionIndex]);
+        showCVView('preview');
+        showCVComplete(form.fullName || project.title, false);
+        setCVPhotoAIStatus('تم اعتماد الصورة الجديدة وتحديث مسارها داخل CV كنسخة جديدة.', 'success');
+        setCVStatus('تم تحديث الصورة الشخصية فقط مع الاحتفاظ بالنسخة السابقة.', 'success');
+    } catch (error) {
+        showCVGeneration(false);
+        setCVPhotoAIStatus(error.message || 'تعذر اعتماد الصورة داخل السيرة.', 'error');
+    } finally {
+        setCVBusy(false);
+        setCVPhotoAIBusy(false);
+    }
 }
 
 function cvField(label, value) {
@@ -3537,7 +3777,7 @@ async function requestCVFromFirstFunction(mode, form, instruction, currentHtml, 
         model: cvState.model,
         modelTier: cvState.model,
         cvRequest: true,
-        /// مثل منشئ المواقع: النموذج يستلم مسار الأصل فقط، أما بيانات الصورة فتبقى محليًا للمعاينة والتنزيل.
+        // مثل منشئ المواقع: النموذج يستلم مسار الأصل فقط، أما بيانات الصورة فتبقى محليًا للمعاينة والتنزيل.
         cvProfileImagePath: cvState.profileImage?.path || ''
     };
     const execution = await appwriteFunctions.createExecution(
@@ -3796,6 +4036,7 @@ function openCVProject(projectId, versionId) {
     cvState.editVersionId = null;
     cvState.photoEditor.image = null;
     cvState.photoEditor.sourceDataUrl = '';
+    resetCVPhotoAIResult(false);
     if (cvState.profileImage?.dataUrl) updateCVPhotoTile();
     else clearCVProfileImage(false);
     const versions = project.versions || [];
@@ -4019,6 +4260,10 @@ function initCVPhotoEditorInteractions() {
     cvUI.photoReset?.addEventListener('click', function() { resetCVPhotoTransform(true); });
     cvUI.photoReplace?.addEventListener('click', function() { cvUI.profileFile?.click(); });
     cvUI.photoApplyBtn?.addEventListener('click', function() { commitCVPhotoCrop(true); });
+    cvUI.photoAIModel?.addEventListener('change', function() { cvState.photoAI.model = cvUI.photoAIModel.value; });
+    cvUI.photoAIEditBtn?.addEventListener('click', editCVPhotoWithAI);
+    cvUI.photoAIDownloadBtn?.addEventListener('click', downloadCVPhotoAIResult);
+    cvUI.photoAIUseBtn?.addEventListener('click', adoptCVPhotoAIResult);
 
     const canvas = cvUI.photoCanvas;
     if (canvas) {
@@ -4159,7 +4404,10 @@ const websiteState = {
     activeVersionId: '',
     versionSequence: 0,
     previewRenderToken: '',
-    previewRuntimeErrors: []
+    previewRuntimeErrors: [],
+    previewSignature: '',
+    previewRefreshFrame: 0,
+    previewLoadTimer: 0
 };
 
 const WEBSITE_MODEL_INFO = {
@@ -4186,6 +4434,7 @@ function getWebsiteUI() {
         filesView: elementById('website-files-view'),
         previewShell: elementById('website-preview-shell'),
         previewFrame: elementById('website-preview-frame'),
+        previewLoader: elementById('website-preview-loader'),
         previewDiagnostics: elementById('website-preview-diagnostics'),
         previewHealthHtml: elementById('website-preview-health-html'),
         previewHealthCss: elementById('website-preview-health-css'),
@@ -4292,6 +4541,8 @@ function openWebsitePreviewWorkspace(view) {
         setWebsiteStatus('أنشئ موقعًا أولًا قبل فتح المعاينة.', 'error');
         return false;
     }
+    // لا نسمح بتزامن تخطيط سجل «أعمالي» مع تخطيط المعاينة الواسع.
+    if (typeof window.setContextHistoryOpen === 'function') window.setContextHistoryOpen(false);
     const w = getWebsiteUI();
     websiteState.previewOpen = true;
     websiteState.chatCollapsed = false;
@@ -4299,7 +4550,6 @@ function openWebsitePreviewWorkspace(view) {
     w.output?.classList.remove('hidden');
     showWebsiteView(websiteState.activeView);
     syncWebsiteWorkspaceLayout();
-    requestAnimationFrame(function() { refreshWebsitePreview(); });
     return true;
 }
 
@@ -4307,6 +4557,11 @@ function closeWebsitePreviewWorkspace() {
     const w = getWebsiteUI();
     websiteState.previewOpen = false;
     websiteState.chatCollapsed = false;
+    if (websiteState.previewRefreshFrame) {
+        cancelAnimationFrame(websiteState.previewRefreshFrame);
+        websiteState.previewRefreshFrame = 0;
+    }
+    setWebsitePreviewLoading(false);
     w.output?.classList.add('hidden');
     syncWebsiteWorkspaceLayout();
 }
@@ -4672,7 +4927,8 @@ async function addWebsiteAssets(fileList) {
     renderWebsiteAssetsTray();
     renderWebsiteFileTree();
     appendWebsiteAssetPathsToPrompt(added);
-    if (websiteState.project) refreshWebsitePreview();
+    websiteState.previewSignature = '';
+    if (websiteState.project && websiteState.previewOpen && websiteState.activeView === 'preview') scheduleWebsitePreviewRefresh(false);
     setWebsiteStatus('تمت إضافة ' + added.length + ' من ملفات المشروع داخل assets/. المسارات جاهزة للنموذج والمعاينة.', 'success');
 }
 
@@ -4687,7 +4943,8 @@ function removeWebsiteAsset(path) {
     }
     renderWebsiteAssetsTray();
     renderWebsiteFileTree();
-    if (websiteState.project) refreshWebsitePreview();
+    websiteState.previewSignature = '';
+    if (websiteState.project && websiteState.previewOpen && websiteState.activeView === 'preview') scheduleWebsitePreviewRefresh(false);
     setWebsiteStatus('تمت إزالة ' + path + ' من أصول المشروع.', 'success');
 }
 
@@ -4966,6 +5223,45 @@ function websiteShortFingerprint(content) {
     return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
+function getWebsitePreviewSignature(project) {
+    const normalized = normalizeWebsiteProject(project);
+    if (!normalized) return '';
+    const files = normalized.files.map(function(file) {
+        return file.path + ':' + websiteShortFingerprint(file.content);
+    }).join('|');
+    const assets = websiteState.assets.map(function(asset) {
+        return asset.path + ':' + websiteShortFingerprint(String(asset.dataUrl || '') + ':' + Number(asset.size || 0));
+    }).join('|');
+    return websiteShortFingerprint(normalized.entry + '|' + files + '|' + assets);
+}
+
+function setWebsitePreviewLoading(loading, message) {
+    const w = getWebsiteUI();
+    const active = Boolean(loading);
+    w.previewLoader?.classList.toggle('hidden', !active);
+    w.previewLoader?.setAttribute('aria-hidden', String(!active));
+    if (active && message) {
+        const small = w.previewLoader?.querySelector('small');
+        if (small) small.textContent = message;
+    }
+    w.previewShell?.classList.toggle('is-loading-preview', active);
+    if (!active && websiteState.previewLoadTimer) {
+        clearTimeout(websiteState.previewLoadTimer);
+        websiteState.previewLoadTimer = 0;
+    }
+}
+
+function scheduleWebsitePreviewRefresh(force) {
+    if (!websiteState.previewOpen || !websiteState.project) return false;
+    if (websiteState.previewRefreshFrame) cancelAnimationFrame(websiteState.previewRefreshFrame);
+    setWebsitePreviewLoading(true, 'دمج الملفات وتشغيل الموقع...');
+    websiteState.previewRefreshFrame = requestAnimationFrame(function() {
+        websiteState.previewRefreshFrame = 0;
+        refreshWebsitePreview(Boolean(force));
+    });
+    return true;
+}
+
 function buildWebsiteLocalFileChanges(beforeProject, afterProject) {
     const before = normalizeWebsiteProject(beforeProject);
     const after = normalizeWebsiteProject(afterProject);
@@ -5030,6 +5326,7 @@ function handleWebsitePreviewMessage(event) {
     }
 
     if (data.type === 'dom-ready') {
+        setWebsitePreviewLoading(false);
         if (!websiteState.previewRuntimeErrors.length && w.previewRuntimeMessage) {
             w.previewRuntimeMessage.textContent = 'تم بناء عناصر الصفحة. يتم التحقق من اكتمال التشغيل...';
         }
@@ -5037,6 +5334,7 @@ function handleWebsitePreviewMessage(event) {
     }
 
     if (data.type === 'runtime-error') {
+        setWebsitePreviewLoading(false);
         const message = String(data.message || 'JavaScript runtime error');
         const filename = String(data.filename || 'app.js').split('/').pop() || 'app.js';
         const line = Number(data.line || 0);
@@ -5056,6 +5354,7 @@ function handleWebsitePreviewMessage(event) {
     }
 
     if (data.type === 'loaded') {
+        setWebsitePreviewLoading(false);
         if (websiteState.previewRuntimeErrors.length || Number(data.runtimeErrors || 0) > 0) return;
         if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = 'ok'; w.previewDiagnostics.classList.add('hidden'); }
         setWebsitePreviewHealthBadge(w.previewHealthJs, 'ok');
@@ -5063,11 +5362,18 @@ function handleWebsitePreviewMessage(event) {
     }
 }
 
-function refreshWebsitePreview() {
+function refreshWebsitePreview(force) {
     const w = getWebsiteUI();
-    if (!w.previewFrame) return;
+    if (!w.previewFrame || !websiteState.previewOpen) return false;
+    const signature = getWebsitePreviewSignature(websiteState.project);
+    if (!force && signature && signature === websiteState.previewSignature && w.previewFrame.srcdoc) {
+        setWebsitePreviewLoading(false);
+        return false;
+    }
+
     websiteState.previewRenderToken = 'aklake-preview-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
     resetWebsitePreviewDiagnostics(websiteState.project ? 'loading' : 'idle');
+    setWebsitePreviewLoading(true, 'دمج HTML وCSS وJavaScript وتشغيل الموقع...');
     const doc = websiteState.project ? buildWebsitePreviewDocument(websiteState.project, websiteState.previewRenderToken) : '';
     if (!doc) {
         setWebsitePreviewHealthBadge(w.previewHealthHtml, 'error');
@@ -5076,10 +5382,21 @@ function refreshWebsitePreview() {
         if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = 'error'; w.previewDiagnostics.classList.remove('hidden'); }
         if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'تعذر بناء وثيقة المعاينة من الملفات الحالية.';
         w.previewFrame.srcdoc = '';
-        return;
+        websiteState.previewSignature = '';
+        setWebsitePreviewLoading(false);
+        return false;
     }
-    // بصمة جديدة في كل تشغيل تمنع بقاء نسخة iframe السابقة بعد التعديل أو الرجوع إلى نسخة قديمة.
+
+    websiteState.previewSignature = signature;
     w.previewFrame.srcdoc = doc + '\n<!-- AKLAKE_RENDER_' + websiteState.previewRenderToken + ' -->';
+    if (websiteState.previewLoadTimer) clearTimeout(websiteState.previewLoadTimer);
+    websiteState.previewLoadTimer = setTimeout(function() {
+        setWebsitePreviewLoading(false);
+        if (w.previewRuntimeMessage && !websiteState.previewRuntimeErrors.length) {
+            w.previewRuntimeMessage.textContent = 'تم إرسال الموقع إلى المعاينة. قد تتأخر بعض الموارد الخارجية التي أضافها الكود المولد.';
+        }
+    }, 3500);
+    return true;
 }
 
 function openWebsiteInExternalTab() {
@@ -5093,7 +5410,7 @@ function openWebsiteInExternalTab() {
     const wrapper = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
         '<title>AKLAKE Preview</title><style>html,body,iframe{width:100%;height:100%;margin:0;border:0;display:block;background:#fff}body{overflow:hidden}</style></head><body>' +
         '<iframe id="aklake-external-preview" sandbox="allow-scripts allow-forms allow-modals allow-downloads" referrerpolicy="no-referrer"></iframe>' +
-        '<script>elementById("aklake-external-preview").srcdoc=' + safeDoc + ';<\\/script></body></html>';
+        '<script>document.getElementById("aklake-external-preview").srcdoc=' + safeDoc + ';<\\/script></body></html>';
     const blob = new Blob([wrapper], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const opened = window.open(url, '_blank');
@@ -5116,7 +5433,8 @@ function activateWebsiteProject(project, changedFiles) {
     renderWebsiteAssetsTray();
     renderWebsiteFileTree();
     selectWebsiteFile(websiteState.activeFilePath || normalized.entry);
-    refreshWebsitePreview();
+    websiteState.previewSignature = '';
+    if (websiteState.previewOpen && websiteState.activeView === 'preview') scheduleWebsitePreviewRefresh(false);
     w.generationCard?.classList.add('hidden');
     w.completeCard?.classList.add('hidden');
 
@@ -5263,6 +5581,9 @@ function showWebsiteView(view) {
     document.querySelectorAll('[data-website-view]').forEach(function(btn) {
         btn.classList.toggle('active', btn.dataset.websiteView === normalizedView);
     });
+    if (normalizedView === 'preview' && websiteState.previewOpen && websiteState.project) {
+        scheduleWebsitePreviewRefresh(false);
+    }
 }
 
 function createWebsiteJobId() {
@@ -5571,6 +5892,10 @@ function resetWebsiteBuilder() {
     websiteState.versionSequence = 0;
     websiteState.previewRenderToken = '';
     websiteState.previewRuntimeErrors = [];
+    websiteState.previewSignature = '';
+    if (websiteState.previewRefreshFrame) cancelAnimationFrame(websiteState.previewRefreshFrame);
+    websiteState.previewRefreshFrame = 0;
+    setWebsitePreviewLoading(false);
     websiteState.assets = [];
     websiteState.activeAssetPath = '';
     clearWebsiteReference();
@@ -5695,8 +6020,8 @@ window.initWebsiteBuilder = function() {
     w.closePreviewBtn?.addEventListener('click', closeWebsitePreviewWorkspace);
     w.openBrowserBtn?.addEventListener('click', openWebsiteInExternalTab);
     w.refreshPreviewBtn?.addEventListener('click', function() {
-        refreshWebsitePreview();
-        setWebsiteStatus('تم تحديث المعاينة.', 'success');
+        scheduleWebsitePreviewRefresh(true);
+        setWebsiteStatus('يتم تحديث المعاينة...', 'loading');
     });
     w.copyCodeBtn?.addEventListener('click', async function() {
         const asset = getWebsiteAsset(websiteState.activeAssetPath);
@@ -5920,7 +6245,17 @@ function contextHistoryCard(item, options) {
     button.querySelector('strong').textContent = item.title || 'بدون عنوان';
     button.querySelector('small').textContent = item.subtitle || '';
     button.querySelector('.context-history-card-meta').textContent = item.meta || '';
-    if (typeof item.onClick === 'function') button.addEventListener('click', item.onClick);
+    if (typeof item.onClick === 'function') {
+        button.addEventListener('click', async function(event) {
+            // أغلق سجل «أعمالي» أولًا حتى لا يتداخل تخطيطه مع معاينة الأداة التي ستُفتح.
+            setContextHistoryOpen(false);
+            try {
+                await item.onClick(event);
+            } catch (error) {
+                console.error('تعذر فتح العنصر المحفوظ:', error);
+            }
+        });
+    }
     return button;
 }
 
