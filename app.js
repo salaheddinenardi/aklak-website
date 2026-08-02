@@ -15,7 +15,6 @@ let currentUser = null;
 let isLoginMode = true;
 const FIRST_FUNCTION_ID = '6a3c7a760032067bd275';
 const SECOND_FUNCTION_ID = '6a5a7785002b4083d361';
-const AGENT_AVATAR_URL = 'https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif';
 const MODEL_MEMORY_KEY = 'aklake_remembered_models_v1';
 const AUTO_BOOK_VALUE = 'لم أقم بتحديدها؛ اقرأ وصف الكتاب وحددها بنفسك.';
 const MODEL_CATALOG = {
@@ -665,18 +664,6 @@ window.addEventListener('DOMContentLoaded', function() {
         setUnifiedComposerMode('text');
     });
 
-    const libraryToggle = document.getElementById('library-toggle-btn');
-    const librarySection = document.getElementById('my-library-section');
-    if (libraryToggle && librarySection) {
-        libraryToggle.addEventListener('click', function() {
-            openWorkspace();
-            librarySection.classList.toggle('hidden');
-        });
-    }
-    document.querySelectorAll('[data-close-library]').forEach(function(button) {
-        button.addEventListener('click', function() { librarySection.classList.add('hidden'); });
-    });
-
     if (ui.openChatBtn) {
         ui.openChatBtn.addEventListener('click', function() {
             const firstPrompt = ui.quickPrompt ? ui.quickPrompt.value.trim() : '';
@@ -733,7 +720,6 @@ function initProfileDrawer() {
     const trigger = document.getElementById('profile-header-btn');
     const closeButton = document.getElementById('profile-close-btn');
     const overlay = document.getElementById('profile-overlay');
-    const profileCart = document.getElementById('profile-cart-btn');
     trigger?.addEventListener('click', function() {
         setProfileDrawerOpen(document.getElementById('profile-drawer')?.classList.contains('hidden'));
     });
@@ -745,6 +731,10 @@ function initProfileDrawer() {
     document.querySelectorAll('[data-add-tokens]').forEach(function(button) {
         button.addEventListener('click', showPaymentUnavailable);
     });
+    const notificationButton = document.getElementById('notification-header-btn');
+    notificationButton?.addEventListener('click', function() {
+        alert('لا توجد إشعارات جديدة حاليًا.');
+    });
     const creditSource = document.getElementById('user-credits');
     const profileCreditCount = document.getElementById('profile-credit-count');
     if (creditSource && profileCreditCount) {
@@ -752,13 +742,6 @@ function initProfileDrawer() {
         syncProfileCredits();
         new MutationObserver(syncProfileCredits).observe(creditSource, { childList: true, characterData: true, subtree: true });
     }
-    profileCart?.addEventListener('click', function() {
-        setProfileDrawerOpen(false);
-        openWorkspace();
-        const librarySection = document.getElementById('my-library-section');
-        if (librarySection) librarySection.classList.remove('hidden');
-        document.querySelector('[data-library-tab="cart"]')?.click();
-    });
 }
 
 function mountBookStageMessage(element, options) {
@@ -767,10 +750,6 @@ function mountBookStageMessage(element, options) {
     row.id = options.rowId;
     row.className = 'message-row assistant-message book-stage-message hidden';
     row.dataset.conversation = 'book';
-
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar agent-avatar';
-    avatar.innerHTML = '<img src="' + AGENT_AVATAR_URL + '" alt="مؤلف AKLAKE">';
 
     const content = document.createElement('div');
     content.className = 'message-content book-stage-content';
@@ -785,7 +764,7 @@ function mountBookStageMessage(element, options) {
 
     bubble.append(heading, element);
     content.append(bubble, source);
-    row.append(avatar, content);
+    row.appendChild(content);
     ui.chatMessages.appendChild(row);
 
     const syncVisibility = function() {
@@ -890,13 +869,6 @@ function renderBookOutlineMessage(outline, sourceLabel) {
     row.className = 'message-row assistant-message book-outline-message';
     row.dataset.conversation = 'book';
 
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar agent-avatar';
-    const avatarImage = document.createElement('img');
-    avatarImage.src = AGENT_AVATAR_URL;
-    avatarImage.alt = 'مؤلف AKLAKE';
-    avatar.appendChild(avatarImage);
-
     const content = document.createElement('div');
     content.className = 'message-content';
     const bubble = document.createElement('div');
@@ -941,7 +913,7 @@ function renderBookOutlineMessage(outline, sourceLabel) {
     source.className = 'message-source';
     source.textContent = sourceLabel || 'خطة أنشأها مؤلف الكتب';
     content.append(bubble, actions, smartEditor, source);
-    row.append(avatar, content);
+    row.appendChild(content);
     ui.chatMessages.appendChild(row);
     if (typeof syncConversationThreads === 'function') syncConversationThreads();
 

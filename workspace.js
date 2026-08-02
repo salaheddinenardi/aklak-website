@@ -81,11 +81,12 @@ function appendChatMessage(role, content, metadata, resultType) {
     row.className = `message-row ${role === 'user' ? 'user-message' : 'assistant-message'}`;
     row.dataset.conversation = getActiveConversationKey();
 
-    const avatar = document.createElement('div');
-    avatar.className = role === 'user' ? 'message-avatar' : 'message-avatar agent-avatar';
-    avatar.innerHTML = role === 'user'
-        ? '<i class="far fa-user"></i>'
-        : '<img src="' + AGENT_AVATAR_URL + '" alt="وكيل AKLAKE">';
+    let avatar = null;
+    if (role === 'user') {
+        avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.innerHTML = '<i class="far fa-user"></i>';
+    }
 
     const contentWrap = document.createElement('div');
     contentWrap.className = 'message-content';
@@ -110,7 +111,7 @@ function appendChatMessage(role, content, metadata, resultType) {
         contentWrap.appendChild(source);
     }
 
-    row.appendChild(avatar);
+    if (avatar) row.appendChild(avatar);
     row.appendChild(contentWrap);
     ui.chatMessages.appendChild(row);
     scrollChatToBottom();
@@ -123,7 +124,6 @@ function appendTypingIndicator() {
     row.className = 'message-row assistant-message typing-row';
     row.dataset.conversation = getActiveConversationKey();
     row.innerHTML = `
-        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
         <div class="message-content">
             <div class="message-bubble typing-bubble" aria-label="النموذج يكتب">
                 <i></i><i></i><i></i><i></i>
@@ -5757,6 +5757,7 @@ const CONTEXT_WEBSITE_PROJECTS_KEY = 'aklake_website_projects_history_v1';
 const CONTEXT_WEBSITE_MAX_PROJECTS = 12;
 const CONTEXT_WEBSITE_MAX_CONVERSATIONS = 24;
 let contextHistoryTab = 'conversations';
+let contextHistoryRequestedOpen = false;
 let contextBookCache = [];
 let contextBookCacheUserId = '';
 let contextBookLoading = false;
@@ -5870,6 +5871,10 @@ function persistContextWebsiteProject(version) {
     writeContextWebsiteProjects(projects);
 }
 
+<<<<<<< HEAD
+function contextHistoryVisibleForAction() {
+    return contextHistoryRequestedOpen;
+=======
 function contextHistoryVisibleForAction(action) {
     if (!['website_builder', 'landing_page', 'cv_builder', 'book_outline'].includes(action)) return false;
     if (action === 'website_builder') return !websiteState.previewOpen && !websiteState.project;
@@ -5990,11 +5995,21 @@ async function renderContextHistory(forceBooks) {
     const visible = contextHistoryVisibleForAction(action);
     c.panel.classList.toggle('hidden', !visible);
     c.shell.classList.toggle('has-context-history', visible);
+    const libraryToggle = elementById('library-toggle-btn');
+    libraryToggle?.classList.toggle('active', visible);
+    libraryToggle?.setAttribute('aria-expanded', String(visible));
     if (!visible) return;
 
     const meta = getContextToolMeta(action);
     if (c.title) c.title.textContent = meta.title;
     if (c.kicker) c.kicker.textContent = meta.kicker;
+    const emptyTitle = c.empty?.querySelector('strong');
+    const emptyDescription = c.empty?.querySelector('span');
+    const hasPersistentHistory = ['website_builder', 'landing_page', 'cv_builder', 'book_outline', 'art_studio'].includes(action);
+    if (emptyTitle) emptyTitle.textContent = hasPersistentHistory ? 'لا يوجد سجل بعد' : 'لا توجد محفوظات لهذه الأداة';
+    if (emptyDescription) emptyDescription.textContent = hasPersistentHistory
+        ? 'المشاريع والمحادثات التي تنشئها بهذه الأداة ستظهر هنا تلقائيًا.'
+        : 'هذه الأداة لا تحفظ سجلًا دائمًا حاليًا.';
     document.querySelectorAll('[data-context-history-tab]').forEach(function(tab) {
         const active = tab.dataset.contextHistoryTab === contextHistoryTab;
         tab.classList.toggle('active', active);
@@ -6080,6 +6095,27 @@ async function renderContextHistory(forceBooks) {
                     meta: contextDate(entry.version.createdAt) + ' ' + contextTime(entry.version.createdAt),
                     onClick: function() { openCVProject(entry.project.id, entry.version.id); }
                 }, { conversation: true, icon: 'fa-message' }));
+            });
+        }
+    } else if (action === 'art_studio') {
+        const artworks = safeReadLocalList(ARTWORKS_STORAGE_KEY);
+        if (contextHistoryTab === 'projects') {
+            artworks.forEach(function(item) {
+                c.list.appendChild(contextHistoryCard({
+                    title: item.title || item.sizeLabel || 'لوحة محفوظة',
+                    subtitle: item.sizeLabel || 'لوحة فنية',
+                    meta: contextDate(item.createdAt),
+                    onClick: function() {
+                        window.selectAITool('art_studio');
+                        createArtFrame(item.size || 'medium', {
+                            orientation: item.orientation || 'horizontal',
+                            frameStyle: item.frameStyle || 'classic',
+                            imageData: item.imageData || '',
+                            hasGenerated: true,
+                            prompt: item.prompt || ''
+                        });
+                    }
+                }, { icon: 'fa-palette' }));
             });
         }
     } else if (action === 'website_builder') {
@@ -6195,6 +6231,13 @@ window.saveLandingVersion = saveLandingVersion;
 function initContextHistoryPanel() {
     const c = getContextHistoryUI();
     if (!c.panel) return;
+    const libraryToggle = elementById('library-toggle-btn');
+    if (libraryToggle && libraryToggle.dataset.contextHistoryBound !== 'true') {
+        libraryToggle.dataset.contextHistoryBound = 'true';
+        libraryToggle.setAttribute('aria-controls', 'context-history-panel');
+        libraryToggle.setAttribute('aria-expanded', 'false');
+        libraryToggle.addEventListener('click', toggleContextHistoryPanel);
+    }
     document.querySelectorAll('[data-context-history-tab]').forEach(function(tab) {
         tab.addEventListener('click', function() {
             contextHistoryTab = tab.dataset.contextHistoryTab === 'projects' ? 'projects' : 'conversations';

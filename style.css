@@ -1251,7 +1251,7 @@ body::after {
     inset: -5%;
     z-index: -2;
     pointer-events: none;
-    background-image: url('https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2F0a4c679d-d98e-4e0c-98d7-3e62f8f42fe0.gif');
+    background-image: url('https://i.ibb.co/RpL2Rz49/Wallpaper-HD.jpg');
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center center;
@@ -1453,7 +1453,7 @@ body::after {
    UNIFIED CHAT â€” Ø§Ù„Ø´Ø§Øª ÙˆØ§Ù„ØµÙˆØ± ÙˆØ§Ø®ØªÙŠØ§Ø± Ø§Ù„Ù†Ù…ÙˆØ°Ø¬ ÙÙŠ Ù…ÙƒØ§Ù† ÙˆØ§Ø­Ø¯
    ========================================================= */
 body::after {
-    background-image: url('https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2F0a4c679d-d98e-4e0c-98d7-3e62f8f42fe0.gif') !important;
+    background-image: url('https://i.ibb.co/RpL2Rz49/Wallpaper-HD.jpg') !important;
     background-repeat: no-repeat !important;
     background-size: cover !important;
     background-position: center center;
@@ -1706,7 +1706,7 @@ body::after { content: none !important; }
 @media (min-width: 721px) {
     body {
         background-color: #010503 !important;
-        background-image: url('https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2F0a4c679d-d98e-4e0c-98d7-3e62f8f42fe0.gif') !important;
+        background-image: url('https://i.ibb.co/RpL2Rz49/Wallpaper-HD.jpg') !important;
         background-repeat: no-repeat !important;
         background-position: center center !important;
         background-size: cover !important;
@@ -5505,4 +5505,131 @@ body.workspace-open .app-shell.has-context-history .context-history-panel {
         height: 124px;
         flex-basis: 124px;
     }
+}
+
+
+/* =========================================================
+   FINAL UI POLISH — خلفية ثابتة، شريط أنحف، إشعارات، وسجل يدوي
+   ========================================================= */
+@media (min-width: 721px) {
+    body {
+        background-color: #050706 !important;
+        background-image: url('https://i.ibb.co/RpL2Rz49/Wallpaper-HD.jpg') !important;
+        background-repeat: no-repeat !important;
+        background-position: center center !important;
+        background-size: cover !important;
+        background-attachment: fixed !important;
+    }
+}
+body::after { content: none !important; animation: none !important; }
+body::before {
+    background:
+        linear-gradient(180deg, rgba(0,0,0,.28), rgba(0,8,5,.46)),
+        radial-gradient(circle at 18% 22%, rgba(121,226,173,.07), transparent 28%) !important;
+}
+
+/* لا تُعرض صورة للوكيل أو النموذج داخل المحادثات. */
+.message-avatar.agent-avatar,
+.agent-avatar { display: none !important; }
+.assistant-message > .message-content,
+.website-state-row > .message-content { max-width: min(760px, 100%); }
+
+/* تصغير الشريط العلوي مع الإبقاء على الاسم وزر الإعدادات واضحين. */
+.workspace-header {
+    min-height: 58px !important;
+    padding-block: 5px !important;
+    gap: 12px !important;
+}
+.workspace-header h2 {
+    margin-top: 2px !important;
+    font-size: 1.08rem !important;
+    line-height: 1.2;
+}
+.workspace-kicker { font-size: .58rem !important; letter-spacing: 1.15px !important; }
+.workspace-header .icon-button {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+}
+@media (max-width: 720px) {
+    .workspace-header { min-height: 52px !important; padding-inline: 10px; }
+    .workspace-header h2 { font-size: .98rem !important; }
+}
+
+/* زر الإشعارات يظهر في الشريط العلوي وينتقل مع الحساب إلى شريط الأدوات. */
+.notification-header-btn { position: relative; }
+body.workspace-open .tools-sidebar #notification-header-btn { order: 3; }
+body.workspace-open .tools-sidebar #cart-header-btn { order: 4; }
+body.workspace-open .tools-sidebar .account-actions > #notification-header-btn {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 7px 10px;
+    color: #c1dfcf;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    box-shadow: none;
+    text-align: right;
+}
+body.workspace-open .tools-sidebar .account-actions > #notification-header-btn:hover {
+    color: #fff;
+    background: rgba(121,226,173,.09);
+    border-color: rgba(121,226,173,.18);
+}
+body.workspace-open .tools-sidebar #notification-header-btn > i:first-child {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 34px;
+    color: var(--green-bright);
+    background: rgba(121,226,173,.09);
+    border-radius: 6px;
+}
+
+/* في أوضاع المعاينة يتحول الجرس إلى أيقونة مضغوطة مثل بقية عناصر الحساب. */
+.app-shell.website-preview-layout[data-action="website_builder"] .account-actions > #notification-header-btn,
+.app-shell.landing-preview-layout[data-action="landing_page"] .account-actions > #notification-header-btn,
+.app-shell.landing-preview-layout[data-action="cv_builder"] .account-actions > #notification-header-btn {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 7px;
+    font-size: 0;
+    border-radius: 11px;
+}
+.app-shell.website-preview-layout[data-action="website_builder"] #notification-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="landing_page"] #notification-header-btn > i:first-child,
+.app-shell.landing-preview-layout[data-action="cv_builder"] #notification-header-btn > i:first-child {
+    width: 34px !important;
+    height: 34px !important;
+    display: grid !important;
+    place-items: center;
+    flex: 0 0 34px !important;
+    font-size: 1rem !important;
+    color: var(--green-bright, #79e2ad) !important;
+}
+
+/* السلة محفوظة بصريًا لكنها غير قابلة للتفاعل حتى تطويرها لاحقًا. */
+#cart-header-btn:disabled,
+#profile-cart-btn:disabled {
+    cursor: default !important;
+    opacity: .48;
+    pointer-events: none;
+}
+
+/* زر أعمالي أصبح مفتاح القائمة الجانبية الحالية بدل النافذة القديمة. */
+#library-toggle-btn.active {
+    color: #fff;
+    background: rgba(121,226,173,.11);
+    border-color: rgba(121,226,173,.2);
 }

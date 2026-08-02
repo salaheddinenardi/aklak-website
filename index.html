@@ -23,7 +23,8 @@
             <span id="user-info" class="credit-pill hidden" title="رصيد التوكن"><i class="fas fa-bolt token-mark"></i><span class="account-item-label">التوكن</span><span id="user-credits" class="token-value">0</span></span>
             <button class="token-add-btn hidden" type="button" data-add-tokens aria-label="إضافة توكن" title="إضافة توكن"><i class="fas fa-plus"></i></button>
         </div>
-        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات" title="السلة"><i class="fas fa-bag-shopping"></i><span class="account-item-label">السلة</span><b id="cart-count">0</b></button>
+        <button id="notification-header-btn" class="account-btn notification-header-btn" type="button" aria-label="الإشعارات" title="الإشعارات"><i class="far fa-bell"></i><span class="account-item-label">الإشعارات</span></button>
+        <button id="cart-header-btn" class="account-btn cart-header-btn" type="button" aria-label="سلة المشتريات — قيد التطوير" title="السلة قيد التطوير" aria-disabled="true" disabled><i class="fas fa-bag-shopping"></i><span class="account-item-label">السلة</span><b id="cart-count">0</b></button>
         <button id="login-btn" class="account-btn" onclick="openModal()"><i class="far fa-user"></i><span class="account-item-label account-login-label">تسجيل الدخول</span></button>
         <button id="profile-header-btn" class="profile-header-btn hidden" type="button" aria-label="فتح الملف الشخصي" aria-expanded="false">
             <i class="far fa-circle-user"></i><span class="account-item-label">البروفيل</span><span id="header-user-name">حسابي</span><i class="fas fa-chevron-down profile-chevron"></i>
@@ -39,7 +40,7 @@
         <button id="profile-close-btn" type="button" aria-label="إغلاق الملف الشخصي"><i class="fas fa-xmark"></i></button>
     </div>
     <div class="profile-drawer-list">
-        <button id="profile-cart-btn" class="profile-menu-item" type="button">
+        <button id="profile-cart-btn" class="profile-menu-item" type="button" aria-disabled="true" disabled title="السلة قيد التطوير">
             <span class="profile-item-icon"><i class="fas fa-bag-shopping"></i></span>
             <span><strong>السلة</strong><small>راجع الأعمال والمنتجات التي اخترتها</small></span>
             <i class="fas fa-chevron-left"></i>
@@ -111,31 +112,6 @@
                 <h2 id="workspace-title">محادثة جديدة</h2>
             </div>
             <button id="settings-toggle-btn" class="icon-button" type="button" aria-label="إعدادات النموذج" title="إعدادات النموذج"><i class="fas fa-sliders"></i></button>
-        </div>
-
-        <div id="my-library-section" class="library-drawer hidden">
-            <div class="panel-heading">
-                <div><span class="panel-eyebrow">MY CREATIONS</span><h3><i class="fas fa-layer-group"></i> أعمالي المحفوظة</h3></div>
-                <button type="button" class="close-panel-btn" data-close-library><i class="fas fa-xmark"></i></button>
-            </div>
-            <div class="library-tabs" role="tablist">
-                <button class="library-tab active" type="button" data-library-tab="books"><i class="fas fa-book"></i> الكتب</button>
-                <button class="library-tab" type="button" data-library-tab="artworks"><i class="fas fa-palette"></i> اللوحات</button>
-                <button class="library-tab" type="button" data-library-tab="cart"><i class="fas fa-bag-shopping"></i> السلة <b id="drawer-cart-count">0</b></button>
-            </div>
-            <div class="library-panel" data-library-panel="books">
-                <div id="my-library-list"></div>
-                <button onclick="window.selectAITool('book_outline')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء كتاب جديد</button>
-            </div>
-            <div class="library-panel hidden" data-library-panel="artworks">
-                <div id="artworks-library-list" class="artworks-library-grid"></div>
-                <button onclick="window.selectAITool('art_studio')" class="small-primary-btn"><i class="fas fa-plus"></i> إنشاء لوحة جديدة</button>
-            </div>
-            <div class="library-panel hidden" data-library-panel="cart">
-                <div id="cart-list" class="cart-list"></div>
-                <div class="cart-summary"><span>المجموع المؤقت</span><strong id="cart-total">0.00 $</strong></div>
-                <button id="checkout-btn" class="small-primary-btn checkout-btn"><i class="fas fa-lock"></i> إكمال الشراء لاحقًا</button>
-            </div>
         </div>
 
         <div id="main-inputs-wrapper">
@@ -337,16 +313,14 @@
 
             <div id="landing-conversation" class="landing-conversation" aria-live="polite">
                 <div class="message-row assistant-message landing-welcome-message">
-                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل صفحات الهبوط"></div>
-                    <div class="message-content">
+<div class="message-content">
                         <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
                         <div class="message-source">مصمم صفحات الهبوط · AKLAKE</div>
                     </div>
                 </div>
 
                 <div id="landing-generation-card" class="message-row assistant-message landing-state-row hidden">
-                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل صفحات الهبوط"></div>
-                    <div class="message-content landing-state-content">
+<div class="message-content landing-state-content">
                         <div class="message-bubble landing-generation-bubble">
                             <img class="landing-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يجري إنشاء صفحة الهبوط" loading="eager">
                             <div class="landing-live-progress" role="progressbar" aria-label="يجري إنشاء صفحة الهبوط"><span></span></div>
@@ -356,8 +330,7 @@
                 </div>
 
                 <div id="landing-complete-card" class="message-row assistant-message landing-state-row hidden">
-                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل صفحات الهبوط"></div>
-                    <div class="message-content landing-state-content">
+<div class="message-content landing-state-content">
                         <div class="message-bubble landing-complete-bubble">
                             <span class="landing-complete-icon"><i class="fas fa-check"></i></span>
                             <div><span>اكتملت صفحة الهبوط</span><strong id="landing-complete-title">—</strong><small>جاهزة للمعاينة أو تنزيل ملف HTML</small></div>
@@ -490,16 +463,14 @@
 
                 <div id="cv-conversation" class="landing-conversation" aria-live="polite">
                     <div class="message-row assistant-message landing-welcome-message">
-                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل السيرة الذاتية"></div>
-                        <div class="message-content">
+<div class="message-content">
                             <div class="message-bubble">مرحبًا، أخبرني عنك وعن الوظيفة التي تستهدفها، وسأحوّل معلوماتك إلى سيرة ذاتية احترافية قابلة للمعاينة والتحميل.</div>
                             <div class="message-source">مصمم السيرة الذاتية · الكود الوظيفي الأول</div>
                         </div>
                     </div>
 
                     <div id="cv-generation-card" class="message-row assistant-message landing-state-row hidden">
-                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل السيرة الذاتية"></div>
-                        <div class="message-content landing-state-content">
+<div class="message-content landing-state-content">
                             <div class="message-bubble landing-generation-bubble">
                                 <img class="landing-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يجري إنشاء السيرة الذاتية" loading="eager">
                                 <div class="landing-live-progress" role="progressbar" aria-label="يجري إنشاء السيرة الذاتية"><span></span></div>
@@ -509,8 +480,7 @@
                     </div>
 
                     <div id="cv-complete-card" class="message-row assistant-message landing-state-row hidden">
-                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل السيرة الذاتية"></div>
-                        <div class="message-content landing-state-content">
+<div class="message-content landing-state-content">
                             <div class="message-bubble landing-complete-bubble">
                                 <span class="landing-complete-icon"><i class="fas fa-check"></i></span>
                                 <div><span>السيرة الذاتية جاهزة</span><strong id="cv-complete-title">—</strong><small>جاهزة للمعاينة أو تنزيل ملف HTML</small></div>
@@ -714,12 +684,10 @@
 
                 <div id="website-conversation" class="website-conversation" aria-live="polite">
                     <div class="message-row assistant-message website-welcome-message">
-                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
-                        <div class="message-content"><div class="message-bubble">صف الموقع الذي تريد بناءه، وسأنشئه في ثلاثة ملفات كود تعمل معًا: index.html و style.css و app.js، ويمكنك إضافة الصور والصوت والملفات داخل assets/.</div><div class="message-source">منشئ المواقع · الكود الوظيفي الأول</div></div>
+<div class="message-content"><div class="message-bubble">صف الموقع الذي تريد بناءه، وسأنشئه في ثلاثة ملفات كود تعمل معًا: index.html و style.css و app.js، ويمكنك إضافة الصور والصوت والملفات داخل assets/.</div><div class="message-source">منشئ المواقع · الكود الوظيفي الأول</div></div>
                     </div>
                     <div id="website-generation-card" class="message-row assistant-message website-state-row hidden">
-                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
-                        <div class="message-content website-state-content">
+<div class="message-content website-state-content">
                             <div class="message-bubble website-generation-bubble">
                                 <div class="website-preview-typing" aria-label="يتم تعديل الموقع"><i></i><i></i><i></i></div>
                                 <img class="website-progress-image" src="https://i.ibb.co/vvqq7P0H/Find-Share-on-GIPHY.gif" alt="يجري إنشاء الموقع" loading="eager">
@@ -729,8 +697,7 @@
                         </div>
                     </div>
                     <div id="website-complete-card" class="message-row assistant-message website-state-row hidden">
-                        <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
-                        <div class="message-content website-state-content">
+<div class="message-content website-state-content">
                             <div class="message-bubble website-complete-bubble">
                                 <span class="website-complete-icon"><i class="fas fa-check"></i></span>
                                 <div><span>اكتمل الموقع</span><strong id="website-complete-title">موقع جديد</strong><small id="website-complete-meta">جاهز للمعاينة وتصفح ملفات المشروع</small></div>
@@ -843,15 +810,13 @@
         <div id="chat-stream" class="chat-stream">
             <div id="chat-messages" class="chat-messages" aria-live="polite">
                 <div id="default-welcome-message" class="message-row assistant-message">
-                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="وكيل AKLAKE"></div>
-                    <div class="message-content">
+<div class="message-content">
                         <div class="message-bubble">مرحبًا، أخبرني بما تريد إنجازه وسأبدأ معك من هنا.</div>
                         <div class="message-source">جاهز للمحادثة عبر الكود الوظيفي الثاني</div>
                     </div>
                 </div>
                 <div id="book-welcome-message" class="message-row assistant-message hidden">
-                    <div class="message-avatar agent-avatar"><img src="https://static.verse.works/image/source/static%2Fuploads%2F0x7c1bd459dae8ec0bb45fe3172fd58a2b53972e5c%2Fc96cf9cb-273c-4b48-b7ba-7193e06b0336.gif" alt="مؤلف AKLAKE"></div>
-                    <div class="message-content">
+<div class="message-content">
                         <div class="message-bubble">ما شكل الكتاب الذي تريد إنجازه، أيها البشري؟ صفه بطريقتك، وسأحوّل فكرتك إلى خطة واضحة.</div>
                         <div class="message-source">مؤلف الكتب · AKLAKE</div>
                     </div>
