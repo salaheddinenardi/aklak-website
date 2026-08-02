@@ -32,6 +32,7 @@ function showHomeScreen() {
     if (ui.appShell) ui.appShell.classList.add('is-collapsed');
     document.body.classList.remove('workspace-open');
     syncWorkspaceChrome(false);
+    if (typeof window.setContextHistoryOpen === 'function') window.setContextHistoryOpen(false);
     const libraryDrawer = elementById('my-library-section');
     if (libraryDrawer) libraryDrawer.classList.add('hidden');
     if (typeof closeArtDialogs === 'function') closeArtDialogs();
@@ -5139,10 +5140,6 @@ function appendWebsiteVersionCard(version) {
     row.dataset.websiteDynamic = 'true';
     row.dataset.websiteVersionId = version.id;
 
-    const avatar = document.createElement('div');
-    avatar.className = 'message-avatar agent-avatar';
-    avatar.innerHTML = '<img src="' + AGENT_AVATAR_URL + '" alt="وكيل AKLAKE">';
-
     const content = document.createElement('div');
     content.className = 'message-content website-state-content';
     const bubble = document.createElement('div');
@@ -5186,7 +5183,7 @@ function appendWebsiteVersionCard(version) {
         content.appendChild(proof);
     }
 
-    row.append(avatar, content);
+    row.appendChild(content);
     w.conversation.insertBefore(row, w.generationCard || null);
     syncWebsiteVersionCards();
 }
@@ -5871,31 +5868,46 @@ function persistContextWebsiteProject(version) {
     writeContextWebsiteProjects(projects);
 }
 
-<<<<<<< HEAD
 function contextHistoryVisibleForAction() {
     return contextHistoryRequestedOpen;
-=======
-function contextHistoryVisibleForAction(action) {
-    if (!['website_builder', 'landing_page', 'cv_builder', 'book_outline'].includes(action)) return false;
-    if (action === 'website_builder') return !websiteState.previewOpen && !websiteState.project;
-    if (action === 'landing_page') return !landingState.previewOpen && !landingState.activeProjectId;
-    if (action === 'cv_builder') return !cvState.previewOpen && !cvState.activeProjectId;
-    if (action === 'book_outline') {
-        const viewer = elementById('intro-area');
-        const progress = elementById('auto-generation-status');
-        const viewerOpen = Boolean(viewer && !viewer.classList.contains('hidden') && viewer.classList.contains('is-book-viewer'));
-        const generating = Boolean(progress && !progress.classList.contains('hidden'));
-        return !viewerOpen && !generating;
-    }
-    return false;
 }
 
 function getContextToolMeta(action) {
     if (action === 'website_builder') return { title: 'مواقعك', kicker: 'WEBSITE HISTORY', icon: 'fa-code' };
     if (action === 'landing_page') return { title: 'صفحات الهبوط', kicker: 'LANDING HISTORY', icon: 'fa-window-maximize' };
     if (action === 'cv_builder') return { title: 'السير الذاتية', kicker: 'CV HISTORY', icon: 'fa-id-card' };
-    return { title: 'كتبك', kicker: 'BOOK HISTORY', icon: 'fa-book-open' };
+    if (action === 'book_outline') return { title: 'كتبك', kicker: 'BOOK HISTORY', icon: 'fa-book-open' };
+    if (action === 'art_studio') return { title: 'لوحاتك', kicker: 'ART HISTORY', icon: 'fa-palette' };
+    if (action === 'generate') return { title: 'صورك', kicker: 'IMAGE HISTORY', icon: 'fa-image' };
+    if (action === 'edit') return { title: 'تعديلات الصور', kicker: 'IMAGE EDITS', icon: 'fa-wand-magic-sparkles' };
+    return { title: 'محادثاتك', kicker: 'CHAT HISTORY', icon: 'fa-message' };
 }
+
+function restoreToolChatForHistory(action) {
+    if (action === 'website_builder' && websiteState.previewOpen) {
+        if (typeof window.closeWebsitePreviewWorkspace === 'function') window.closeWebsitePreviewWorkspace();
+    } else if (action === 'landing_page' && landingState.previewOpen) {
+        if (typeof window.closeLandingPreviewWorkspace === 'function') window.closeLandingPreviewWorkspace();
+    } else if (action === 'cv_builder' && cvState.previewOpen) {
+        if (typeof window.closeCVPreviewWorkspace === 'function') window.closeCVPreviewWorkspace();
+    }
+}
+
+function setContextHistoryOpen(open) {
+    contextHistoryRequestedOpen = Boolean(open);
+    const action = ui?.action?.value || 'text';
+    if (contextHistoryRequestedOpen) restoreToolChatForHistory(action);
+    const toggle = elementById('library-toggle-btn');
+    toggle?.classList.toggle('active', contextHistoryRequestedOpen);
+    toggle?.setAttribute('aria-expanded', String(contextHistoryRequestedOpen));
+    syncContextHistoryPanel();
+}
+window.setContextHistoryOpen = setContextHistoryOpen;
+
+function toggleContextHistoryPanel() {
+    setContextHistoryOpen(!contextHistoryRequestedOpen);
+}
+window.toggleContextHistoryPanel = toggleContextHistoryPanel;
 
 function contextHistoryCard(item, options) {
     const opts = options || {};
