@@ -3537,7 +3537,7 @@ async function requestCVFromFirstFunction(mode, form, instruction, currentHtml, 
         model: cvState.model,
         modelTier: cvState.model,
         cvRequest: true,
-        // مثل منشئ المواقع: النموذج يستلم مسار الأصل فقط، أما بيانات الصورة فتبقى محليًا للمعاينة والتنزيل.
+        /// مثل منشئ المواقع: النموذج يستلم مسار الأصل فقط، أما بيانات الصورة فتبقى محليًا للمعاينة والتنزيل.
         cvProfileImagePath: cvState.profileImage?.path || ''
     };
     const execution = await appwriteFunctions.createExecution(

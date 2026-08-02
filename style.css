@@ -5468,7 +5468,7 @@ body.workspace-open .app-shell.has-context-history .context-history-panel {
 
 
 /* =========================================================
-   CV INTERACTION FIX — مربع رفع واضح + أدوات تحرير ظاهرة بعد الرفع
+   CV INTERACTION FIX — مربع رفع واضح +   أدوات تحرير ظاهرة بعد الرفع
    ========================================================= */
 .app-shell[data-action="cv_builder"] #cv-photo-assistant-host .cv-photo-upload-square,
 .app-shell[data-action="cv_builder"] #cv-photo-edit-host .cv-photo-upload-square {
@@ -5509,7 +5509,7 @@ body.workspace-open .app-shell.has-context-history .context-history-panel {
 
 
 /* =========================================================
-   FINAL UI POLISH — خلفية ثابتة، شريط أنحف، إشعارات، وسجل يدوي
+   FINAL UI POLISH — خلفية ثابتة، شريط أنحف، إشعارات،   وسجل يدوي
    ========================================================= */
 @media (min-width: 721px) {
     body {
@@ -5556,7 +5556,7 @@ body::before {
     .workspace-header h2 { font-size: .98rem !important; }
 }
 
-/* زر الإشعارات يظهر في الشريط العلوي وينتقل مع الحساب إلى شريط الأدوات. */
+/* زر الإشعارات  يظهر في الشريط العلوي وينتقل مع الحساب إلى شريط الأدوات. */
 .notification-header-btn { position: relative; }
 body.workspace-open .tools-sidebar #notification-header-btn { order: 3; }
 body.workspace-open .tools-sidebar #cart-header-btn { order: 4; }
