@@ -483,7 +483,7 @@
 <div class="message-content landing-state-content">
                             <div class="message-bubble landing-complete-bubble">
                                 <span class="landing-complete-icon"><i class="fas fa-check"></i></span>
-                                <div><span>السيرة الذاتية جاهزة</span><strong id="cv-complete-title">—</strong><small>جاهزة للمعاينة أو تنزيل ملف HTML</small></div>
+                                <div><span>السيرة الذاتية جاهزة</span><strong id="cv-complete-title">—</strong><small>جاهزة للمعاينة أو التنزيل بصيغة HTML وPDF</small></div>
                                 <button id="cv-open-result-btn" type="button" aria-label="عرض السيرة الذاتية" title="عرض السيرة الذاتية"><i class="far fa-eye"></i><span>عرض</span></button>
                             </div>
                         </div>
@@ -504,6 +504,7 @@
                         <div class="landing-code-actions">
                             <button id="cv-copy-code-btn" type="button" title="نسخ الكود"><i class="far fa-copy"></i></button>
                             <button id="cv-download-btn" type="button" title="تنزيل HTML"><i class="fas fa-download"></i></button>
+                            <button id="cv-download-pdf-btn" type="button" title="تحميل PDF احترافي" aria-label="تحميل السيرة الذاتية بصيغة PDF"><i class="far fa-file-pdf"></i></button>
                             <button id="cv-close-preview-btn" type="button" title="إغلاق المعاينة"><i class="fas fa-xmark"></i></button>
                         </div>
                     </div>
@@ -523,23 +524,33 @@
                             <p>تظهر هنا فقط المعلومات التي أدخلتها في الحقول. البيانات الموجودة داخل برومنت حر لا نستخرجها أو نخمنها تلقائيًا.</p>
                         </div>
                         <div id="cv-photo-edit-host" class="cv-photo-editor-host cv-photo-edit-host"></div>
-                        <div class="landing-form-grid cv-edit-form-grid">
-                            <label class="landing-field landing-field-wide"><span>الاسم الكامل</span><input id="cv-edit-full-name" type="text" autocomplete="name" placeholder="الاسم الكامل"></label>
-                            <label class="landing-field"><span>المسمى الوظيفي المستهدف</span><input id="cv-edit-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
-                            <label class="landing-field"><span>لغة السيرة</span><select id="cv-edit-language"><option value="" selected>لم أحدد — استنتجها من الطلب</option><option value="العربية">العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
-                            <label class="landing-field"><span>تاريخ الازدياد</span><input id="cv-edit-birth-date" type="date"></label>
-                            <label class="landing-field"><span>العمر</span><input id="cv-edit-age" type="number" min="14" max="100" inputmode="numeric"></label>
-                            <label class="landing-field"><span>البريد الإلكتروني</span><input id="cv-edit-email" type="email" dir="ltr"></label>
-                            <label class="landing-field"><span>رقم الهاتف</span><input id="cv-edit-phone" type="tel" dir="ltr"></label>
-                            <label class="landing-field"><span>المدينة / البلد</span><input id="cv-edit-location" type="text"></label>
-                            <label class="landing-field"><span>LinkedIn أو Portfolio</span><input id="cv-edit-links" type="text" dir="ltr"></label>
-                            <label class="landing-field landing-field-wide"><span>نبذة مهنية</span><textarea id="cv-edit-summary" rows="3"></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>الخبرات والوظائف السابقة</span><textarea id="cv-edit-experience" rows="4"></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>الدراسة والشهادات الأكاديمية</span><textarea id="cv-edit-education" rows="3"></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>الشهادات والدورات</span><textarea id="cv-edit-certifications" rows="3"></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>المهارات</span><textarea id="cv-edit-skills" rows="3"></textarea></label>
-                            <label class="landing-field"><span>اللغات</span><input id="cv-edit-languages" type="text"></label>
-                            <label class="landing-field"><span>اهتمامات / رخص / معلومات إضافية</span><input id="cv-edit-extra" type="text"></label>
+                        <div class="landing-form-grid cv-edit-form-grid cv-professional-form-grid">
+                            <div class="cv-form-section-title landing-field-wide"><span>👤 الهوية والهدف المهني</span><small>حدّث البيانات الأساسية دون تغيير ما لم تحدده</small></div>
+                            <label class="landing-field landing-field-wide"><span>👤 الاسم الكامل</span><input id="cv-edit-full-name" type="text" autocomplete="name" placeholder="الاسم الكامل"></label>
+                            <label class="landing-field"><span>🎯 المسمى الوظيفي المستهدف</span><input id="cv-edit-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
+                            <label class="landing-field"><span>🌐 لغة السيرة</span><select id="cv-edit-language"><option value="" selected>لم أحدد — استنتجها من الطلب</option><option value="العربية">العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>📇 المعلومات الشخصية والتواصل</span><small>بيانات الاتصال التي ستظهر داخل السيرة</small></div>
+                            <label class="landing-field"><span>🎂 تاريخ الازدياد</span><input id="cv-edit-birth-date" type="date"></label>
+                            <label class="landing-field"><span>🔢 العمر</span><input id="cv-edit-age" type="number" min="14" max="100" inputmode="numeric"></label>
+                            <label class="landing-field"><span>✉️ البريد الإلكتروني</span><input id="cv-edit-email" type="email" dir="ltr"></label>
+                            <label class="landing-field"><span>📞 رقم الهاتف</span><input id="cv-edit-phone" type="tel" dir="ltr"></label>
+                            <label class="landing-field"><span>📍 المدينة / البلد</span><input id="cv-edit-location" type="text"></label>
+                            <label class="landing-field"><span>🏳️ الجنسية</span><input id="cv-edit-nationality" type="text"></label>
+                            <label class="landing-field"><span>🔗 LinkedIn أو Portfolio</span><input id="cv-edit-links" type="text" dir="ltr"></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>🧾 الملف المهني</span><small>الملخص، المشاريع والإنجازات</small></div>
+                            <label class="landing-field landing-field-wide"><span>🧾 نبذة مهنية</span><textarea id="cv-edit-summary" rows="3"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>🛠️ المشاريع والأعمال</span><textarea id="cv-edit-projects" rows="3"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>🏆 الإنجازات والجوائز</span><textarea id="cv-edit-achievements" rows="3"></textarea></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>💼 الخبرة والتعليم</span><small>الخبرات، الدراسة والشهادات</small></div>
+                            <label class="landing-field landing-field-wide"><span>💼 الخبرات والوظائف السابقة</span><textarea id="cv-edit-experience" rows="4"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>🎓 الدراسة والشهادات الأكاديمية</span><textarea id="cv-edit-education" rows="3"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>📜 الشهادات والدورات</span><textarea id="cv-edit-certifications" rows="3"></textarea></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>🧠 المهارات والإضافات</span><small>المهارات واللغات والأنشطة والمراجع</small></div>
+                            <label class="landing-field landing-field-wide"><span>🧠 المهارات</span><textarea id="cv-edit-skills" rows="3"></textarea></label>
+                            <label class="landing-field"><span>🗣️ اللغات</span><input id="cv-edit-languages" type="text"></label>
+                            <label class="landing-field"><span>➕ اهتمامات / رخص / معلومات إضافية</span><input id="cv-edit-extra" type="text"></label>
+                            <label class="landing-field landing-field-wide"><span>🤝 العمل التطوعي والأنشطة</span><textarea id="cv-edit-volunteering" rows="3"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>👥 المراجع المهنية</span><textarea id="cv-edit-references" rows="2"></textarea></label>
                         </div>
                         <label class="cv-edit-note-field"><span><i class="far fa-note-sticky"></i> ملاحظة التعديل <small>اختيارية</small></span><textarea id="cv-edit-note" rows="3" placeholder="مثال: اجعل الخبرة الأخيرة أكثر بروزًا، أو اتركها فارغة لتحديث المعلومات فقط."></textarea></label>
                         <div class="cv-edit-submit-row">
@@ -587,7 +598,7 @@
                     <div class="cv-assistant-scroll">
                         <div id="cv-photo-assistant-host" class="cv-photo-editor-host">
                             <section id="cv-photo-editor-block" class="cv-photo-editor-block" aria-label="محرر الصورة الشخصية">
-                                <div class="cv-photo-field-head"><div><strong>الصورة الشخصية</strong><small>ارفع صورة ثم حرّكها وعدّل الإطار قبل اعتمادها.</small></div></div>
+                                <div class="cv-photo-field-head"><div><strong>🖼️ الصورة الشخصية</strong><small>ارفع صورة ثم حرّكها وعدّل الإطار قبل اعتمادها.</small></div></div>
                                 <div class="cv-photo-workspace">
                                     <button id="cv-attach-btn" class="cv-photo-upload-square" type="button" aria-label="رفع أو تعديل الصورة الشخصية" title="رفع أو تعديل الصورة الشخصية">
                                         <span class="cv-photo-upload-icon"><i class="far fa-circle-user"></i></span>
@@ -647,22 +658,32 @@
                                 </section>
                             </section>
                         </div>
-                        <div class="landing-form-grid">
-                            <label class="landing-field"><span>المسمى الوظيفي المستهدف</span><input id="cv-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
-                            <label class="landing-field"><span>لغة السيرة</span><select id="cv-language"><option value="" selected>لم أحدد — استنتجها من الطلب</option><option value="العربية">العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
-                            <label class="landing-field"><span>تاريخ الازدياد</span><input id="cv-birth-date" type="date"></label>
-                            <label class="landing-field"><span>العمر</span><input id="cv-age" type="number" min="14" max="100" inputmode="numeric" placeholder="مثال: 25"></label>
-                            <label class="landing-field"><span>البريد الإلكتروني</span><input id="cv-email" type="email" dir="ltr" placeholder="name@example.com"></label>
-                            <label class="landing-field"><span>رقم الهاتف</span><input id="cv-phone" type="tel" dir="ltr" placeholder="+212 ..."></label>
-                            <label class="landing-field"><span>المدينة / البلد</span><input id="cv-location" type="text" placeholder="مثال: Settat, Morocco"></label>
-                            <label class="landing-field"><span>LinkedIn أو Portfolio</span><input id="cv-links" type="text" dir="ltr" placeholder="linkedin.com/in/... أو portfolio"></label>
-                            <label class="landing-field landing-field-wide"><span>نبذة مهنية</span><textarea id="cv-summary" rows="3" placeholder="من أنت مهنيًا؟ ما خبرتك وما نوع الفرص التي تستهدفها؟"></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>الخبرات والوظائف السابقة</span><textarea id="cv-experience" rows="4" placeholder="اسم الشركة — الوظيفة — من/إلى — أهم المسؤوليات والنتائج. اكتب كل تجربة في سطر أو فقرة منفصلة."></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>الدراسة والشهادات الأكاديمية</span><textarea id="cv-education" rows="3" placeholder="المؤسسة — الشهادة/التخصص — السنة"></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>الشهادات والدورات</span><textarea id="cv-certifications" rows="3" placeholder="اسم الشهادة أو الدورة — الجهة — السنة"></textarea></label>
-                            <label class="landing-field landing-field-wide"><span>المهارات</span><textarea id="cv-skills" rows="3" placeholder="مهارات تقنية، مهنية، برامج، أدوات، قيادة، تواصل..."></textarea></label>
-                            <label class="landing-field"><span>اللغات</span><input id="cv-languages" type="text" placeholder="العربية، الفرنسية، الإنجليزية..."></label>
-                            <label class="landing-field"><span>اهتمامات / رخص / معلومات إضافية</span><input id="cv-extra" type="text" placeholder="اختياري"></label>
+                        <div class="landing-form-grid cv-professional-form-grid">
+                            <div class="cv-form-section-title landing-field-wide"><span>🎯 الهدف المهني</span><small>الوظيفة واللغة التي ستُبنى عليها السيرة</small></div>
+                            <label class="landing-field"><span>🎯 المسمى الوظيفي المستهدف</span><input id="cv-job-title" type="text" placeholder="مثال: Front-end Developer"></label>
+                            <label class="landing-field"><span>🌐 لغة السيرة</span><select id="cv-language"><option value="" selected>لم أحدد — استنتجها من الطلب</option><option value="العربية">العربية</option><option value="English">English</option><option value="Français">Français</option></select></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>📇 المعلومات الشخصية والتواصل</span><small>بيانات الاتصال الأساسية التي يحتاجها مسؤول التوظيف</small></div>
+                            <label class="landing-field"><span>🎂 تاريخ الازدياد</span><input id="cv-birth-date" type="date"></label>
+                            <label class="landing-field"><span>🔢 العمر</span><input id="cv-age" type="number" min="14" max="100" inputmode="numeric" placeholder="مثال: 25"></label>
+                            <label class="landing-field"><span>✉️ البريد الإلكتروني</span><input id="cv-email" type="email" dir="ltr" placeholder="name@example.com"></label>
+                            <label class="landing-field"><span>📞 رقم الهاتف</span><input id="cv-phone" type="tel" dir="ltr" placeholder="+212 ..."></label>
+                            <label class="landing-field"><span>📍 المدينة / البلد</span><input id="cv-location" type="text" placeholder="مثال: Settat, Morocco"></label>
+                            <label class="landing-field"><span>🏳️ الجنسية</span><input id="cv-nationality" type="text" placeholder="اختياري — مثال: مغربية"></label>
+                            <label class="landing-field"><span>🔗 LinkedIn أو Portfolio</span><input id="cv-links" type="text" dir="ltr" placeholder="linkedin.com/in/... أو portfolio"></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>🧾 الملف المهني</span><small>ملخص واضح وروابط وأعمال تبرز قيمتك المهنية</small></div>
+                            <label class="landing-field landing-field-wide"><span>🧾 نبذة مهنية</span><textarea id="cv-summary" rows="3" placeholder="من أنت مهنيًا؟ ما خبرتك وما نوع الفرص التي تستهدفها؟"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>🛠️ المشاريع والأعمال</span><textarea id="cv-projects" rows="3" placeholder="اسم المشروع — دورك — التقنيات — النتيجة أو الرابط"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>🏆 الإنجازات والجوائز</span><textarea id="cv-achievements" rows="3" placeholder="إنجازات قابلة للقياس، جوائز، مسابقات أو نتائج مميزة"></textarea></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>💼 الخبرة والتعليم</span><small>رتّب الأحدث أولًا، واذكر النتائج بدل سرد المهام فقط</small></div>
+                            <label class="landing-field landing-field-wide"><span>💼 الخبرات والوظائف السابقة</span><textarea id="cv-experience" rows="4" placeholder="اسم الشركة — الوظيفة — من/إلى — أهم المسؤوليات والنتائج. اكتب كل تجربة في سطر أو فقرة منفصلة."></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>🎓 الدراسة والشهادات الأكاديمية</span><textarea id="cv-education" rows="3" placeholder="المؤسسة — الشهادة/التخصص — السنة"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>📜 الشهادات والدورات</span><textarea id="cv-certifications" rows="3" placeholder="اسم الشهادة أو الدورة — الجهة — السنة"></textarea></label>
+                            <div class="cv-form-section-title landing-field-wide"><span>🧠 المهارات والإضافات</span><small>أضف فقط ما يدعم الوظيفة المستهدفة</small></div>
+                            <label class="landing-field landing-field-wide"><span>🧠 المهارات</span><textarea id="cv-skills" rows="3" placeholder="مهارات تقنية، مهنية، برامج، أدوات، قيادة، تواصل..."></textarea></label>
+                            <label class="landing-field"><span>🗣️ اللغات</span><input id="cv-languages" type="text" placeholder="العربية، الفرنسية، الإنجليزية..."></label>
+                            <label class="landing-field"><span>➕ اهتمامات / رخص / معلومات إضافية</span><input id="cv-extra" type="text" placeholder="اختياري"></label>
+                            <label class="landing-field landing-field-wide"><span>🤝 العمل التطوعي والأنشطة</span><textarea id="cv-volunteering" rows="3" placeholder="الجهة — الدور — المدة — الأثر"></textarea></label>
+                            <label class="landing-field landing-field-wide"><span>👥 المراجع المهنية</span><textarea id="cv-references" rows="2" placeholder="اختياري — الاسم، المنصب، وسيلة التواصل أو: متاحة عند الطلب"></textarea></label>
                         </div>
                     </div>
                 </div>
@@ -776,7 +797,7 @@
                                     <span class="website-preview-loader-spinner"><i class="fas fa-spinner fa-spin"></i></span>
                                     <div><strong>يتم تجهيز المعاينة</strong><small>دمج HTML وCSS وJavaScript وتشغيل الموقع...</small></div>
                                 </div>
-                                <iframe id="website-preview-frame" title="معاينة الموقع" sandbox="allow-scripts allow-forms allow-modals allow-downloads"></iframe>
+                                <iframe id="website-preview-frame" title="معاينة الموقع" loading="eager" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms allow-modals allow-downloads"></iframe>
                             </div>
                         </div>
                         <div id="website-files-view" class="website-files-view hidden">
@@ -787,6 +808,10 @@
                                 </aside>
                                 <section class="website-file-editor-panel">
                                     <div class="website-code-head"><span><i class="fas fa-file-code"></i> <b id="website-active-file-path">اختر ملفًا</b></span><small id="website-active-file-language">—</small></div>
+                                    <div id="website-code-diagnostics-panel" class="website-code-diagnostics-panel is-ok" aria-live="polite">
+                                        <span id="website-code-diagnostics-status"><i class="fas fa-circle-check"></i> الملف جاهز للتحرير</span>
+                                        <pre id="website-code-diagnostics-log" class="hidden" dir="ltr"></pre>
+                                    </div>
                                     <textarea id="website-code-editor" dir="ltr" spellcheck="false" aria-label="محرر ملف المشروع"></textarea>
                                     <div id="website-asset-viewer" class="website-asset-viewer hidden">
                                         <div id="website-asset-preview" class="website-asset-preview"></div>

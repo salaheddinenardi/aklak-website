@@ -2864,18 +2864,24 @@ function cacheCVUI() {
         editEmail: elementById('cv-edit-email'),
         editPhone: elementById('cv-edit-phone'),
         editLocation: elementById('cv-edit-location'),
+        editNationality: elementById('cv-edit-nationality'),
         editLinks: elementById('cv-edit-links'),
         editSummary: elementById('cv-edit-summary'),
+        editProjects: elementById('cv-edit-projects'),
+        editAchievements: elementById('cv-edit-achievements'),
         editExperience: elementById('cv-edit-experience'),
         editEducation: elementById('cv-edit-education'),
         editCertifications: elementById('cv-edit-certifications'),
         editSkills: elementById('cv-edit-skills'),
         editLanguages: elementById('cv-edit-languages'),
         editExtra: elementById('cv-edit-extra'),
+        editVolunteering: elementById('cv-edit-volunteering'),
+        editReferences: elementById('cv-edit-references'),
         codeEditor: elementById('cv-code-editor'),
         applyCodeBtn: elementById('cv-apply-code-btn'),
         copyBtn: elementById('cv-copy-code-btn'),
         downloadBtn: elementById('cv-download-btn'),
+        downloadPdfBtn: elementById('cv-download-pdf-btn'),
         closePreviewBtn: elementById('cv-close-preview-btn'),
         revisionPanel: elementById('cv-revision-panel'),
         revisionPrompt: elementById('cv-revision-prompt'),
@@ -2891,14 +2897,19 @@ function cacheCVUI() {
         email: elementById('cv-email'),
         phone: elementById('cv-phone'),
         location: elementById('cv-location'),
+        nationality: elementById('cv-nationality'),
         links: elementById('cv-links'),
         summary: elementById('cv-summary'),
+        projects: elementById('cv-projects'),
+        achievements: elementById('cv-achievements'),
         experience: elementById('cv-experience'),
         education: elementById('cv-education'),
         certifications: elementById('cv-certifications'),
         skills: elementById('cv-skills'),
         languages: elementById('cv-languages'),
         extra: elementById('cv-extra'),
+        volunteering: elementById('cv-volunteering'),
+        references: elementById('cv-references'),
         assistantToggle: elementById('cv-assistant-toggle'),
         assistantPanel: elementById('cv-assistant-panel'),
         assistantCloseBtn: elementById('cv-assistant-close-btn'),
@@ -3076,14 +3087,19 @@ function collectCVForm() {
         email: cvUI.email?.value.trim() || '',
         phone: cvUI.phone?.value.trim() || '',
         location: cvUI.location?.value.trim() || '',
+        nationality: cvUI.nationality?.value.trim() || '',
         links: cvUI.links?.value.trim() || '',
         summary: cvUI.summary?.value.trim() || '',
+        projects: cvUI.projects?.value.trim() || '',
+        achievements: cvUI.achievements?.value.trim() || '',
         experience: cvUI.experience?.value.trim() || '',
         education: cvUI.education?.value.trim() || '',
         certifications: cvUI.certifications?.value.trim() || '',
         skills: cvUI.skills?.value.trim() || '',
         languages: cvUI.languages?.value.trim() || '',
         extra: cvUI.extra?.value.trim() || '',
+        volunteering: cvUI.volunteering?.value.trim() || '',
+        references: cvUI.references?.value.trim() || '',
         prompt: cvUI.prompt?.value.trim() || '',
         profilePhotoPath: cvState.profileImage?.path || '',
         profilePhotoName: cvState.profileImage?.name || ''
@@ -3094,10 +3110,10 @@ function fillCVForm(form) {
     const f = form || {};
     const map = {
         fullName: cvUI.fullName, jobTitle: cvUI.jobTitle, birthDate: cvUI.birthDate, age: cvUI.age,
-        email: cvUI.email, phone: cvUI.phone, location: cvUI.location, links: cvUI.links,
-        summary: cvUI.summary, experience: cvUI.experience, education: cvUI.education,
+        email: cvUI.email, phone: cvUI.phone, location: cvUI.location, nationality: cvUI.nationality, links: cvUI.links,
+        summary: cvUI.summary, projects: cvUI.projects, achievements: cvUI.achievements, experience: cvUI.experience, education: cvUI.education,
         certifications: cvUI.certifications, skills: cvUI.skills, languages: cvUI.languages,
-        extra: cvUI.extra, prompt: cvUI.prompt
+        extra: cvUI.extra, volunteering: cvUI.volunteering, references: cvUI.references, prompt: cvUI.prompt
     };
     Object.keys(map).forEach(function(key) { if (map[key]) map[key].value = f[key] || ''; });
     if (cvUI.language) cvUI.language.value = f.language || '';
@@ -3116,14 +3132,19 @@ const CV_EDITABLE_FIELDS = Object.freeze([
     ['email', 'البريد الإلكتروني'],
     ['phone', 'رقم الهاتف'],
     ['location', 'المدينة / البلد'],
+    ['nationality', 'الجنسية'],
     ['links', 'LinkedIn / Portfolio'],
     ['summary', 'النبذة المهنية'],
+    ['projects', 'المشاريع والأعمال'],
+    ['achievements', 'الإنجازات والجوائز'],
     ['experience', 'الخبرات والوظائف السابقة'],
     ['education', 'الدراسة والشهادات الأكاديمية'],
     ['certifications', 'الشهادات والدورات'],
     ['skills', 'المهارات'],
     ['languages', 'اللغات'],
-    ['extra', 'معلومات إضافية']
+    ['extra', 'معلومات إضافية'],
+    ['volunteering', 'العمل التطوعي والأنشطة'],
+    ['references', 'المراجع المهنية']
 ]);
 
 function cloneCVForm(form) {
@@ -3140,10 +3161,11 @@ function getCVEditInput(key) {
     const map = {
         fullName: cvUI.editFullName, jobTitle: cvUI.editJobTitle, language: cvUI.editLanguage,
         birthDate: cvUI.editBirthDate, age: cvUI.editAge, email: cvUI.editEmail, phone: cvUI.editPhone,
-        location: cvUI.editLocation, links: cvUI.editLinks, summary: cvUI.editSummary,
-        experience: cvUI.editExperience, education: cvUI.editEducation,
+        location: cvUI.editLocation, nationality: cvUI.editNationality, links: cvUI.editLinks, summary: cvUI.editSummary,
+        projects: cvUI.editProjects, achievements: cvUI.editAchievements, experience: cvUI.editExperience, education: cvUI.editEducation,
         certifications: cvUI.editCertifications, skills: cvUI.editSkills,
-        languages: cvUI.editLanguages, extra: cvUI.editExtra
+        languages: cvUI.editLanguages, extra: cvUI.editExtra,
+        volunteering: cvUI.editVolunteering, references: cvUI.editReferences
     };
     return map[key] || null;
 }
@@ -3653,14 +3675,19 @@ function buildCVGenerationPrompt(form) {
         cvField('البريد الإلكتروني', form.email),
         cvField('الهاتف', form.phone),
         cvField('الموقع', form.location),
+        cvField('الجنسية', form.nationality),
         cvField('LinkedIn / Portfolio', form.links),
         cvField('النبذة المهنية', form.summary),
+        cvField('المشاريع والأعمال', form.projects),
+        cvField('الإنجازات والجوائز', form.achievements),
         cvField('الخبرات والوظائف السابقة', form.experience),
         cvField('الدراسة والشهادات الأكاديمية', form.education),
         cvField('الشهادات والدورات', form.certifications),
         cvField('المهارات', form.skills),
         cvField('اللغات', form.languages),
-        cvField('معلومات إضافية', form.extra)
+        cvField('معلومات إضافية', form.extra),
+        cvField('العمل التطوعي والأنشطة', form.volunteering),
+        cvField('المراجع المهنية', form.references)
     ].filter(Boolean).join('\n\n');
     const photoRule = form.profilePhotoPath
         ? 'توجد صورة شخصية جاهزة داخل أصول المشروع. استخدم هذا المسار حرفيًا داخل src للصورة: ' + form.profilePhotoPath + '. لا تحتاج إلى رؤية الصورة نفسها ولا إلى تحليل محتواها؛ استخدم المسار كما هو، ولا تخترع رابطًا آخر ولا تغيّر القص أو الشكل بالكود.'
@@ -4087,7 +4114,7 @@ async function generateCV() {
         cvUI.fullName?.focus();
         return;
     }
-    const hasUsefulDetails = [form.jobTitle, form.summary, form.experience, form.education, form.skills, form.prompt].some(Boolean);
+    const hasUsefulDetails = [form.jobTitle, form.summary, form.projects, form.achievements, form.experience, form.education, form.skills, form.prompt].some(Boolean);
     if (!hasUsefulDetails) {
         setCVStatus('أضف وصفًا أو بعض الخبرات/الدراسة/المهارات حتى تكون السيرة مفيدة.', 'error');
         cvUI.prompt?.focus();
@@ -4218,6 +4245,117 @@ function downloadCVCode() {
     setCVStatus('تم تجهيز ملف HTML للسيرة الذاتية.', 'success');
 }
 
+
+let cvPdfLibraryPromise = null;
+
+function loadScriptOnce(id, src) {
+    const existing = elementById(id);
+    if (existing) {
+        if (existing.dataset.loaded === 'true') return Promise.resolve(existing);
+        return new Promise(function(resolve, reject) {
+            existing.addEventListener('load', function() { resolve(existing); }, { once: true });
+            existing.addEventListener('error', reject, { once: true });
+        });
+    }
+    return new Promise(function(resolve, reject) {
+        const script = document.createElement('script');
+        script.id = id;
+        script.src = src;
+        script.async = true;
+        script.onload = function() { script.dataset.loaded = 'true'; resolve(script); };
+        script.onerror = function() { reject(new Error('تعذر تحميل المكتبة الخارجية.')); };
+        document.head.appendChild(script);
+    });
+}
+
+function loadStylesheetOnce(id, href) {
+    if (elementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+}
+
+function ensureCVPdfLibrary() {
+    if (typeof window.html2pdf === 'function') return Promise.resolve(window.html2pdf);
+    if (!cvPdfLibraryPromise) {
+        cvPdfLibraryPromise = loadScriptOnce('aklake-html2pdf-library', 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js')
+            .then(function() {
+                if (typeof window.html2pdf !== 'function') throw new Error('مكتبة PDF لم تصبح جاهزة.');
+                return window.html2pdf;
+            })
+            .catch(function(error) { cvPdfLibraryPromise = null; throw error; });
+    }
+    return cvPdfLibraryPromise;
+}
+
+function waitForDocumentImages(doc) {
+    return Promise.all(Array.from(doc?.images || []).map(function(image) {
+        if (image.complete) return Promise.resolve();
+        return new Promise(function(resolve) {
+            image.addEventListener('load', resolve, { once: true });
+            image.addEventListener('error', resolve, { once: true });
+        });
+    }));
+}
+
+function prepareCVHtmlForPdf(html) {
+    const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+    doc.querySelectorAll('script').forEach(function(script) { script.remove(); });
+    const style = doc.createElement('style');
+    style.setAttribute('data-aklake-pdf', 'true');
+    style.textContent = '@page{size:A4;margin:0}html,body{margin:0!important;padding:0!important;background:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{width:210mm!important;min-height:297mm!important;overflow:visible!important}*{box-sizing:border-box}a{text-decoration:none;color:inherit}';
+    doc.head.appendChild(style);
+    return '<!doctype html>\n' + doc.documentElement.outerHTML;
+}
+
+async function downloadCVPdf() {
+    const project = getActiveCVProject();
+    const version = getCurrentCVVersion();
+    if (!project || !version?.html) return setCVStatus('لا يوجد CV لتحويله إلى PDF بعد.', 'error');
+    if (cvState.busy) return;
+    const hydrated = hydrateCVPhoto(version.html, project);
+    const safeName = sanitizeDownloadName(project.title, 'aklake-cv');
+    if (cvUI.downloadPdfBtn) cvUI.downloadPdfBtn.disabled = true;
+    setCVStatus('يتم تجهيز نسخة PDF عالية الجودة...', 'loading');
+    let frame = null;
+    try {
+        await ensureCVPdfLibrary();
+        const pdfHtml = prepareCVHtmlForPdf(hydrated);
+        frame = document.createElement('iframe');
+        frame.setAttribute('aria-hidden', 'true');
+        frame.tabIndex = -1;
+        frame.style.cssText = 'position:fixed;left:-100000px;top:0;width:794px;height:1123px;border:0;visibility:hidden;pointer-events:none;';
+        document.body.appendChild(frame);
+        const doc = frame.contentDocument;
+        if (!doc) throw new Error('تعذر فتح نسخة PDF المؤقتة.');
+        doc.open();
+        doc.write(pdfHtml);
+        doc.close();
+        await new Promise(function(resolve) {
+            requestAnimationFrame(function() { requestAnimationFrame(resolve); });
+        });
+        if (!doc.body) throw new Error('تعذر قراءة محتوى السيرة لتصديره.');
+        if (doc.fonts?.ready) await Promise.race([doc.fonts.ready, new Promise(function(resolve) { setTimeout(resolve, 2500); })]);
+        await waitForDocumentImages(doc);
+        await window.html2pdf().set({
+            margin: 0,
+            filename: safeName + '-cv.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, allowTaint: false, backgroundColor: '#ffffff', logging: false, windowWidth: 794 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+            pagebreak: { mode: ['css', 'legacy'] }
+        }).from(doc.body).save();
+        setCVStatus('تم تنزيل السيرة الذاتية بصيغة PDF.', 'success');
+    } catch (error) {
+        setCVStatus(error.message || 'تعذر إنشاء ملف PDF. تحقق من الاتصال ثم حاول مجددًا.', 'error');
+    } finally {
+        frame?.remove();
+        if (cvUI.downloadPdfBtn) cvUI.downloadPdfBtn.disabled = false;
+    }
+}
+
 function initCVPhotoEditorInteractions() {
     cvUI.assistantCloseBtn?.addEventListener('click', function() { setCVAssistantOpen(false); });
     cvUI.attachBtn?.addEventListener('click', function() {
@@ -4338,6 +4476,7 @@ function initCVStudio() {
     cvUI.applyCodeBtn?.addEventListener('click', applyCVCodeManually);
     cvUI.copyBtn?.addEventListener('click', copyCVCode);
     cvUI.downloadBtn?.addEventListener('click', downloadCVCode);
+    cvUI.downloadPdfBtn?.addEventListener('click', downloadCVPdf);
     cvUI.prevVersionBtn?.addEventListener('click', function() { moveCVVersion(-1); });
     cvUI.nextVersionBtn?.addEventListener('click', function() { moveCVVersion(1); });
 
@@ -4407,7 +4546,12 @@ const websiteState = {
     previewRuntimeErrors: [],
     previewSignature: '',
     previewRefreshFrame: 0,
-    previewLoadTimer: 0
+    previewLoadTimer: 0,
+    previewObjectUrl: '',
+    previewFrameLoaded: false,
+    codeMirror: null,
+    codeMirrorPromise: null,
+    codeDiagnosticsTimer: 0
 };
 
 const WEBSITE_MODEL_INFO = {
@@ -4444,6 +4588,9 @@ function getWebsiteUI() {
         fileTree: elementById('website-file-tree'),
         activeFilePath: elementById('website-active-file-path'),
         activeFileLanguage: elementById('website-active-file-language'),
+        codeDiagnosticsPanel: elementById('website-code-diagnostics-panel'),
+        codeDiagnosticsStatus: elementById('website-code-diagnostics-status'),
+        codeDiagnosticsLog: elementById('website-code-diagnostics-log'),
         codeEditor: elementById('website-code-editor'),
         prompt: elementById('website-main-prompt'),
         generateBtn: elementById('website-generate-btn'),
@@ -4480,6 +4627,142 @@ function getWebsiteUI() {
         revisionPrompt: elementById('website-revision-prompt'),
         reviseBtn: elementById('website-revise-btn')
     };
+}
+
+
+const WEBSITE_CODEMIRROR_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/';
+
+function getWebsiteEditorValue() {
+    const w = getWebsiteUI();
+    return websiteState.codeMirror ? websiteState.codeMirror.getValue() : (w.codeEditor?.value || '');
+}
+
+function getWebsiteCodeMode(path) {
+    const value = String(path || '').toLowerCase();
+    if (/\.html?$/.test(value)) return 'htmlmixed';
+    if (/\.css$/.test(value)) return 'css';
+    if (/\.(?:js|mjs)$/.test(value)) return 'javascript';
+    return 'text/plain';
+}
+
+function setWebsiteEditorValue(value, path) {
+    const w = getWebsiteUI();
+    const text = String(value || '');
+    if (websiteState.codeMirror) {
+        websiteState.codeMirror.setOption('mode', getWebsiteCodeMode(path || websiteState.activeFilePath));
+        if (websiteState.codeMirror.getValue() !== text) websiteState.codeMirror.setValue(text);
+        websiteState.codeMirror.clearHistory();
+        requestAnimationFrame(function() { websiteState.codeMirror?.refresh(); });
+    } else if (w.codeEditor) {
+        w.codeEditor.value = text;
+    }
+}
+
+function setWebsiteEditorVisible(visible) {
+    const w = getWebsiteUI();
+    if (w.codeEditor) w.codeEditor.classList.toggle('hidden', !visible);
+    websiteState.codeMirror?.getWrapperElement()?.classList.toggle('hidden', !visible);
+    w.assetViewer?.parentElement?.classList.toggle('is-showing-asset', !visible);
+    if (visible) requestAnimationFrame(function() { websiteState.codeMirror?.refresh(); });
+}
+
+function stripCodeForBalance(value, type) {
+    let text = String(value || '');
+    if (type === 'css' || type === 'javascript') text = text.replace(/\/\*[\s\S]*?\*\//g, '');
+    if (type === 'javascript') text = text.replace(/\/\/[^\r\n]*/g, '');
+    return text.replace(/(["'`])(?:\\.|(?!\1)[\s\S])*\1/g, '');
+}
+
+function validateWebsiteSource(path, content) {
+    const value = String(content || '');
+    const lower = String(path || '').toLowerCase();
+    const errors = [];
+    if (!value.trim()) errors.push('الملف فارغ.');
+    if (/\.html?$/.test(lower)) {
+        if (!/<html[\s>]/i.test(value)) errors.push('عنصر <html> غير موجود.');
+        if (!/<body[\s>]/i.test(value)) errors.push('عنصر <body> غير موجود.');
+        if ((value.match(/<script\b/gi) || []).length !== (value.match(/<\/script>/gi) || []).length) errors.push('عدد وسوم <script> المفتوحة والمغلقة غير متطابق.');
+        if ((value.match(/<style\b/gi) || []).length !== (value.match(/<\/style>/gi) || []).length) errors.push('عدد وسوم <style> المفتوحة والمغلقة غير متطابق.');
+    } else if (/\.css$/.test(lower)) {
+        const clean = stripCodeForBalance(value, 'css');
+        let balance = 0;
+        for (const char of clean) {
+            if (char === '{') balance += 1;
+            if (char === '}') balance -= 1;
+            if (balance < 0) break;
+        }
+        if (balance !== 0) errors.push('أقواس CSS { } غير متوازنة.');
+    } else if (/\.(?:js|mjs)$/.test(lower)) {
+        try { new Function(value); }
+        catch (error) { errors.push(error?.message || 'خطأ في صياغة JavaScript.'); }
+    }
+    return { valid: errors.length === 0, errors: errors };
+}
+
+function updateWebsiteCodeDiagnostics(path, content) {
+    const w = getWebsiteUI();
+    if (!w.codeDiagnosticsPanel || !w.codeDiagnosticsStatus || !w.codeDiagnosticsLog) return { valid: true, errors: [] };
+    const result = validateWebsiteSource(path, content);
+    w.codeDiagnosticsPanel.classList.remove('is-ok', 'is-warning', 'is-error');
+    w.codeDiagnosticsPanel.classList.add(result.valid ? 'is-ok' : 'is-error');
+    w.codeDiagnosticsStatus.innerHTML = result.valid
+        ? '<i class="fas fa-circle-check"></i> لا توجد أخطاء صياغة واضحة في هذا الملف'
+        : '<i class="fas fa-triangle-exclamation"></i> تم العثور على ' + result.errors.length + ' مشكلة';
+    w.codeDiagnosticsLog.textContent = result.errors.join('\n');
+    w.codeDiagnosticsLog.classList.toggle('hidden', result.valid);
+    return result;
+}
+
+function scheduleWebsiteCodeDiagnostics() {
+    if (websiteState.codeDiagnosticsTimer) clearTimeout(websiteState.codeDiagnosticsTimer);
+    websiteState.codeDiagnosticsTimer = setTimeout(function() {
+        websiteState.codeDiagnosticsTimer = 0;
+        updateWebsiteCodeDiagnostics(websiteState.activeFilePath, getWebsiteEditorValue());
+    }, 180);
+}
+
+async function ensureWebsiteCodeMirror() {
+    if (websiteState.codeMirror) return websiteState.codeMirror;
+    if (websiteState.codeMirrorPromise) return websiteState.codeMirrorPromise;
+    websiteState.codeMirrorPromise = (async function() {
+        loadStylesheetOnce('aklake-codemirror-css', WEBSITE_CODEMIRROR_BASE + 'codemirror.min.css');
+        loadStylesheetOnce('aklake-codemirror-theme', WEBSITE_CODEMIRROR_BASE + 'theme/material-darker.min.css');
+        await loadScriptOnce('aklake-codemirror-core', WEBSITE_CODEMIRROR_BASE + 'codemirror.min.js');
+        await loadScriptOnce('aklake-codemirror-xml', WEBSITE_CODEMIRROR_BASE + 'mode/xml/xml.min.js');
+        await loadScriptOnce('aklake-codemirror-css-mode', WEBSITE_CODEMIRROR_BASE + 'mode/css/css.min.js');
+        await loadScriptOnce('aklake-codemirror-js-mode', WEBSITE_CODEMIRROR_BASE + 'mode/javascript/javascript.min.js');
+        await loadScriptOnce('aklake-codemirror-html-mode', WEBSITE_CODEMIRROR_BASE + 'mode/htmlmixed/htmlmixed.min.js');
+        const w = getWebsiteUI();
+        if (!window.CodeMirror || !w.codeEditor) throw new Error('تعذر تشغيل محرر الأكواد الملون.');
+        websiteState.codeMirror = window.CodeMirror.fromTextArea(w.codeEditor, {
+            mode: getWebsiteCodeMode(websiteState.activeFilePath),
+            theme: 'material-darker',
+            lineNumbers: true,
+            lineWrapping: false,
+            indentUnit: 2,
+            tabSize: 2,
+            indentWithTabs: false,
+            viewportMargin: 40
+        });
+        websiteState.codeMirror.on('change', function() {
+            const activeFile = getWebsiteFile(websiteState.activeFilePath);
+            getWebsiteUI().applyCodeBtn?.classList.toggle('has-changes', Boolean(activeFile && getWebsiteEditorValue() !== activeFile.content));
+            scheduleWebsiteCodeDiagnostics();
+        });
+        websiteState.codeMirror.setOption('extraKeys', {
+            'Ctrl-S': function() { updateActiveWebsiteFileFromEditor(); },
+            'Cmd-S': function() { updateActiveWebsiteFileFromEditor(); },
+            'Tab': function(cm) { cm.replaceSelection('  ', 'end'); }
+        });
+        setWebsiteEditorValue(getWebsiteFile(websiteState.activeFilePath)?.content || '', websiteState.activeFilePath);
+        updateWebsiteCodeDiagnostics(websiteState.activeFilePath, getWebsiteEditorValue());
+        return websiteState.codeMirror;
+    })().catch(function(error) {
+        websiteState.codeMirrorPromise = null;
+        setWebsiteStatus(error.message || 'تعذر تحميل محرر الأكواد؛ سيستمر المحرر النصي العادي.', 'error');
+        return null;
+    });
+    return websiteState.codeMirrorPromise;
 }
 
 function setWebsiteStatus(message, type) {
@@ -4974,7 +5257,7 @@ function selectWebsiteAsset(path) {
     const w = getWebsiteUI();
     if (w.activeFilePath) w.activeFilePath.textContent = asset.path;
     if (w.activeFileLanguage) w.activeFileLanguage.textContent = asset.mimeType || 'Asset';
-    if (w.codeEditor) w.codeEditor.classList.add('hidden');
+    setWebsiteEditorVisible(false);
     w.applyCodeBtn?.classList.add('hidden');
     w.assetViewer?.classList.remove('hidden');
     if (w.activeAssetName) w.activeAssetName.textContent = asset.name || asset.path;
@@ -5070,6 +5353,16 @@ function buildWebsitePreviewDocument(project, renderToken, options) {
 
     // srcdoc يعمل داخل sandbox آمن. أي CSP مولد داخل المشروع قد يمنع الأكواد المدمجة الخاصة بالمعاينة، لذلك نحذفه من نسخة المعاينة فقط.
     html = html.replace(/<meta\b[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi, '');
+
+    // داخل المعاينة فقط: لا نسمح للموارد الخارجية البطيئة بحجب ظهور HTML.
+    html = html.replace(/<script\b([^>]*?)src=["']((?:https?:)?\/\/[^"']+)["']([^>]*)>/gi, function(full, before, src, after) {
+        if (/\b(?:defer|async)\b/i.test(before + ' ' + after) || /\btype=["']module["']/i.test(before + ' ' + after)) return full;
+        return '<script ' + before + 'src="' + src + '" ' + after + ' defer>';
+    });
+    html = html.replace(/<link\b([^>]*?)rel=["']stylesheet["']([^>]*?)href=["']((?:https?:)?\/\/[^"']+)["']([^>]*)>/gi, function(full, before, middle, href, after) {
+        if (/\bmedia=/i.test(full)) return full;
+        return '<link ' + before + 'rel="stylesheet"' + middle + 'href="' + href + '"' + after + ' media="print" onload="this.media=\'all\'">';
+    });
 
     html = html.replace(/<link\b([^>]*?)href=["']([^"']+)["']([^>]*)>/gi, function(full, before, href) {
         const path = normalizeWebsiteAssetPath(href);
@@ -5183,7 +5476,9 @@ function selectWebsiteFile(path) {
     websiteState.activeAssetPath = '';
     const w = getWebsiteUI();
     w.assetViewer?.classList.add('hidden');
-    if (w.codeEditor) { w.codeEditor.classList.remove('hidden'); w.codeEditor.value = file.content; }
+    setWebsiteEditorVisible(true);
+    setWebsiteEditorValue(file.content, file.path);
+    updateWebsiteCodeDiagnostics(file.path, file.content);
     w.applyCodeBtn?.classList.remove('hidden');
     if (w.activeFilePath) w.activeFilePath.textContent = file.path;
     if (w.activeFileLanguage) w.activeFileLanguage.textContent = getWebsiteLanguage(file.path);
@@ -5321,7 +5616,9 @@ function handleWebsitePreviewMessage(event) {
     if (!data || data.source !== 'aklake-website-preview' || data.token !== websiteState.previewRenderToken) return;
 
     if (data.type === 'boot') {
-        if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'تم تحميل ملفات المعاينة، ويجري تشغيل app.js...';
+        // وصل HTML إلى المتصفح وبدأ تفسيره؛ نكشف المعاينة فورًا ولا ننتظر الموارد الخارجية البطيئة.
+        setWebsitePreviewLoading(false);
+        if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'ظهر هيكل الصفحة، ويجري تحميل الموارد وتشغيل app.js في الخلفية...';
         return;
     }
 
@@ -5362,17 +5659,46 @@ function handleWebsitePreviewMessage(event) {
     }
 }
 
+
+function validateWebsiteProjectSources(project) {
+    const normalized = normalizeWebsiteProject(project);
+    if (!normalized) return { valid: false, errors: ['تعذر قراءة ملفات المشروع.'] };
+    const errors = [];
+    normalized.files.forEach(function(file) {
+        const result = validateWebsiteSource(file.path, file.content);
+        result.errors.forEach(function(message) { errors.push(file.path + ': ' + message); });
+    });
+    return { valid: errors.length === 0, errors: errors };
+}
+
+function showWebsiteProjectDiagnostics(result) {
+    const w = getWebsiteUI();
+    const errors = result?.errors || [];
+    if (!errors.length) return;
+    if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = 'error'; w.previewDiagnostics.classList.remove('hidden'); }
+    if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'توجد أخطاء في ملفات المشروع قبل التشغيل.';
+    if (w.previewErrorLog) {
+        w.previewErrorLog.textContent = errors.join('\n');
+        w.previewErrorLog.classList.remove('hidden');
+    }
+    if (errors.some(function(error) { return /\.html?:/i.test(error); })) setWebsitePreviewHealthBadge(w.previewHealthHtml, 'error');
+    if (errors.some(function(error) { return /\.css:/i.test(error); })) setWebsitePreviewHealthBadge(w.previewHealthCss, 'error');
+    if (errors.some(function(error) { return /\.js:/i.test(error); })) setWebsitePreviewHealthBadge(w.previewHealthJs, 'error');
+}
+
 function refreshWebsitePreview(force) {
     const w = getWebsiteUI();
     if (!w.previewFrame || !websiteState.previewOpen) return false;
     const signature = getWebsitePreviewSignature(websiteState.project);
-    if (!force && signature && signature === websiteState.previewSignature && w.previewFrame.srcdoc) {
+    if (!force && signature && signature === websiteState.previewSignature && websiteState.previewObjectUrl) {
         setWebsitePreviewLoading(false);
         return false;
     }
 
     websiteState.previewRenderToken = 'aklake-preview-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
     resetWebsitePreviewDiagnostics(websiteState.project ? 'loading' : 'idle');
+    const sourceDiagnostics = validateWebsiteProjectSources(websiteState.project);
+    if (!sourceDiagnostics.valid) showWebsiteProjectDiagnostics(sourceDiagnostics);
     setWebsitePreviewLoading(true, 'دمج HTML وCSS وJavaScript وتشغيل الموقع...');
     const doc = websiteState.project ? buildWebsitePreviewDocument(websiteState.project, websiteState.previewRenderToken) : '';
     if (!doc) {
@@ -5381,6 +5707,7 @@ function refreshWebsitePreview(force) {
         setWebsitePreviewHealthBadge(w.previewHealthJs, 'error');
         if (w.previewDiagnostics) { w.previewDiagnostics.dataset.state = 'error'; w.previewDiagnostics.classList.remove('hidden'); }
         if (w.previewRuntimeMessage) w.previewRuntimeMessage.textContent = 'تعذر بناء وثيقة المعاينة من الملفات الحالية.';
+        w.previewFrame.removeAttribute('src');
         w.previewFrame.srcdoc = '';
         websiteState.previewSignature = '';
         setWebsitePreviewLoading(false);
@@ -5388,7 +5715,14 @@ function refreshWebsitePreview(force) {
     }
 
     websiteState.previewSignature = signature;
-    w.previewFrame.srcdoc = doc + '\n<!-- AKLAKE_RENDER_' + websiteState.previewRenderToken + ' -->';
+    const previewBlob = new Blob([doc + '\n<!-- AKLAKE_RENDER_' + websiteState.previewRenderToken + ' -->'], { type: 'text/html;charset=utf-8' });
+    const nextUrl = URL.createObjectURL(previewBlob);
+    const previousUrl = websiteState.previewObjectUrl;
+    websiteState.previewObjectUrl = nextUrl;
+    websiteState.previewFrameLoaded = false;
+    w.previewFrame.removeAttribute('srcdoc');
+    w.previewFrame.src = nextUrl;
+    if (previousUrl) setTimeout(function() { URL.revokeObjectURL(previousUrl); }, 5000);
     if (websiteState.previewLoadTimer) clearTimeout(websiteState.previewLoadTimer);
     websiteState.previewLoadTimer = setTimeout(function() {
         setWebsitePreviewLoading(false);
@@ -5583,6 +5917,12 @@ function showWebsiteView(view) {
     });
     if (normalizedView === 'preview' && websiteState.previewOpen && websiteState.project) {
         scheduleWebsitePreviewRefresh(false);
+    } else if (normalizedView === 'files') {
+        ensureWebsiteCodeMirror().then(function(editor) {
+            if (!editor) return;
+            setWebsiteEditorValue(getWebsiteFile(websiteState.activeFilePath)?.content || '', websiteState.activeFilePath);
+            requestAnimationFrame(function() { editor.refresh(); });
+        });
     }
 }
 
@@ -5880,6 +6220,10 @@ function clearWebsiteReference() {
 
 function resetWebsiteBuilder() {
     const w = getWebsiteUI();
+    if (websiteState.previewObjectUrl) {
+        URL.revokeObjectURL(websiteState.previewObjectUrl);
+        websiteState.previewObjectUrl = '';
+    }
     websiteState.previewOpen = false;
     websiteState.chatCollapsed = false;
     websiteState.activeView = 'preview';
@@ -5902,9 +6246,9 @@ function resetWebsiteBuilder() {
     renderWebsiteAssetsTray();
     if (w.prompt) w.prompt.value = '';
     if (w.revisionPrompt) w.revisionPrompt.value = '';
-    if (w.previewFrame) w.previewFrame.srcdoc = '';
+    if (w.previewFrame) { w.previewFrame.removeAttribute('src'); w.previewFrame.srcdoc = ''; }
     resetWebsitePreviewDiagnostics('idle', 'جاهز لتشغيل المعاينة.');
-    if (w.codeEditor) w.codeEditor.value = '';
+    setWebsiteEditorValue('', '');
     w.applyCodeBtn?.classList.remove('has-changes');
     if (w.fileTree) w.fileTree.innerHTML = '';
     if (w.activeFilePath) w.activeFilePath.textContent = 'اختر ملفًا';
@@ -5926,7 +6270,9 @@ function updateActiveWebsiteFileFromEditor() {
     if (!websiteState.project || !websiteState.activeFilePath) return setWebsiteStatus('اختر ملفًا أولًا.', 'error');
     const file = getWebsiteFile(websiteState.activeFilePath);
     if (!file) return setWebsiteStatus('تعذر العثور على الملف المحدد.', 'error');
-    const nextContent = w.codeEditor?.value ?? '';
+    const nextContent = getWebsiteEditorValue();
+    const sourceValidation = updateWebsiteCodeDiagnostics(file.path, nextContent);
+    if (!sourceValidation.valid) return setWebsiteStatus('أصلح أخطاء الصياغة الظاهرة قبل حفظ الملف وتشغيله.', 'error');
     if (file.path === websiteState.project.entry && (!/<html[\s>]/i.test(nextContent) || !/<body[\s>]/i.test(nextContent))) {
         return setWebsiteStatus('ملف الدخول الرئيسي يجب أن يبقى وثيقة HTML صالحة.', 'error');
     }
@@ -5971,6 +6317,13 @@ window.initWebsiteBuilder = function() {
     if (!w.studio) return;
     websiteState.initialized = true;
     window.addEventListener('message', handleWebsitePreviewMessage);
+    w.previewFrame?.addEventListener('load', function() {
+        websiteState.previewFrameLoaded = true;
+        setWebsitePreviewLoading(false);
+        if (w.previewRuntimeMessage && !websiteState.previewRuntimeErrors.length) {
+            w.previewRuntimeMessage.textContent = 'ظهرت الصفحة؛ يتم الآن التحقق من JavaScript والموارد الخارجية.';
+        }
+    });
     restoreWebsiteModelChoice();
     w.prompt?.addEventListener('input', function() { autoResizeTextarea(w.prompt); });
     w.prompt?.addEventListener('keydown', function(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); generateWebsite(); } });
@@ -6029,7 +6382,13 @@ window.initWebsiteBuilder = function() {
         const value = asset ? asset.path : file?.content;
         if (!value) return setWebsiteStatus('لا يوجد ملف أو مسار لنسخه.', 'error');
         try { await navigator.clipboard.writeText(value); setWebsiteStatus(asset ? ('تم نسخ مسار ' + asset.path + '.') : ('تم نسخ ' + file.path + '.'), 'success'); }
-        catch (e) { if (file && w.codeEditor) { w.codeEditor.focus(); w.codeEditor.select(); document.execCommand('copy'); } }
+        catch (e) {
+            if (file) {
+                if (websiteState.codeMirror) { websiteState.codeMirror.focus(); websiteState.codeMirror.execCommand('selectAll'); }
+                else if (w.codeEditor) { w.codeEditor.focus(); w.codeEditor.select(); }
+                document.execCommand('copy');
+            }
+        }
     });
     w.downloadBtn?.addEventListener('click', function() {
         const asset = getWebsiteAsset(websiteState.activeAssetPath);
@@ -6056,11 +6415,13 @@ window.initWebsiteBuilder = function() {
         if (websiteState.activeAssetPath) removeWebsiteAsset(websiteState.activeAssetPath);
     });
     w.codeEditor?.addEventListener('input', function() {
+        if (websiteState.codeMirror) return;
         const activeFile = getWebsiteFile(websiteState.activeFilePath);
-        const dirty = Boolean(activeFile && w.codeEditor.value !== activeFile.content);
-        w.applyCodeBtn?.classList.toggle('has-changes', dirty);
+        w.applyCodeBtn?.classList.toggle('has-changes', Boolean(activeFile && getWebsiteEditorValue() !== activeFile.content));
+        scheduleWebsiteCodeDiagnostics();
     });
     w.codeEditor?.addEventListener('keydown', function(event) {
+        if (websiteState.codeMirror) return;
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
             event.preventDefault();
             updateActiveWebsiteFileFromEditor();

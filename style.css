@@ -5764,3 +5764,92 @@ body.workspace-open .tools-sidebar #notification-header-btn > i:first-child {
     .cv-photo-ai-controls,
     .cv-photo-ai-actions { grid-template-columns: 1fr; }
 }
+
+
+/* =========================================================
+   CV PROFESSIONAL FORM + PDF ACTION
+   ========================================================= */
+.cv-professional-form-grid { align-items: start; }
+.cv-form-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 5px 0 1px;
+    padding: 9px 11px;
+    color: #eafff2;
+    background: linear-gradient(90deg, rgba(121,226,173,.09), rgba(121,226,173,.025));
+    border-inline-start: 3px solid rgba(121,226,173,.65);
+    border-radius: 8px;
+}
+.cv-form-section-title > span { font-size: .7rem; font-weight: 800; }
+.cv-form-section-title > small { color: #7f9e8e; font-size: .56rem; text-align: end; }
+.app-shell[data-action="cv_builder"] .landing-field > span {
+    display: flex;
+    align-items: center;
+    min-height: 20px;
+    gap: 5px;
+    line-height: 1.35;
+}
+#cv-download-pdf-btn { color: #ffb5b9; }
+#cv-download-pdf-btn:hover {
+    color: #fff;
+    background: rgba(255,100,110,.14);
+    border-color: rgba(255,130,140,.34);
+}
+
+/* =========================================================
+   WEBSITE PROFESSIONAL CODE EDITOR + LIVE DIAGNOSTICS
+   ========================================================= */
+.website-code-diagnostics-panel {
+    display: grid;
+    gap: 6px;
+    padding: 7px 10px;
+    color: #9eb5a9;
+    background: rgba(4,12,8,.74);
+    border-bottom: 1px solid rgba(121,226,173,.1);
+    font-size: .6rem;
+}
+.website-code-diagnostics-panel > span { display: flex; align-items: center; gap: 7px; }
+.website-code-diagnostics-panel.is-ok > span { color: #88dcb0; }
+.website-code-diagnostics-panel.is-warning > span { color: #ffc477; }
+.website-code-diagnostics-panel.is-error > span { color: #ff939c; }
+.website-code-diagnostics-panel pre {
+    max-height: 130px;
+    margin: 0;
+    padding: 8px 10px;
+    overflow: auto;
+    color: #ffc3c7;
+    background: rgba(35,4,8,.62);
+    border: 1px solid rgba(255,120,130,.16);
+    border-radius: 7px;
+    font: 500 .62rem/1.6 Consolas, "Courier New", monospace;
+    white-space: pre-wrap;
+}
+.website-file-editor-panel .CodeMirror {
+    min-height: 520px;
+    height: min(66vh, 720px);
+    color: #e9f4ee;
+    background: #08100c;
+    border: 0;
+    font: 500 .78rem/1.65 Consolas, "SFMono-Regular", "Courier New", monospace;
+    direction: ltr;
+}
+.website-file-editor-panel .CodeMirror-gutters {
+    background: #060c09;
+    border-inline-end: 1px solid rgba(121,226,173,.12);
+}
+.website-file-editor-panel .CodeMirror-linenumber { color: #52675d; }
+.website-file-editor-panel .CodeMirror-cursor { border-left-color: #9ff0c4; }
+.website-file-editor-panel .CodeMirror-selected { background: rgba(121,226,173,.18) !important; }
+.website-file-editor-panel .CodeMirror-focused .CodeMirror-selected { background: rgba(121,226,173,.22) !important; }
+.website-file-editor-panel.is-showing-asset .CodeMirror { display: none; }
+@media (max-width: 760px) {
+    .cv-form-section-title { align-items: flex-start; flex-direction: column; gap: 3px; }
+    .cv-form-section-title > small { text-align: start; }
+    .website-file-editor-panel .CodeMirror {
+        min-height: 390px;
+        height: 58vh;
+        font-size: .72rem;
+    }
+}
